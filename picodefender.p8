@@ -35,6 +35,7 @@ laser_inertia = 0.999
 function _init()
 	w = {}  -- ground
 	sw = {} -- ground summary
+	stars = {}
 	actors = {}
 
 	cx = 128 * 4
@@ -52,9 +53,10 @@ function _init()
 	}
 	
 	lasers = {}
+
+	add_stars()
 	
 	add_enemies()
-
 end
 
 
@@ -185,15 +187,26 @@ function draw_enemies()
 	local t=time()
 	for enemy in all(actors) do
 		local x,y = wxtoc(enemy.x), enemy.y
-		printh(x)
+		--printh(x)
 		spr(9, x, y, 1,1)
 	 -- todo animate?
 	end
 end
 
+function draw_stars()
+	local dist = cx/ww
+	for star in all(stars) do
+		--local x = ((star[1] - cx)\hwr + star[3]*(3/10))
+		local x = star[1] - (cx/star[3])
+		printh(x)
+		pset(x, star[2], 10)
+	end
+end
 
 function _draw()
  cls()
+
+	draw_stars()
 
 	draw_hud()
 
@@ -266,6 +279,12 @@ function build_world()
 
 	 -- todo make ends meet!	 
 		w[i] = {l}
+	end
+end
+
+function add_stars()
+	for s = 1,100 do
+		add(stars, {rnd(ww), rnd(127-hudy-lmax-8)+hudy, rnd(2)+16})
 	end
 end
 
