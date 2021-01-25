@@ -6,8 +6,6 @@ debug = true
 ww = 128 * 9
 cx = 128 * 4
 ocx = cx
-w = {}  -- ground
-sw = {} -- ground summary
 
 inertia_py = 0.95
 inertia_cx = 0.99
@@ -21,13 +19,26 @@ hhr = (128-4 - hudy)/hudy + 1
 lmin = 3
 lmax = 56
 
-cdx = 0
 max_speed = 4
 thrust = 1
 vert_accel = 0.6
 max_vert_speed = max_speed/2
 
+laser_expire = 1
+laser_size = 40  -- see rate
+laser_rate=8
+laser_max_length = 50  -- cap
+min_laser_speed = 0.1  -- e.g. static ship, move away still
+laser_speed = 1.8
+laser_inertia = 0.999
+
 function _init()
+	w = {}  -- ground
+	sw = {} -- ground summary
+
+	cx = 128 * 4
+ cdx = 0
+
 	build_world()
 	
 	pl = {
@@ -38,6 +49,8 @@ function _init()
 		dx=0,
 		dy=0,
 	}
+	
+	lasers = {}
 
 end
 
@@ -63,6 +76,26 @@ function _update60()
   pl.dy = pl.dy+vert_accel
   if (pl.dy > max_vert_speed) pl.dy=max_vert_speed
  end
+ 
+
+ if btnp(❎) then
+  local x = pl.x
+ 	if pl.facing > 0 then
+ 		x = x+8 + 1+1+1
+ 	end
+ 	add(lasers, {cx+x - 2,pl.y+7,pl.facing,time(),max(cdx, min_laser_speed)})
+ end
+ local t=time()
+ for laser in all(lasers) do
+ 	if t-laser[4] > laser_expire then
+ 		del(lasers,laser)
+ 	end
+ 	laser[1] += laser[5]*laser[3] * laser_speed
+ 	laser[5] *= laser_inertia
+ end
+ --if btnp(🅾️) then -- z
+ 	-- smart bomb
+ --end
  
  pl.dy *= inertia_py
  pl.y += pl.dy 
@@ -91,6 +124,12 @@ function wtos(wx,wy)
 	return x,y
 end
 
+function wxtoc(wx)
+	x=wx - cx
+	return x
+end
+
+
 function draw_hud()
  local hdc = hudw/9
  
@@ -113,7 +152,20 @@ function draw_hud()
 	line(hc+hdc*4-1,hudy, hc+hdc*5+1,hudy, 7)
 	pset(hc+hdc*4-1,hudy-1, 7)
  pset(hc+hdc*5+1,hudy-1, 7)
+end
 
+function draw_player()
+	spr(2, pl.x, pl.y, 1,1, pl.facing==-1)
+	local t=time()
+	for laser in all(lasers) do
+		--printh(tostr(laser))
+		local x,y = wxtoc(laser[1]), laser[2]
+		local age = (t-laser[4]) / laser_expire
+		line(x,y,
+				  	x+min(((age * laser_size)* laser_rate * laser[3]), laser_max_length), y, 
+				  	7
+		)
+	end
 end
 
 function _draw()
@@ -128,9 +180,8 @@ function _draw()
 		pset(x,127 - w[i][1], 4)
 	end
 
-	-- draw_player
-	spr(2, pl.x, pl.y, 1,1, pl.facing==-1)
-	
+	draw_player()
+		
 	if debug then
 		print(cx,1,1)
 		print(cdx,1,7)
