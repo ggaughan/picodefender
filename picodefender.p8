@@ -33,7 +33,7 @@ laser_speed = 1.8
 laser_inertia = 0.999
 
 function _init()
-	w = {}  -- ground
+	w = {}  -- ground + stars
 	sw = {} -- ground summary
 	stars = {}
 	actors = {}
@@ -194,12 +194,52 @@ function draw_enemies()
 end
 
 function draw_stars()
-	local dist = cx/ww
+--	for x = 0,127 do
+--  i = ((ceil(cx+x))%ww) + 1
+--		printh(i..","..#w[i])
+--		if #w[i]>1 then
+--			printh(i..","..w[i][2][2].." "..cx+x)
+--			printh(x+w[i][2][2])
+--			pset(
+--				--ceil(cx+x)-(cx/w[i][2][2]),
+--				--x - (cx/w[i][2][2])*1/34,
+--				--(cx+x - (cx/w[i][2][2])*1) -cx,
+--				x + cx/w[i][2][2]*0.3,
+--				w[i][2][1], 
+--				10
+--			)
+--		end
+--	end
+
+	--local dist = cx/ww
 	for star in all(stars) do
 		--local x = ((star[1] - cx)\hwr + star[3]*(3/10))
-		local x = star[1] - (cx/star[3])
-		printh(x)
-		pset(x, star[2], 10)
+		--local x = star[1] - (cx/star[3])
+		--local x = ((cx+star[1])%ww) + (star[3]*(3/10))
+		--local x = star[1] - (cx/star[3])
+		local x = star[1] - (cx/star[3])  -- -cx for screen; /star[3] for move-delay
+		local col = 10
+		if cx + 128 > ww then
+			--if star[1] < (128 - (ww-cx)) then
+			--printh("?"..star[1]-(cx/star[3]).." < "..(128 - (ww-cx)))
+			--if false then --!!!  star[1]-(cx/star[3]) < (128 - (ww-cx)) then
+			if star[1]-(cx/star[3]) < (128 - (ww-cx)) then
+				--x = (star[1] + ww) - (cx/star[3])
+				--x = (star[1] + ww) - (cx/star[3])
+ 			x = (star[1]+(ww/star[3])) - (cx/star[3])
+				--col = 14
+				printh(cx.." wrap "..star[1].." "..x)
+			end
+		end
+--		if cx < 0 then
+--			if star[1] > (ww - (128-cx)) then
+--				x = (star[1] - ww) - (cx/star[3])
+--				printh(cx.." wrap "..star[1].." "..x)
+--			end
+--		end
+		--printh(star[1].." -"..(cx/star[3]).." -> "..x)
+		--printh(col)
+		pset(x, star[2], col)
 	end
 end
 
@@ -225,6 +265,9 @@ function _draw()
 	if debug then
 		print(cx,1,1)
 		print(cdx,1,7)
+		if cx + 128 > ww then
+			print("★",1,14)
+		end
 	end
 
 end
@@ -277,14 +320,19 @@ function build_world()
 	 	sw[i \ hwr] = ll
 	 end
 
-	 -- todo make ends meet!	 
+	 -- todo make level ends meet!	 
+	 
+	 --if rnd() < 0.05 then
+		--w[i] = {l, {rnd(127-hudy-lmax-8)+hudy, rnd(2)+10}}
+	 --else
 		w[i] = {l}
+		--end
 	end
 end
 
 function add_stars()
 	for s = 1,100 do
-		add(stars, {rnd(ww), rnd(127-hudy-lmax-8)+hudy, rnd(2)+16})
+		add(stars, {rnd(ww), rnd(127-hudy-lmax-8)+hudy, rnd(2)+10})
 	end
 end
 
