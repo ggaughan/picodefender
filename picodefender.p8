@@ -29,6 +29,7 @@ laser_expire = 1
 laser_size = 40  -- see rate
 laser_rate=8
 laser_max_length = 50  -- cap
+laser_min_length = 6  -- show something immediately
 min_laser_speed = 0.1  -- e.g. static ship, move away still
 laser_speed = 1.8
 laser_inertia = 0.999
@@ -195,22 +196,25 @@ function update_enemies()
 		local hit = false
 		-- check if hit by laser
 	 for laser in all(lasers) do 	
-			local x,y = laser[1], laser[2]
-			--local age = (t-laser[4]) / laser_expire
-		 -- todo precalc half widths			
-		 -- todo include wrap at end
-			if y > (e.y+(8-e.h)/2) and y < (e.y+8-(e.h/2)) then
-				-- note: quick check against max and assume width == 8 (and player can't be on enemy)
-				if laser[3] > 0 and x < e.x and x+laser_max_length > e.x or laser[3] < 0 and x > e.x and x-laser_max_length < e.x then
-					-- todo refine based on laser age and actual width? - no need, light speed!
-					-- todo particle effects
-					printh("laser hit "..e.x)
-					-- todo explosion
-		 		del(actors,e)
-		 		hit = true
-		 		del(lasers,laser)
-				end			
-			end 	
+			local actual_age = (t-laser[4]) --/ laser_expire
+			if actual_age > 0.05 then
+				local x,y = laser[1], laser[2]
+			 -- todo precalc half widths			
+			 -- todo include wrap at end
+				if y > (e.y+e.dy+(8-e.h)/2) and y < (e.y+e.dy+8-(e.h/2)) then
+					-- note: quick check against max and assume width == 8 (and player can't be on enemy)
+					if laser[3] > 0 and x < e.x and x+laser_max_length > e.x or laser[3] < 0 and x > e.x and x-laser_max_length < e.x then
+						-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
+						-- todo particle effects
+						printh("laser hit "..e.x)
+						-- todo explosion
+			 		del(actors,e)
+			 		hit = true
+			 		del(lasers,laser)
+					end			
+				end 	
+			-- else just fired - give it chance to be seen
+			end
 	 end		
 	
 		if not hit then
@@ -221,12 +225,12 @@ function update_enemies()
 			if (abs(ceil(x)) < (e.w+pl.w) and
 					 (abs(ceil(y))) < (e.h+pl.h))
 			then
-				printh("*x"..x..","..e.x..","..e.dx..","..plx.." "..cdx)
-				printh("*y"..y..","..e.y..","..e.dy..","..pl.y)
+				--printh("*x"..x..","..e.x..","..e.dx..","..plx.." "..cdx)
+				--printh("*y"..y..","..e.y..","..e.dy..","..pl.y)
 				--pset(wxtoc(e.x), e.y, 10)
 				--pset(wxtoc(plx), pl.y, 2)
 				--assert(false)
-				print("hit",120,8)
+				printh("player dead "..e.x)
 			end
 		
 	  e.x += e.dx
@@ -309,6 +313,7 @@ function draw_hud()
 
 	-- enemies
 	for enemy in all(actors) do
+	 -- todo skip if bullet?
 		sx,sy = wtos(enemy.x, enemy.y)
 		pset(sx,sy, enemy.c)
 	end
@@ -331,8 +336,16 @@ function draw_player()
 		local x,y = wxtoc(laser[1]), laser[2]
 		local age = (t-laser[4]) / laser_expire
 		local mdx,mdy=1/8,0
-		tline(x,y,
-				  	x+min(((age * laser_size)* laser_rate * laser[3]), laser_max_length), y, 
+		tline(x,
+							y,
+				  	x+min(
+					  	max((age * laser_size) * laser_rate, 
+    		  				laser_min_length
+				  			  ) * laser[3]
+		  				, 
+				  		laser_max_length
+				  		), 
+				  	y, 
 				  	0,0,
 				  	mdx,mdy
 		)
