@@ -218,7 +218,7 @@ function draw_stars()
 		--local x = ((cx+star[1])%ww) + (star[3]*(3/10))
 		--local x = star[1] - (cx/star[3])
 		local x = star[1] - (cx/star[3])  -- -cx for screen; /star[3] for move-delay
-		local col = 10
+		local col = 6
 		if cx + 128 > ww then
 			--if star[1] < (128 - (ww-cx)) then
 			--printh("?"..star[1]-(cx/star[3]).." < "..(128 - (ww-cx)))
@@ -227,8 +227,23 @@ function draw_stars()
 				--x = (star[1] + ww) - (cx/star[3])
 				--x = (star[1] + ww) - (cx/star[3])
  			x = (star[1]+(ww/star[3])) - (cx/star[3])
-				--col = 14
+				col = 14  --new or fade depending on dir
 				printh(cx.." wrap "..star[1].." "..x)
+			end
+
+			--if star[1]-(cx/star[3]) > (ww-128) then
+			if star[1] > ((ww/star[3]) - 128) then
+			--if star[1] > ((ww) - 128) then
+				--x = (star[1] + ww) - (cx/star[3])
+				--x = (star[1] + ww) - (cx/star[3])
+ 			--x = (star[1]+(ww/star[3])) - (cx/star[3])
+ 			if col == 14 then
+ 				--all! how!? 
+ 				--col = 11  --new+fade?
+ 			else
+					col = 12  --fade or new depending on dir
+				end
+				printh(cx.." fade "..star[1].." "..x)
 			end
 		end
 --		if cx < 0 then
@@ -239,6 +254,9 @@ function draw_stars()
 --		end
 		--printh(star[1].." -"..(cx/star[3]).." -> "..x)
 		--printh(col)
+		
+		if (col ~= 6) col = 5
+		
 		pset(x, star[2], col)
 	end
 end
