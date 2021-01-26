@@ -38,6 +38,9 @@ lander_speed = 0.3
 bullet_expire = 1.5
 bullet_speed = 1.6
 
+enemy_explode_expire = 1
+enemy_explode_size = 32
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -71,7 +74,7 @@ function _init()
 	
 	wave = {
 	 {
-		landers=6,
+		landers=36,
 		}
 	}
 	current_wave=1
@@ -193,31 +196,32 @@ function update_enemies()
 	local t = time()
 	local plx=cx+pl.x
 	for e in all(actors) do
-		local hit = false
 		-- check if hit by laser
 	 for laser in all(lasers) do 	
-			local actual_age = (t-laser[4]) --/ laser_expire
-			if actual_age > 0.05 then
-				local x,y = laser[1], laser[2]
-			 -- todo precalc half widths			
-			 -- todo include wrap at end
-				if y > (e.y+e.dy+(8-e.h)/2) and y < (e.y+e.dy+8-(e.h/2)) then
-					-- note: quick check against max and assume width == 8 (and player can't be on enemy)
-					if laser[3] > 0 and x < e.x and x+laser_max_length > e.x or laser[3] < 0 and x > e.x and x-laser_max_length < e.x then
-						-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
-						-- todo particle effects
-						printh("laser hit "..e.x)
-						-- todo explosion
-			 		del(actors,e)
-			 		hit = true
-			 		del(lasers,laser)
-					end			
-				end 	
-			-- else just fired - give it chance to be seen
-			end
-	 end		
-	
-		if not hit then
+	  if not e.hit then
+				local actual_age = (t-laser[4]) --/ laser_expire
+				if actual_age > 0.05 then
+					local x,y = laser[1], laser[2]
+				 -- todo precalc half widths			
+				 -- todo include wrap at end
+					if y > (e.y+e.dy+(8-e.h)/2) and y < (e.y+e.dy+8-(e.h/2)) then
+						-- note: quick check against max and assume width == 8 (and player can't be on enemy)
+						if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
+							-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
+							-- todo particle effects
+							printh("laser hit "..e.x)
+							-- todo explosion
+				 		-- defer del(actors,e)
+				 		e.hit = t
+				 		del(lasers,laser)
+						end			
+					end 	
+				-- else just fired - give it chance to be seen
+				end
+		 end		
+		end
+		
+		if not e.hit then  
 			-- check if hit player
 		 -- todo include wrap at end
 			local x=(e.x+e.dx) - plx 
@@ -361,24 +365,45 @@ end
 
 function draw_enemies()
 	local t=time()
-	for enemy in all(actors) do
-		local x,y = wxtoc(enemy.x), enemy.y
-		spr(enemy.k, x, y, 1,1)
+	for e in all(actors) do
+		local x,y = wxtoc(e.x), e.y
+	 if e.hit == nil then	 
+			spr(e.k, x, y, 1,1)
 		
-		-- include wrap at end
-		if cx + 128 > ww then
-			if enemy.x < (128 - (ww-cx)) then
- 			x = wxtoc(enemy.x + ww)
- 			-- todo remove flip
- 			if debug then
-					spr(enemy.k, x, y, 1,1, false, true)
-				else
-					spr(enemy.k, x, y, 1,1)
+			-- include wrap at end
+			if cx + 128 > ww then
+				if e.x < (128 - (ww-cx)) then
+	 			x = wxtoc(e.x + ww)
+	 			-- todo remove flip
+	 			if debug then
+						spr(e.k, x, y, 1,1, false, true)
+					else
+						spr(e.k, x, y, 1,1)
+					end
 				end
 			end
+		 -- todo animate?
+		else
+			-- exploding
+			ex = {-2,-1,1,2}  -- improve
+			local age = (t-e.hit) / enemy_explode_expire
+			if (e.k==24) age = 2  -- kill bullets now
+			for part = 0,15 do
+			 local d = age * enemy_explode_size		 
+			 local dx, dy
+			 --printh(part.." "..(part%4).." "..(part\4))
+			 if ((part\4) == 0) dx,dy=-1,-1
+			 if ((part\4) == 1) dx,dy=1,-1
+			 if ((part\4) == 2) dx,dy=-1,1
+			 if ((part\4) == 3) dx,dy=1,1
+				pset(x+ex[(part%4)+1]+dx*d, y+ex[(part%4)+1]+dy*d, e.c)
+			 printh(x+ex[(part%4)+1]+dx*d..","..y+ex[(part%4)+1]+dy*d)
+			end					
+			if age > 1 then
+				del(actors, e)
+				printh(e.k.." dead "..e.x)
+			end
 		end
-		
-	 -- todo animate?
 	end
 end
 
@@ -530,6 +555,7 @@ function make_actor(k, x, y)
   h=8,  
   
   lazy=0,
+  hit=nil,
  }
 	add(actors,a)
 	return a
