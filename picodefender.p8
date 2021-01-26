@@ -38,14 +38,16 @@ lander_speed = 0.3
 bullet_expire = 1.5
 bullet_speed = 1.6
 
-enemy_explode_expire = 1
-enemy_explode_size = 32
+particle_expire = 1
+particle_speed = 0.3
+--enemy_explode_size = 32
 
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
 	stars = {}
 	actors = {}
+	particles = {}
 
 	cx = 128 * 4
  cdx = 0
@@ -74,7 +76,7 @@ function _init()
 	
 	wave = {
 	 {
-		landers=36,
+		landers=42,
 		}
 	}
 	current_wave=1
@@ -119,6 +121,7 @@ function _update60()
  	add(lasers, {cx+x - 2,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})
  end
  -- update any existing lasers
+ -- todo move to update_lasers()
  for laser in all(lasers) do
  	if t-laser[4] > laser_expire then
  		del(lasers,laser)
@@ -175,6 +178,7 @@ function _update60()
 	end
 	
  update_enemies()  -- checks for player hit
+ update_particles()
   
  -- camera wrap
  if cx<0 then
@@ -213,7 +217,14 @@ function update_enemies()
 							-- todo explosion
 				 		-- defer del(actors,e)
 				 		e.hit = t
-				 		del(lasers,laser)
+				 		if e.k ~= 24 then
+					 		for i=0,7 do
+					 		 add_explosion(e)
+						 	end
+					 		del(lasers,laser)  -- i.e. allow to hit something else after a bullet
+						 end
+							del(actors, e)
+							printh(e.k.." dead "..e.x)			 	
 						end			
 					end 	
 				-- else just fired - give it chance to be seen
@@ -238,6 +249,7 @@ function update_enemies()
 			end
 		
 	  e.x += e.dx
+	  -- todo % simplify
 		 if e.x<0 then
 		 	e.x = ww 
 		 elseif e.x > ww then
@@ -286,6 +298,28 @@ function update_enemies()
 	end
 end
 
+function update_particles()
+	local t = time()
+	for e in all(particles) do
+ 	if t-e.t > e.expire then
+ 		del(particles,e)
+ 	else
+	  e.y += e.dy  
+	  if e.y < hudy or e.y > 127 then
+	 		del(particles,e)
+	  else
+		  e.x += e.dx
+		  -- todo % simplify
+			 if e.x<0 then
+			 	e.x = ww 
+			 elseif e.x > ww then
+			  e.x = 0
+			 end
+			 -- todo opt: cull if off-screen - though short-lived
+			end
+	 end
+	end
+end
 
 -->8
 
@@ -383,25 +417,27 @@ function draw_enemies()
 				end
 			end
 		 -- todo animate?
-		else
-			-- exploding
-			ex = {-2,-1,1,2}  -- improve
-			local age = (t-e.hit) / enemy_explode_expire
-			if (e.k==24) age = 2  -- kill bullets now
-			for part = 0,15 do
-			 local d = age * enemy_explode_size		 
-			 local dx, dy
-			 --printh(part.." "..(part%4).." "..(part\4))
-			 if ((part\4) == 0) dx,dy=-1,-1
-			 if ((part\4) == 1) dx,dy=1,-1
-			 if ((part\4) == 2) dx,dy=-1,1
-			 if ((part\4) == 3) dx,dy=1,1
-				pset(x+ex[(part%4)+1]+dx*d, y+ex[(part%4)+1]+dy*d, e.c)
-			 printh(x+ex[(part%4)+1]+dx*d..","..y+ex[(part%4)+1]+dy*d)
-			end					
-			if age > 1 then
-				del(actors, e)
-				printh(e.k.." dead "..e.x)
+		-- else exploding
+		end
+	end
+end
+
+function draw_particles()
+	local t=time()
+	for e in all(particles) do
+		local x,y = wxtoc(e.x), e.y
+		pset(x, y, e.c)
+		
+		-- include wrap at end
+		if cx + 128 > ww then
+			if e.x < (128 - (ww-cx)) then
+ 			x = wxtoc(e.x + ww)
+ 			-- todo remove c+1
+ 			if debug then
+					pset(x, y, e.c+1)
+				else
+					pset(x, y, e.c)
+				end
 			end
 		end
 	end
@@ -461,6 +497,7 @@ function _draw()
 	end
 
 	draw_enemies()
+	draw_particles()
 
 	draw_player()
 
@@ -473,6 +510,7 @@ function _draw()
 			print("★",1,13)
 		end
 		print(#actors,100,0)
+		print(#particles,100,7)
 	end
 
 end
@@ -581,6 +619,39 @@ function add_bullet(x, y)
 	b.h = 1
 	b.c = 6
 	return b
+end
+
+sp = {
+ {-1.2,-1},
+ {-0.8,-1},
+ 
+ { 0,  -1},
+ 
+ { 0.8,-1},
+ { 1.2,-1},
+
+ { 1,   0},
+ 
+ {-1.2, 1},
+ {-0.8, 1},
+
+ { 0,   1},
+ 
+ { 0.8, 1},
+ { 1.2, 1},
+ 
+ {-1,   0}, 
+}
+function add_explosion(e)
+	local t=time()
+ for i=1,12 do
+  -- todo make some faster
+		add(particles,{
+			x=e.x,y=e.y,
+			dx=sp[i][1]*particle_speed,dy=sp[i][2]*particle_speed,
+			c=e.c, t=t, expire=particle_expire,
+		})
+	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000009900000000000000000000000000000000000000000000000000000000000
