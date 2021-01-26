@@ -33,6 +33,8 @@ min_laser_speed = 0.1  -- e.g. static ship, move away still
 laser_speed = 1.8
 laser_inertia = 0.999
 
+lander_speed = 0.5
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -62,7 +64,14 @@ function _init()
 
 	add_stars()
 	
-	add_enemies()
+	wave = {
+	 {
+		landers=6,
+		}
+	}
+	current_wave=1
+	
+	add_enemies(wave[current_wave])
 end
 
 
@@ -157,7 +166,8 @@ function _update60()
 		pl.thrusting_t = t
 	end
 
- 
+ update_enemies()
+  
  -- camera wrap
  if cx<0 then
  	cx = ww
@@ -165,7 +175,7 @@ function _update60()
   cx = 0
  end
  
- if pl.y<hudy then
+ if pl.y < hudy then
  	pl.y = hudy
  	pl.dy = 0
  elseif pl.y > 120 then
@@ -173,6 +183,31 @@ function _update60()
  	pl.dy = 0
  end
 end
+
+function update_enemies()
+	local plx=cx+pl.x
+	for e in all(actors) do
+  e.x = (e.x + e.dx) % ww
+		e.y += e.dy
+		if e.y < hudy then
+			e.y = hudy
+			e.dy *= -1
+		elseif e.y > 120 then
+			e.y = 120
+			e.dy *= -1
+		end 
+		
+		-- ai
+		if abs(e.x - (plx)) < (rnd(256) - e.lazy) then
+		 if e.x < plx then
+			 e.dx = lander_speed
+			else
+			 e.dx = -lander_speed
+		 end
+		end
+	end
+end
+
 -->8
 
 function wtos(wx,wy)
@@ -199,12 +234,12 @@ function draw_hud()
 	
 	-- player
  local	sx,sy = wtos(cx+pl.x, pl.y)
-	pset(sx,sy, 8)
+	pset(sx,sy, 7)
 
 	-- enemies
 	for enemy in all(actors) do
 		sx,sy = wtos(enemy.x, enemy.y)
-		pset(sx,sy, 11)
+		pset(sx,sy, enemy.c)
 	end
 
 	-- scanner box 
@@ -245,7 +280,7 @@ function draw_enemies()
 	for enemy in all(actors) do
 		local x,y = wxtoc(enemy.x), enemy.y
 		--printh(x)
-		spr(9, x, y, 1,1)
+		spr(enemy.k, x, y, 1,1)
 	 -- todo animate?
 	end
 end
@@ -382,11 +417,32 @@ function add_stars()
 	end
 end
 
-function add_enemies()
- add(actors, {
-  x=600,
-  y=64,
- })
+function make_actor(k, x, y)
+ a={
+ 	k=k,
+ 	c=11,
+  x=x,
+  y=y,
+  dx=0,
+  dy=0,
+  frame=0,
+  t=0,
+  frames=1,
+  w=0.4,
+  h=0.4,
+  
+  lazy=0,
+ }
+	add(actors,a)
+	return a
+end
+
+function add_enemies(wave)
+	for e = 1,wave.landers do
+		l=make_actor(9,rnd(ww),rnd(128-hudy)+hudy)
+		l.dy = lander_speed
+		l.lazy = rnd(512)  -- higher = less likely to chase
+	end
 end
 
 __gfx__
