@@ -39,7 +39,7 @@ bullet_expire = 1.5
 bullet_speed = 1.6
 
 particle_expire = 1
-particle_speed = 0.3
+particle_speed = 0.8
 --enemy_explode_size = 32
 
 function _init()
@@ -626,29 +626,40 @@ sp = {
  {-0.8,-1},
  
  { 0,  -1},
+ { 0,  -1},
  
  { 0.8,-1},
  { 1.2,-1},
 
+ { 1,   0},
  { 1,   0},
  
  {-1.2, 1},
  {-0.8, 1},
 
  { 0,   1},
+ { 0,   1},
  
  { 0.8, 1},
  { 1.2, 1},
  
  {-1,   0}, 
+ {-1,   0}, 
 }
 function add_explosion(e)
 	local t=time()
- for i=1,12 do
+	local f=0
+ for i=1,16 do
   -- todo make some faster
+  local s=particle_speed
+  local d=sp[i]
+  if d[1] == 0 or d[2] == 0 then
+			if (f==0) s=particle_speed*0.8
+  	f = 1-f  --prevent for next one
+  end
 		add(particles,{
 			x=e.x,y=e.y,
-			dx=sp[i][1]*particle_speed,dy=sp[i][2]*particle_speed,
+			dx=d[1]*s,dy=d[2]*s,
 			c=e.c, t=t, expire=particle_expire,
 		})
 	end
