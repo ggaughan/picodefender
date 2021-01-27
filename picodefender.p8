@@ -50,6 +50,9 @@ player_die_expire = 3
 old_particle = 1
 enemy_die_expire = 1
 
+wave_progression = 15  -- seconds
+wave_reset = 2  -- seconds
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -100,6 +103,8 @@ function _init()
 	 {--1
  	 c=1,
  		landers=15,
+ 		bombers=0,
+ 		pods=0,
 		},
 	 {--2
  	 c=3,
@@ -271,6 +276,9 @@ function _update60()
 	  pl.y = 120
 	 	pl.dy = 0
 	 end
+	 
+	 update_wave()
+	 
 	-- else player dying
 	end
 end
@@ -388,6 +396,18 @@ function update_particles()
 	end
 end
 
+function update_wave()
+	local t=time()
+	local age = t-wave.t_chunk
+	if age > wave_progression then
+  wave.t_chunk = t  -- reset
+		if wave.landers > 0 then	 
+		 printh("more at"..t)
+			add_enemies()
+		end
+	end
+end
+
 -->8
 --draw
 
@@ -491,10 +511,11 @@ function draw_player()
 
 	if pl.hit ~= nil then
 		local age = (t-pl.hit)
-		printh("player dying "..age)
+		--printh("player dying "..age)
 		if age > player_die_expire then
-			pl.hit = nil
-			printh("player rebirth "..age)
+			pl.hit = nil	
+ 		reset_enemies()  -- hide and respawn enemies after a period...
+			--printh("player rebirth "..age)
 		end
 	else
 		local x = wxtoc(pl.x)
@@ -515,9 +536,9 @@ function draw_enemies()
 			-- todo if dying? cleared elsewhere?
 			if age > enemy_die_expire then
 				e.hit = nil
-				printh("enemy birthed "..age)
+				--printh("enemy birthed "..age)
 			else
-				printh("enemy birthing "..age)	
+				--printh("enemy birthing "..age)	
 			end
 		else
 			local x,y = wxtoc(e.x), e.y
@@ -711,11 +732,12 @@ function make_actor(k, x, y, hit)
 end
 
 function add_bullet(x, y)
+ t=time()
 	b=make_actor(24,x,y)
 	-- todo aim at pl!
 	b.dx = ((pl.x - b.x)/128) * bullet_speed
 	b.dy = ((pl.y - b.y)/128) * bullet_speed
-	b.t = t()
+	b.t = t
 	b.w = 1
 	b.h = 1
 	b.c = 6
@@ -792,19 +814,26 @@ function kill_actor(e, laser, explode)
 	
 	if e.k == 9 then
 	 wave.landers_hit += 1
+	 -- note: could have just added a batch! todo fifo?
 	 if wave.landers_hit % 5 == 0 then
 			if wave.landers > 0 then	 
+			 printh("more at #"..wave.landers_hit)
 				add_enemies()
 			end
 		end
 	end
-	
-	-- wave complete?
-	-- todo sum wave.landers etc
+	if is_wave_complete() then
+		-- todo 3d text
+		print("wave "..(iwave+1).." complete", 40, 64)
+		assert(false)
+		--todo pause, next wave
+	end
 end
 
 function kill_player(e)
  pl.hit = time()
+ -- todo remove: t_chunk is reset by reset_enemies() later
+	wave.t_chunk -= player_die_expire  -- don't include dying time
  cdx = 0 -- freeze
  for i=1,16 do
   local d = sp[i]
@@ -816,17 +845,33 @@ function kill_player(e)
 	printh(#particles)
 	pl.lives -= 1
 	add_pl_score(25)
+	
 	printh("player killed by "..e.x)
 	kill_actor(e, nil, false)  -- no explosion
-	
+
 	if pl.lives < 0 then
 	 --assert(false)
 		-- todo game over mode
 		-- repoint update60 & draw?
 	end
+
+	--note reset_enemies() will be called during draw (i.e. after death animation)
+end
+
+function is_wave_complete()
+	local r = #actors  -- spawned
+	-- plus yet to spawn
+	r += wave.landers
+	r += wave.bombers
+	r += wave.pods
+	-- todo? mutants=ex-landers
+	-- todo? baiters
+	-- todo? swarmers	
+	return r == 0  -- i.e. no more left
 end
 
 function load_wave()
+	local t=time()
 	local sw = waves[iwave%8+1]
 	-- copy
 	wave={
@@ -835,26 +880,31 @@ function load_wave()
  		bombers=sw.bombers,
  		pods=sw.pods,	
  		
+ 		t=t,
+ 		t_chunk=t,
+ 		
  		landers_hit=0,
  		bombers_hit=0,
  		pods_hit=0,
  		-- todo mutants=ex-landers
  		-- todo baiters
- 		-- todo bombbers
  		-- todo swarmers	
 	}
 end
 
 function add_enemies()
  -- todo pass in t?
+ -- see reset_enemies for undo
 	if wave.landers > 0 then
 	 make = min(wave.landers, 5)
 		for e = 1,make do
-		 local x,y=rnd(ww),rnd(128-hudy)+hudy
+		 local x=rnd(ww)
+		 --local y=rnd(128-hudy)+hudy
+		 local y=hudy+2
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(9,x,y,time())
-			l.dy = lander_speed
+			l.dy = lander_speed/2
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
 			l.w=3
@@ -866,6 +916,25 @@ function add_enemies()
 	-- todo others
 end
 
+function	reset_enemies()
+	-- undo add_enemies
+	-- push active enemies back on wave and setup re-spawn
+	t = time()
+	for e in all(actors) do
+		-- todo check not just hit?
+		if e.k == 24 then
+			printh(e.k.." removed "..e.x)			 	
+		elseif e.k == 9 then
+			printh(e.k.." undead "..e.x)			 	
+			wave.landers	+= 1
+		else
+			assert(false, "unknown e.k:"..e.k)		
+		end
+		del(actors, e)  -- todo: assuming we don't retain the positions on respawn!
+	end
+	-- prime the respawning
+	wave.t_chunk = t - wave_progression + wave_reset  -- reset
+end
 
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000009900000000000000000000000000000000000000000000000000000000000
