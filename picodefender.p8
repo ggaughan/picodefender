@@ -63,7 +63,7 @@ function _init()
 	build_world()
 	
 	pl = {
-		x=20,  -- todo add cx and remove elsewhere
+		x=cx+20,  
 		y=64,
 		w=5,
 		h=3,
@@ -112,115 +112,128 @@ end
 function _update60()
  local t=time()
 
- if btnp(⬅️) then
-  -- todo avoid repeat with re-press
-	 pl.facing = -1*pl.facing
-	 -- start reverse animation
-	 canim=80
-	 canim_dx=pl.facing
-  cdx = cdx * 0.5
-	end
- if btn(➡️) then
-  cdx = min(cdx+thrust,max_speed)
- end
- if btn(⬆️) then
-  pl.dy = pl.dy-vert_accel
-  if (pl.dy < -max_vert_speed) pl.dy=-max_vert_speed
- end
- if btn(⬇️) then
-  pl.dy = pl.dy+vert_accel
-  if (pl.dy > max_vert_speed) pl.dy=max_vert_speed
- end
- 
+ update_particles()  -- could include player dying
 
- if btnp(❎) then
-		-- fire laser
-		-- todo limit
-  local x = pl.x
- 	if pl.facing > 0 then
- 		x = x+8 + 1+1+1
- 	end
- 	add(lasers, {cx+x - 2,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})
- end
- -- update any existing lasers
- -- todo move to update_lasers()
- for laser in all(lasers) do
- 	if t-laser[4] > laser_expire then
- 		del(lasers,laser)
- 	end
- 	laser[1] += laser[5]*laser[3] * laser_speed
- 	laser[5] *= laser_inertia
- end
- --if btnp(🅾️) then -- z
- 	-- smart bomb - kill all enemies
- --end
- 
- pl.dy *= inertia_py
- pl.y += pl.dy 
- 
- cx += cdx * pl.facing
- cdx *= inertia_cx
-
-	-- player thrust/decay
- if pl.facing == 1 then
- 	if pl.x < 40 then
-		 if btn(➡️) then
-	 		pl.x += cdx * max_h_speed_factor
-	 	end
- 	end
- 	if pl.x > 20 then
-		 if not btn(➡️) then
-		  -- fall back
-		 	pl.x -= thrust/2
-		 end
+	if pl.hit == nil then
+	 if btnp(⬅️) then
+	  -- todo avoid repeat with re-press
+		 pl.facing = -1*pl.facing
+		 -- start reverse animation
+		 canim=80
+		 canim_dx=pl.facing
+	  cdx = cdx * 0.5
+		end
+	 if btn(➡️) then
+	  cdx = min(cdx+thrust,max_speed)
 	 end
- else
- 	if pl.x > 80 then
-		 if btn(➡️) then
-	 		pl.x -= cdx * max_h_speed_factor
-	 	end
- 	end
- 	if pl.x < 100 then
- 		if not btn(➡️) then
- 			-- fall back
- 			pl.x += thrust/2
- 		end
- 	end
- end
-	if btn(➡️) then
-		if not pl.thrusting then
-		 pl.thrusting=true
- 	end
-	else 
- 	pl.thrusting=false
-	end
- if t-pl.thrusting_t > 0.05 then
-		pl.thrusting_spr = (pl.thrusting_spr+1) % 4
-		pl.thrusting_t = t
-	end
+	 if btn(⬆️) then
+	  pl.dy = pl.dy-vert_accel
+	  if (pl.dy < -max_vert_speed) pl.dy=-max_vert_speed
+	 end
+	 if btn(⬇️) then
+	  pl.dy = pl.dy+vert_accel
+	  if (pl.dy > max_vert_speed) pl.dy=max_vert_speed
+	 end
+	 
 	
- update_enemies()  -- checks for player hit
- update_particles()
-  
- -- camera wrap
- if cx<0 then
- 	cx = ww
- elseif cx > ww then
-  cx = 0
- end
- 
- if pl.y < hudy then
- 	pl.y = hudy
- 	pl.dy = 0
- elseif pl.y > 120 then
-  pl.y = 120
- 	pl.dy = 0
- end
+	 if btnp(❎) then
+			-- fire laser
+			-- todo limit
+	  local x = pl.x
+	 	if pl.facing > 0 then
+	 		x = x+8 + 1+1+1
+	 	end
+	 	add(lasers, {x - 2,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})
+	 end
+	 -- update any existing lasers
+	 -- todo move to update_lasers()
+	 for laser in all(lasers) do
+	 	if t-laser[4] > laser_expire then
+	 		del(lasers,laser)
+	 	end
+	 	-- todo wrap?
+	 	laser[1] += laser[5]*laser[3] * laser_speed
+	 	laser[5] *= laser_inertia
+	 end
+	 --if btnp(🅾️) then -- z
+	 	-- smart bomb - kill all enemies
+	 --end
+	 
+	 pl.dy *= inertia_py
+	 pl.y += pl.dy 
+	 
+	 cx += cdx * pl.facing
+	 pl.x += cdx * pl.facing
+	 cdx *= inertia_cx
+	
+		-- player thrust/decay
+	 if pl.facing == 1 then
+	 	if wxtoc(pl.x) < 40 then
+			 if btn(➡️) then
+		 		pl.x += cdx * max_h_speed_factor
+		 	end
+	 	end
+	 	if wxtoc(pl.x) > 20 then
+			 if not btn(➡️) then
+			  -- fall back
+			 	pl.x -= thrust/2
+			 end
+		 end
+	 else
+	 	if wxtoc(pl.x) > 80 then
+			 if btn(➡️) then
+		 		pl.x -= cdx * max_h_speed_factor
+		 	end
+	 	end
+	 	if wxtoc(pl.x) < 100 then
+	 		if not btn(➡️) then
+	 			-- fall back
+	 			pl.x += thrust/2
+	 		end
+	 	end
+	 end
+		if btn(➡️) then
+			if not pl.thrusting then
+			 pl.thrusting=true
+	 	end
+		else 
+	 	pl.thrusting=false
+		end
+	 if t-pl.thrusting_t > 0.05 then
+			pl.thrusting_spr = (pl.thrusting_spr+1) % 4
+			pl.thrusting_t = t
+		end
+		
+	 update_enemies()  -- checks for player hit
+	  
+	 -- camera wrap
+	 if cx<0 then
+	 	cx = ww
+	 elseif cx > ww then
+	  cx = 0
+	 end
+	 
+	 -- player wrap
+	 -- todo retain screen offset pos!
+	 if pl.x<0 then
+	 	pl.x = ww
+	 elseif pl.x > ww then
+	  pl.x = 0
+	 end
+	 
+	 if pl.y < hudy then
+	 	pl.y = hudy
+	 	pl.dy = 0
+	 elseif pl.y > 120 then
+	  pl.y = 120
+	 	pl.dy = 0
+	 end
+	-- else player dying
+	end
 end
 
 function update_enemies()
 	local t = time()
-	local plx=cx+pl.x
 	for e in all(actors) do
 		-- check if hit by laser
 	 for laser in all(lasers) do 	
@@ -247,7 +260,7 @@ function update_enemies()
 		if not e.hit then  
 			-- check if hit player
 		 -- todo include wrap at end
-			local x=(e.x+e.dx) - plx 
+			local x=(e.x+e.dx) - pl.x 
 			local y=(e.y+e.dy) - pl.y
 			if (abs(ceil(x)) < (e.w+pl.w) and
 					 (abs(ceil(y))) < (e.h+pl.h))
@@ -277,14 +290,14 @@ function update_enemies()
 					end 
 					
 					-- ai
-					if abs(e.x - plx) < (rnd(256) - e.lazy) then
-					 if e.x < plx then
+					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+					 if e.x < pl.x then
 						 e.dx = lander_speed
 						else
 						 e.dx = -lander_speed
 					 end
 					end
-					if abs(e.x - plx) < 128 then
+					if abs(e.x - pl.x) < 128 then
 						if rnd() < 0.005 then
 							b=add_bullet(e.x, e.y)
 						end
@@ -343,6 +356,8 @@ function wtos(wx,wy)
 end
 
 function wxtoc(wx)
+ -- todo perhaps wrap here?
+ -- e.g. if wx>ww...
 	x=wx - cx
 	return x
 end
@@ -373,7 +388,7 @@ function draw_hud()
 	end
 	
 	-- player
- local	sx,sy = wtos(cx+pl.x, pl.y)
+ local	sx,sy = wtos(pl.x, pl.y)
 	pset(sx,sy, 7)
 
 	-- enemies
@@ -427,15 +442,26 @@ function draw_player()
 
 	if pl.hit ~= nil then
 		local age = (t-pl.hit)
+		printh("player dying "..age)
 		if age > player_die_expire then
 			pl.hit = nil
+			printh("player rebirth "..age)
 		end
 	else
-		spr(2, pl.x, pl.y, 1,1, pl.facing==-1)
+		local x = wxtoc(pl.x)
+		--printh(x)
+		if cx + 128 > ww then
+			if pl.x < (128 - (ww-cx)) then
+ 			x = wxtoc(pl.x + ww)
+ 			printh("wrap "..x)
+ 		end
+ 	end
+
+		spr(2, x, pl.y, 1,1, pl.facing==-1)
 		if pl.thrusting then
-			spr(32+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+			spr(32+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
 		else
-			spr(48+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
 		end
 	end
 end
@@ -519,11 +545,11 @@ function _draw()
  	canim -= 1
  	cx += canim_dx
  	pl.x -= canim_dx
- 	if pl.x < 20 then
-	 	pl.x = 20
+ 	if wxtoc(pl.x) < 20 then
+	 	pl.x = cx + 20
 	 	canim = 0
- 	elseif pl.x > 100 then
- 	 pl.x = 100
+ 	elseif wxtoc(pl.x) > 100 then
+ 	 pl.x = cx + 100
  	 canim = 0
  	end
  end
@@ -547,7 +573,7 @@ function _draw()
 		
 	if debug then
 		print(cx,1,120,1)
-		--print(pl.x,48,1)
+		print(pl.x,48,120)
 		--print(cdx,1,6)
 		if cx + 128 > ww then
 			print("★",1,13)
@@ -660,7 +686,7 @@ end
 function add_bullet(x, y)
 	b=make_actor(24,x,y)
 	-- todo aim at pl!
-	b.dx = ((cx+pl.x - b.x)/128) * bullet_speed
+	b.dx = ((pl.x - b.x)/128) * bullet_speed
 	b.dy = ((pl.y - b.y)/128) * bullet_speed
 	b.t = t()
 	b.w = 1
@@ -744,6 +770,7 @@ function kill_player(e)
 		-- repoint update60 & draw?
 	end
 end
+
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000009900000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000b99b0000099900000000000000000000000000000000000000000000000000
