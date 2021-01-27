@@ -96,7 +96,7 @@ function _init()
 	
 	waves = {
 	 {
-		landers=15,
+		landers=42,
 		}
 	}
 	wave=1
@@ -169,11 +169,6 @@ function _update60()
 		-- player thrust/decay
 		-- in screen space to handle any wrapping
 		local x = wxtoc(pl.x)
-		if cx + 128 > ww then
-			if pl.x < (128 - (ww-cx)) then
- 			x = wxtoc(pl.x + ww)
- 		end
- 	end	
 	 if pl.facing == 1 then
 	 	if x < 40 then
 			 if btn(➡️) then
@@ -363,9 +358,13 @@ function wtos(wx,wy)
 end
 
 function wxtoc(wx)
- -- todo perhaps wrap here?
- -- e.g. if wx>ww...
-	x=wx - cx
+ -- note: we wrap here 
+	x = wx - cx
+	if cx + 128 > ww then
+		if wx < (128 - (ww-cx)) then
+			x = (wx + ww) - cx
+		end
+	end
 	return x
 end
 
@@ -399,10 +398,12 @@ function draw_hud()
 	pset(sx,sy, 7)
 
 	-- enemies
-	for enemy in all(actors) do
+	for e in all(actors) do
 	 -- todo skip if bullet?
-		sx,sy = wtos(enemy.x, enemy.y)
-		pset(sx,sy, enemy.c)
+	 --if e.k~=24 then
+		sx,sy = wtos(e.x, e.y)
+		pset(sx,sy, e.c)
+		--end
 	end
 
 	-- scanner box 
@@ -456,14 +457,6 @@ function draw_player()
 		end
 	else
 		local x = wxtoc(pl.x)
-		--printh(x)
-		if cx + 128 > ww then
-			if pl.x < (128 - (ww-cx)) then
- 			x = wxtoc(pl.x + ww)
- 			printh("wrap "..x)
- 		end
- 	end
-
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
 		if pl.thrusting then
 			spr(32+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
@@ -478,20 +471,7 @@ function draw_enemies()
 	for e in all(actors) do
 		local x,y = wxtoc(e.x), e.y
 	 if e.hit == nil then	 
-			spr(e.k, x, y, 1,1)
-		
-			-- include wrap at end
-			if cx + 128 > ww then
-				if e.x < (128 - (ww-cx)) then
-	 			x = wxtoc(e.x + ww)
-	 			-- todo remove flip
-	 			if debug then
-						spr(e.k, x, y, 1,1, false, true)
-					else
-						spr(e.k, x, y, 1,1)
-					end
-				end
-			end
+			spr(e.k, x, y, 1,1)	
 		 -- todo animate?
 		-- else exploding
 		end
@@ -502,20 +482,7 @@ function draw_particles()
 	local t=time()
 	for e in all(particles) do
 		local x,y = wxtoc(e.x), e.y
-		pset(x, y, e.c)
-		
-		-- include wrap at end
-		if cx + 128 > ww then
-			if e.x < (128 - (ww-cx)) then
- 			x = wxtoc(e.x + ww)
- 			-- todo remove c+1
- 			if debug then
-					pset(x, y, e.c+1)
-				else
-					pset(x, y, e.c)
-				end
-			end
-		end
+		pset(x, y, e.c)	
 	end
 end
 
@@ -553,20 +520,24 @@ function _draw()
  	cx += canim_dx
  	pl.x -= canim_dx
 
+	 -- camera wrap
+	 if cx<0 then
+	 	cx = ww
+	 elseif cx > ww then
+	  cx = 0
+	 end
+ 	
 		-- in screen space to handle any wrapping
 		local x = wxtoc(pl.x)
-		if cx + 128 > ww then
-			if pl.x < (128 - (ww-cx)) then
- 			x = wxtoc(pl.x + ww)
- 		end
- 	end		
  	if x < 20 then
-	 	pl.x = cx + 20
+	 	pl.x = (cx + 20) % ww
 	 	canim = 0
  	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
- 	 pl.x = cx + 100
+ 	 pl.x = (cx + 100) % ww
  	 canim = 0
  	end
+ 	-- note: player wrap done via %
+ 	
  end
 
 	draw_stars()
@@ -772,6 +743,7 @@ end
 
 function kill_player(e)
  pl.hit = time()
+ cdx = 0 -- freeze
 	for i=0,7 do
 	 add_explosion(pl)
 	end
@@ -779,8 +751,9 @@ function kill_player(e)
 	pl.lives -= 1
 	add_pl_score(25)
 	printh("player killed by "..e.x)
+	del(actors, e)
 	if pl.lives < 0 then
-	 assert(false)
+	 --assert(false)
 		-- todo game over mode
 		-- repoint update60 & draw?
 	end
