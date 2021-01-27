@@ -46,7 +46,9 @@ particle_expire = 1
 particle_speed = 0.8
 --enemy_explode_size = 32
 
-player_die_expire = 1
+player_die_expire = 3
+old_particle = 1
+enemy_die_expire = 1
 
 function _init()
 	w = {}  -- ground + stars
@@ -95,12 +97,51 @@ function _init()
 	add_stars()
 	
 	waves = {
-	 {
-		landers=42,
+	 {--1
+ 	 c=1,
+ 		landers=15,
+		},
+	 {--2
+ 	 c=3,
+ 		landers=20,
+ 		bombers=3,
+ 		pods=1,
+		},
+	 {--3
+ 	 c=8,
+ 		landers=20,
+ 		bombers=4,
+ 		pods=3,
+		},
+	 {--4
+ 	 c=9,
+ 		landers=20,
+ 		bombers=5,
+ 		pods=4,
+		},
+	 {--5
+ 	 c=10,
+ 		landers=20,
+ 		bombers=5,
+ 		pods=4,
+		},
+	 {--6
+ 	 c=4,
+ 		landers=20,
+ 		bombers=5,
+ 		pods=4,
+		},
+	 {--7
+ 	 c=0,
+ 		landers=20,
+ 		bombers=5,
+ 		pods=4,
 		}
 	}
-	wave=1
-	
+	iwave=0
+	load_wave()
+	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
+	--      then actually wrap at 255 with special wave 0
 	add_enemies()
 end
 
@@ -407,8 +448,8 @@ function draw_hud()
 	end
 
 	-- scanner box 
-	rect(hc,0, hc+hudw,hudy, 1)
-	line(0,hudy,127,hudy, 1)
+	rect(hc,0, hc+hudw,hudy, wave.c)
+	line(0,hudy,127,hudy, wave.c)
 	line(hc+hdc*4-1,0, hc+hdc*5+1,0, 7)
 	pset(hc+hdc*4-1,1, 7)
 	pset(hc+hdc*5+1,1, 7)
@@ -469,11 +510,19 @@ end
 function draw_enemies()
 	local t=time()
 	for e in all(actors) do
-		local x,y = wxtoc(e.x), e.y
-	 if e.hit == nil then	 
+		if e.hit ~= nil then
+			local age = (t-e.hit)
+			-- todo if dying? cleared elsewhere?
+			if age > enemy_die_expire then
+				e.hit = nil
+				printh("enemy birthed "..age)
+			else
+				printh("enemy birthing "..age)	
+			end
+		else
+			local x,y = wxtoc(e.x), e.y
 			spr(e.k, x, y, 1,1)	
-		 -- todo animate?
-		-- else exploding
+			 -- todo animate?
 		end
 	end
 end
@@ -482,7 +531,10 @@ function draw_particles()
 	local t=time()
 	for e in all(particles) do
 		local x,y = wxtoc(e.x), e.y
-		pset(x, y, e.c)	
+		local c = e.c
+		local age = (t-e.t)
+		if (age > old_particle) c = 9
+		pset(x, y, c)	
 	end
 end
 
@@ -566,6 +618,7 @@ function _draw()
 		end
 		print(#actors,100,0)
 		print(#particles,100,6)
+		print(iwave+1,120,6)
 	end
 
 end
@@ -635,7 +688,7 @@ function add_stars()
 	end
 end
 
-function make_actor(k, x, y)
+function make_actor(k, x, y, hit)
  a={
  	k=k,
  	c=11,
@@ -650,23 +703,11 @@ function make_actor(k, x, y)
   h=8,  
   
   lazy=0,
-  hit=nil,
+  hit=hit,
   score=0,
  }
 	add(actors,a)
 	return a
-end
-
-function add_enemies()
- local wave=waves[wave]
-	for e = 1,wave.landers do
-		l=make_actor(9,rnd(ww),rnd(128-hudy)+hudy)
-		l.dy = lander_speed
-		l.lazy = rnd(512)  -- higher = less likely to chase
-		l.h=4
-		l.w=3
-		l.score=150
-	end
 end
 
 function add_bullet(x, y)
@@ -706,58 +747,125 @@ sp = {
  {-1,   0}, 
  {-1,   0}, 
 }
-function add_explosion(e)
+function add_explosion(e, reverse, speed, expire)
+	reverse = reverse or false
+	speed = speed or particle_speed
+	expire = expire or particle_expire
 	local t=time()
 	local f=0
  for i=1,16 do
   -- todo make some faster
-  local s=particle_speed
+  local x,y=e.x,e.y
+  local s=speed
   local d=sp[i]
   if d[1] == 0 or d[2] == 0 then
 			if (f==0) s=particle_speed*0.8
   	f = 1-f  --prevent for next one
   end
+  if reverse then
+  	x+=d[1]*60
+  	y+=d[2]*60
+  	d[1], d[2] = -1*d[1], -1*d[2]
+  end
 		add(particles,{
-			x=e.x,y=e.y,
+			x=x,y=y,
 			dx=d[1]*s,dy=d[2]*s,
-			c=e.c, t=t, expire=particle_expire,
+			c=e.c, t=t, expire=expire,
 		})
 	end
 end
 
-function kill_actor(e, laser)
-	if e.k ~= 24 then
-		for i=0,7 do
+function kill_actor(e, laser, explode)
+	explode = explode or true
+ if explode then
+		if e.k ~= 24 then
 		 add_explosion(e)
- 	end
- 	if laser then
- 		del(lasers,laser)  -- i.e. allow to hit something else after a bullet
- 	end
- end
+	 	if laser then
+	 		del(lasers,laser)  -- i.e. allow to hit something else after a bullet
+	 	end
+	 end
+	end
+	pl.score += e.score >> 16
 
 	del(actors, e)
 	printh(e.k.." dead "..e.x)			 	
 	
-	pl.score += e.score >> 16
+	if e.k == 9 then
+	 wave.landers_hit += 1
+	 if wave.landers_hit % 5 == 0 then
+			if wave.landers > 0 then	 
+				add_enemies()
+			end
+		end
+	end
+	
+	-- wave complete?
+	-- todo sum wave.landers etc
 end
 
 function kill_player(e)
  pl.hit = time()
  cdx = 0 -- freeze
-	for i=0,7 do
-	 add_explosion(pl)
-	end
+ for i=1,16 do
+  local d = sp[i]
+	 pl.x+=d[1]*rnd(4)
+	 pl.y+=d[2]*rnd(4)
+	 add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
+	end 
+	--note: pl x/y adjusted - don't bother to restore since we're dying
 	printh(#particles)
 	pl.lives -= 1
 	add_pl_score(25)
 	printh("player killed by "..e.x)
-	del(actors, e)
+	kill_actor(e, nil, false)  -- no explosion
+	
 	if pl.lives < 0 then
 	 --assert(false)
 		-- todo game over mode
 		-- repoint update60 & draw?
 	end
 end
+
+function load_wave()
+	local sw = waves[iwave%8+1]
+	-- copy
+	wave={
+ 	 c=sw.c,
+ 		landers=sw.landers,
+ 		bombers=sw.bombers,
+ 		pods=sw.pods,	
+ 		
+ 		landers_hit=0,
+ 		bombers_hit=0,
+ 		pods_hit=0,
+ 		-- todo mutants=ex-landers
+ 		-- todo baiters
+ 		-- todo bombbers
+ 		-- todo swarmers	
+	}
+end
+
+function add_enemies()
+ -- todo pass in t?
+	if wave.landers > 0 then
+	 make = min(wave.landers, 5)
+		for e = 1,make do
+		 local x,y=rnd(ww),rnd(128-hudy)+hudy
+		 -- todo if hit player - move
+			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
+			l=make_actor(9,x,y,time())
+			l.dy = lander_speed
+			l.lazy = rnd(512)  -- higher = less likely to chase
+			l.h=4
+			l.w=3
+			l.score=150	
+			add_explosion(l, true)  -- reverse i.e. spawn
+		end
+		wave.landers -= make
+	end
+	-- todo others
+end
+
 
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000009900000000000000000000000000000000000000000000000000000000000
