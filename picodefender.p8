@@ -6,6 +6,53 @@ __lua__
 -- remake of the williams classic
 
 debug = true
+debug_test = debug  -- 1 of each enemy per wave
+
+waves = {
+ {--1
+	 c=1, 
+		landers=15,
+		bombers=0,
+		pods=0,
+	},
+ {--2
+	 c=3, 
+		landers=20,
+		bombers=3,
+		pods=1,
+	},
+ {--3
+	 c=8, 
+		landers=20,
+		bombers=4,
+		pods=3,
+	},
+ {--4
+	 c=9, 
+		landers=20,
+		bombers=5,
+		pods=4,
+	},
+ {--5
+	 c=10,
+		landers=20,
+		bombers=5,
+		pods=4,
+	},
+ {--6
+	 c=4,
+		landers=20,
+		bombers=5,
+		pods=4,
+	},
+ {--7
+	 c=0,
+		landers=20,
+		bombers=5,
+		pods=4,
+	}
+}
+
 
 ww = 128 * 9
 cx = 128 * 4
@@ -70,6 +117,7 @@ function _init()
 	pl = {
 		x=cx+20,  
 		y=64,
+		
 		w=5,
 		h=3,
 		
@@ -99,55 +147,17 @@ function _init()
 
 	add_stars()
 	
-	waves = {
-	 {--1
- 	 c=1,
- 		landers=15,
- 		bombers=0,
- 		pods=0,
-		},
-	 {--2
- 	 c=3,
- 		landers=20,
- 		bombers=3,
- 		pods=1,
-		},
-	 {--3
- 	 c=8,
- 		landers=20,
- 		bombers=4,
- 		pods=3,
-		},
-	 {--4
- 	 c=9,
- 		landers=20,
- 		bombers=5,
- 		pods=4,
-		},
-	 {--5
- 	 c=10,
- 		landers=20,
- 		bombers=5,
- 		pods=4,
-		},
-	 {--6
- 	 c=4,
- 		landers=20,
- 		bombers=5,
- 		pods=4,
-		},
-	 {--7
- 	 c=0,
- 		landers=20,
- 		bombers=5,
- 		pods=4,
-		}
-	}
 	iwave=0
 	load_wave()
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
 	--      then actually wrap at 255 with special wave 0
 	add_enemies()
+
+	-- palette rotate	
+	pt = time()
+	cc = 1
+	
+	_draw = _draw_wave
 end
 
 
@@ -278,8 +288,11 @@ function _update60()
 	 end
 	 
 	 update_wave()
-	 
-	-- else player dying
+ 
+	else
+	 -- player dying 
+	 -- or pausing between waves
+	 -- either way, both fixed via draw_player timeout
 	end
 end
 
@@ -434,7 +447,7 @@ function draw_score(v)
  repeat
   local t=v>>>1
   -- todo map to font
-  print((t%0x0.0005<<17)+(v<<16&1),i*4,6,8)
+  print((t%0x0.0005<<17)+(v<<16&1),i*4,6,5)
   v=t/5
  	i-=1
  until v==0
@@ -585,33 +598,79 @@ function draw_stars()
 	end
 end
 
-function _draw()
+function animate_camera()
+ -- e.g. player reversing
+	-- assumes canim>0
+	canim -= 1
+	cx += canim_dx
+	pl.x -= canim_dx
+
+ -- camera wrap
+ if cx<0 then
+ 	cx = ww
+ elseif cx > ww then
+  cx = 0
+ end
+	
+	-- in screen space to handle any wrapping
+	local x = wxtoc(pl.x)
+	if x < 20 then
+ 	pl.x = (cx + 20) % ww
+ 	canim = 0
+	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
+	 pl.x = (cx + 100) % ww
+	 canim = 0
+	end
+	-- note: player wrap done via %	
+end
+
+function _draw_end_wave()
  cls()
  
- if canim > 0 then
- 	canim -= 1
- 	cx += canim_dx
- 	pl.x -= canim_dx
+	draw_hud()
+	draw_player()  -- needed to expire
 
-	 -- camera wrap
-	 if cx<0 then
-	 	cx = ww
-	 elseif cx > ww then
-	  cx = 0
-	 end
- 	
-		-- in screen space to handle any wrapping
-		local x = wxtoc(pl.x)
- 	if x < 20 then
-	 	pl.x = (cx + 20) % ww
-	 	canim = 0
- 	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
- 	 pl.x = (cx + 100) % ww
- 	 canim = 0
- 	end
- 	-- note: player wrap done via %
- 	
- end
+	-- todo 3d text?
+	rectfill(0, hudy+1,127,127, 0)
+	print("attack wave "..(iwave+1), 40, hudy+20, 5)
+	print("completed", 46, hudy+28, 5)
+	print("bonus x 100", 43, hudy+48, 5)
+	-- todo draw people left
+
+	if pl.hit == nil then
+		-- todo inc score!
+
+	 cdx = 0 -- freeze  -- todo move into load_wave?
+	 -- todo reset cx?
+		pl.x=cx+20
+		pl.y=64
+		pl.facing=1  -- todo need camera move?
+		pl.dx=0
+		pl.dy=0
+		pl.thrusting=false
+	 
+		iwave += 1
+		load_wave()
+		-- prime the spawning
+		local t=time()
+		wave.t_chunk = t - wave_progression + wave_reset  -- reset
+
+		_draw = _draw_wave
+	end
+end
+
+function _draw_wave()
+ cls()
+ 
+ local t=time()
+ 
+ if t-pt > 0.2 then
+  cc = (cc%15) + 1
+	 pal(5, cc) -- todo true?
+	 pt = t
+	end
+ 
+ if (canim > 0) animate_camera()
 
 	draw_stars()
 
@@ -628,7 +687,6 @@ function _draw()
 	draw_particles()
 
 	draw_player()
-
 		
 	if debug then
 		print(cx,1,120,1)
@@ -823,9 +881,10 @@ function kill_actor(e, laser, explode)
 		end
 	end
 	if is_wave_complete() then
-		-- todo 3d text
-		print("wave "..(iwave+1).." complete", 40, 64)
-		assert(false)
+	 pl.hit = time()  -- pause
+		_draw = _draw_end_wave
+
+		--assert(false)
 		--todo pause, next wave
 	end
 end
@@ -859,7 +918,11 @@ function kill_player(e)
 end
 
 function is_wave_complete()
-	local r = #actors  -- spawned
+	local r = 0
+ -- spawned
+	for e in all(actors) do
+  if (e ~= 24) r+= 1
+ end
 	-- plus yet to spawn
 	r += wave.landers
 	r += wave.bombers
@@ -867,6 +930,9 @@ function is_wave_complete()
 	-- todo? mutants=ex-landers
 	-- todo? baiters
 	-- todo? swarmers	
+	printh("r="..r)
+	printh(wave.landers_hit)
+	--printh(actors[1].k)
 	return r == 0  -- i.e. no more left
 end
 
@@ -890,6 +956,12 @@ function load_wave()
  		-- todo baiters
  		-- todo swarmers	
 	}
+	
+	if	debug_test then
+		wave.landers=1
+		wave.bombers=min(1,wave.bombers)
+		wave.pods=min(1,wave.pods)
+	end
 end
 
 function add_enemies()
@@ -914,6 +986,7 @@ function add_enemies()
 		wave.landers -= make
 	end
 	-- todo others
+	-- based on wave.t? and/or remaining
 end
 
 function	reset_enemies()
@@ -945,14 +1018,14 @@ __gfx__
 007007000d000000eee6666b00000000000707000d000000000000000000000000b0bb0000b0b0b0000000000000000000000000000000000000000000000000
 00000000dddd1900000000000000000000000000eed1000000000000000000000b00b0b000000000000000000000000000000000000000000000000000000000
 000000000e73dd730000000000000000000000000edd30000000000000000000b000b00b00000000000000000000000000000000000000000000000000000000
-70707007770700770077070707077077707770707077777077777777777777770000000000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770007700000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770007700000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
-77777777777777777777777777777777777777777777777777777777777777770000000000000000000000000000000000000000000000000000000000000000
+50505005550500550055050505055055505550505055555055555555555555550000000000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550007700000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550007700000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
