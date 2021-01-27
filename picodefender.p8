@@ -167,25 +167,32 @@ function _update60()
 	 cdx *= inertia_cx
 	
 		-- player thrust/decay
+		-- in screen space to handle any wrapping
+		local x = wxtoc(pl.x)
+		if cx + 128 > ww then
+			if pl.x < (128 - (ww-cx)) then
+ 			x = wxtoc(pl.x + ww)
+ 		end
+ 	end	
 	 if pl.facing == 1 then
-	 	if wxtoc(pl.x) < 40 then
+	 	if x < 40 then
 			 if btn(➡️) then
 		 		pl.x += cdx * max_h_speed_factor
 		 	end
 	 	end
-	 	if wxtoc(pl.x) > 20 then
+	 	if x > 20 then
 			 if not btn(➡️) then
 			  -- fall back
 			 	pl.x -= thrust/2
 			 end
 		 end
 	 else
-	 	if wxtoc(pl.x) > 80 then
+	 	if x > 80 then
 			 if btn(➡️) then
 		 		pl.x -= cdx * max_h_speed_factor
 		 	end
 	 	end
-	 	if wxtoc(pl.x) < 100 then
+	 	if x < 100 then -- assumes <128, if not we're off camera but will move
 	 		if not btn(➡️) then
 	 			-- fall back
 	 			pl.x += thrust/2
@@ -545,10 +552,18 @@ function _draw()
  	canim -= 1
  	cx += canim_dx
  	pl.x -= canim_dx
- 	if wxtoc(pl.x) < 20 then
+
+		-- in screen space to handle any wrapping
+		local x = wxtoc(pl.x)
+		if cx + 128 > ww then
+			if pl.x < (128 - (ww-cx)) then
+ 			x = wxtoc(pl.x + ww)
+ 		end
+ 	end		
+ 	if x < 20 then
 	 	pl.x = cx + 20
 	 	canim = 0
- 	elseif wxtoc(pl.x) > 100 then
+ 	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
  	 pl.x = cx + 100
  	 canim = 0
  	end
