@@ -46,6 +46,8 @@ particle_expire = 1
 particle_speed = 0.8
 --enemy_explode_size = 32
 
+player_die_expire = 1
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -76,6 +78,9 @@ function _init()
 		thrusting=false,
 	 thrusting_t=0,
 	 thrusting_spr=0,
+	 
+	 hit=nil,
+	 c=7,  -- for explosion
 	}
 
 	if false then	
@@ -91,7 +96,7 @@ function _init()
 	
 	waves = {
 	 {
-		landers=42,
+		landers=15,
 		}
 	}
 	wave=1
@@ -247,58 +252,57 @@ function update_enemies()
 			if (abs(ceil(x)) < (e.w+pl.w) and
 					 (abs(ceil(y))) < (e.h+pl.h))
 			then
-				--printh("*x"..x..","..e.x..","..e.dx..","..plx.." "..cdx)
-				--printh("*y"..y..","..e.y..","..e.dy..","..pl.y)
-				--pset(wxtoc(e.x), e.y, 10)
-				--pset(wxtoc(plx), pl.y, 2)
-				--assert(false)
-				printh("player dead "..e.x)
+	 		e.hit = t
+			 kill_player(e)
 			end
-		
-	  e.x += e.dx
-	  -- todo % simplify
-		 if e.x<0 then
-		 	e.x = ww 
-		 elseif e.x > ww then
-		  e.x = 0
-		 end
-	  e.y += e.dy
 			
-			if e.k == 9 then  --lander
-				off = rnd(hudy*2)
-				if e.y < hudy + off then
-					e.y = hudy + off
-					e.dy *= -1
-				elseif e.y > 120 - off then
-					e.y = 120 - off
-					e.dy *= -1
-				end 
+			if not e.hit then
+		  e.x += e.dx
+		  -- todo % simplify
+			 if e.x<0 then
+			 	e.x = ww 
+			 elseif e.x > ww then
+			  e.x = 0
+			 end
+		  e.y += e.dy
 				
-				-- ai
-				if abs(e.x - plx) < (rnd(256) - e.lazy) then
-				 if e.x < plx then
-					 e.dx = lander_speed
-					else
-					 e.dx = -lander_speed
-				 end
-				end
-				if abs(e.x - plx) < 128 then
-					if rnd() < 0.005 then
-						b=add_bullet(e.x, e.y)
+				if e.k == 9 then  --lander
+					off = rnd(hudy*2)
+					if e.y < hudy + off then
+						e.y = hudy + off
+						e.dy *= -1
+					elseif e.y > 120 - off then
+						e.y = 120 - off
+						e.dy *= -1
+					end 
+					
+					-- ai
+					if abs(e.x - plx) < (rnd(256) - e.lazy) then
+					 if e.x < plx then
+						 e.dx = lander_speed
+						else
+						 e.dx = -lander_speed
+					 end
 					end
+					if abs(e.x - plx) < 128 then
+						if rnd() < 0.005 then
+							b=add_bullet(e.x, e.y)
+						end
+					end
+					if rnd() < 0.2 then
+						e.dx = lander_speed/4
+					elseif rnd() < 0.2 then
+						e.dx = -lander_speed/4
+					elseif rnd() < 0.2 then
+						e.dx = 0
+					end
+				elseif e.k == 24 then
+			 	if t-e.t > bullet_expire then
+			 		del(actors,e)
+			 	end
+				-- else other types
 				end
-				if rnd() < 0.2 then
-					e.dx = lander_speed/4
-				elseif rnd() < 0.2 then
-					e.dx = -lander_speed/4
-				elseif rnd() < 0.2 then
-					e.dx = 0
-				end
-			elseif e.k == 24 then
-		 	if t-e.t > bullet_expire then
-		 		del(actors,e)
-		 	end
-			-- else other types
+			-- else hit and no more
 			end
 		-- else hit and no more
 		end
@@ -420,12 +424,19 @@ function draw_player()
 				  	mdx,mdy
 		)
 	end
-	
-	spr(2, pl.x, pl.y, 1,1, pl.facing==-1)
-	if pl.thrusting then
-		spr(32+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+
+	if pl.hit ~= nil then
+		local age = (t-pl.hit)
+		if age > player_die_expire then
+			pl.hit = nil
+		end
 	else
-		spr(48+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+		spr(2, pl.x, pl.y, 1,1, pl.facing==-1)
+		if pl.thrusting then
+			spr(32+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+		else
+			spr(48+pl.thrusting_spr, pl.x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+		end
 	end
 end
 
@@ -718,6 +729,21 @@ function kill_actor(e, laser)
 	pl.score += e.score >> 16
 end
 
+function kill_player(e)
+ pl.hit = time()
+	for i=0,7 do
+	 add_explosion(pl)
+	end
+	printh(#particles)
+	pl.lives -= 1
+	add_pl_score(25)
+	printh("player killed by "..e.x)
+	if pl.lives < 0 then
+	 assert(false)
+		-- todo game over mode
+		-- repoint update60 & draw?
+	end
+end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000009900000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000b99b0000099900000000000000000000000000000000000000000000000000
