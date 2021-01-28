@@ -632,6 +632,35 @@ function animate_camera()
 	-- note: player wrap done via %	
 end
 
+function _draw_game_over()
+ cls()
+ 
+	draw_hud()
+
+	draw_stars()
+
+	draw_hud()
+
+	-- draw_ground	
+	for x = 0,127 do
+		i = ((ceil(cx+x))%ww) + 1
+		--printh(i)
+		pset(x,127 - w[i][1], 4)
+	end
+
+	draw_enemies()
+	draw_particles()
+
+	-- never expire! draw_player()  -- needed to expire
+
+	-- todo 3d text?
+	print("game over", 44, hudy+40, 5)
+
+	if pl.hit == nil then
+	 -- todo hi-scores then re-init and repoint _draw/_update60
+	end
+end
+
 function _draw_end_wave()
  cls()
  
@@ -891,9 +920,6 @@ function kill_actor(e, laser, explode)
 	if is_wave_complete() then
 	 pl.hit = time()  -- pause
 		_draw = _draw_end_wave
-
-		--assert(false)
-		--todo pause, next wave
 	end
 end
 
@@ -917,9 +943,9 @@ function kill_player(e)
 	kill_actor(e, nil, false)  -- no explosion
 
 	if pl.lives < 0 then
-	 --assert(false)
-		-- todo game over mode
-		-- repoint update60 & draw?
+	 pl.hit = time()  -- pause
+		_draw = _draw_game_over
+		-- repoint update60 & draw!
 	end
 
 	--note reset_enemies() will be called during draw (i.e. after death animation)
