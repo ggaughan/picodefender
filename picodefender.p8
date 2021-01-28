@@ -115,6 +115,7 @@ target_y_epsilon = 3
 capture_targetted = 1
 capture_lifted = 2
 capture_dropped = 3
+gravity_speed = 1
 
 wave_progression = 15  -- seconds
 wave_reset = 2  -- seconds
@@ -376,15 +377,17 @@ function update_enemies()
 					if e.target ~= nil then
 						-- todo wrap
 					 if e.target.capture == capture_lifted then
-					 	printh("lifting "..e.x.." "..e.target.x)
-					 	e.target.x = e.x
+					 	--printh("lifting "..e.x.." "..e.target.x)
+					 	e.target.x = e.x + 1
 					 	e.target.y = e.y + 6
 					 	-- todo dx/dy?
 					 	if e.y < hudy+1 then
-					 		printh("todo convert to mutant")
+					 		printh("convert to mutant"..e.x)
 					 		kill_actor(e.target,nil,false)  -- kill human silently
 					 		-- possibly now nullspace
+					 		--no need: already decremented and reset_enemies will notice: wave.landers -= 1  -- spawn 1 less
 					 		e.k = mutant
+					 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
 					 		e.lazy = 0  -- todo or remove altogether?
 					 		-- todo inc speed
 					 	end
@@ -394,7 +397,7 @@ function update_enemies()
 					 	e.dy = -lander_speed/2
 					 	e.dx = 0  -- straight up
 							e.target.capture = capture_lifted
-							e.target.dy = 1  -- gravity for if/when dropped
+							e.target.dy = gravity_speed  -- for if/when dropped
 					 elseif e.x < e.target.x then
 						 e.dx = lander_speed
 		 				if e.y < hudy + 90 and e.dy < 0 then
@@ -508,7 +511,7 @@ function update_wave()
 		 printh("humans at"..t)
 			add_humans()
 		end
-		if wave.landers > 0 then	 
+		if wave.landers > 0 or wave.mutants > 0 then	 
 		 printh("more at"..t)
 			add_enemies()
 		end
@@ -825,6 +828,7 @@ function _draw_wave()
 		end
 		print(#actors,100,0)
 		print(#particles,100,6)
+		assert(humans<=10)
 		print(humans,120,0)
 		print(iwave+1,120,6)
 	end
@@ -985,9 +989,10 @@ function add_explosion(e, reverse, speed, expire)
 end
 
 function kill_actor(e, laser, explode)
-	explode = explode or true
+	if (explode == nil) explode = true
+	print("explode "..tostr(explode))
  if explode then
-		if e.k ~= bullet and e.k ~= mine then
+		if not(e.k == bullet or e.k == mine) then
 		 add_explosion(e)
 	 	if laser then
 	 		del(lasers,laser)  -- i.e. allow to hit something else after a bullet
@@ -1007,6 +1012,8 @@ function kill_actor(e, laser, explode)
 		 	-- todo drop human
 		 	-- todo set drop time / score depending on height/landing
 		 	printh("todo drop human!")
+		 	e.target.dy = gravity_speed
+		 	e.target.capture = nil
 		 end
 		end
 	 
@@ -1018,8 +1025,8 @@ function kill_actor(e, laser, explode)
 			end
 		end
 	elseif e.k == mutant then
-		-- todo: also kill human
-		-- todo track hits?
+	 wave.landers_hit += 1  -- same as lander since we can compare with spawn number 1 for 1
+		-- todo track separate hits too?
 	elseif e.k == bomber then
 	 wave.bombers_hit += 1
 	 -- todo more?
@@ -1038,7 +1045,7 @@ function kill_actor(e, laser, explode)
 	 	end
 		end
 	 humans -= 1
-	 -- todo if humans == 0 then null space
+	 -- todo if humans == 0 then null space: convert all landers to mutants
 	end
 	if is_wave_complete() then
 	 pl.hit = time()  -- pause
@@ -1059,7 +1066,7 @@ function kill_player(e)
 	 add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
 	end 
 	--note: pl x/y adjusted - don't bother to restore since we're dying
-	printh(#particles)
+	--printh(#particles)
 	pl.lives -= 1
 	add_pl_score(25)
 	
@@ -1095,15 +1102,16 @@ function is_wave_complete()
 	local r = 0
  -- spawned
 	for e in all(actors) do
-  if (e.k ~= bullet and e.k ~= mine and e.k ~= human) r+= 1
+  if (not(e.k == bullet or e.k == mine or e.k == human)) r+= 1
  end
 	-- plus yet to spawn
 	r += wave.landers
 	r += wave.bombers
 	r += wave.pods
-	-- todo? mutants=ex-landers
 	-- todo? baiters
 	-- todo? swarmers	
+	-- note: mutants don't spawn initially but they accrue during play
+	r += wave.mutants  
 	printh("r="..r)
 	printh(wave.landers_hit)
 	return r == 0  -- i.e. no more left
@@ -1119,15 +1127,16 @@ function load_wave()
  		bombers=sw.bombers,
  		pods=sw.pods,	
  		
+ 		mutants=0,
+ 		
  		t=t,
  		t_chunk=t,
  		
- 		landers_hit=0,
+ 		landers_hit=0,  -- include mutants
  		bombers_hit=0,
  		pods_hit=0,
- 		-- todo mutants=ex-landers
- 		-- todo baiters
- 		-- todo swarmers	
+ 		-- todo baiters_hit
+ 		-- todo swarmers_hit
  		
  		humans_added=nil,
 	}
@@ -1179,6 +1188,25 @@ function add_enemies()
 			add_explosion(l, true)  -- reverse i.e. spawn
 		end
 		wave.landers -= make
+	end
+	if wave.mutants > 0 then
+	 make = wave.mutants
+		for e = 1,make do
+		 local x=rnd(ww)
+		 --local y=rnd(128-hudy)+hudy
+		 local y=hudy+2
+		 -- todo if hit player - move
+			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
+			l=make_actor(mutant,x,y,time())
+			l.dy = mutant_speed/2
+			-- todo remove lazy here?
+			l.lazy = rnd(512)  -- higher = less likely to chase
+			l.h=4
+			l.w=3
+			l.score=150	
+			add_explosion(l, true)  -- reverse i.e. spawn
+		end
+		wave.mutants -= make
 	end
 	if wave.bombers > 0 then
 	 make = min(wave.bombers, 5) -- ok?
@@ -1233,8 +1261,8 @@ function	reset_enemies()
 			wave.landers	+= 1
 		elseif e.k == mutant then
 			printh(e.k.." undead "..e.x)			 	
-			-- todo or do we keep as mutants?
-			wave.landers	+= 1
+			--note: no need: already added on conversion: 
+			wave.mutants	+= 1
 		elseif e.k == bomber then
 			printh(e.k.." undead "..e.x)			 	
 			wave.bombers	+= 1
