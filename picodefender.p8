@@ -114,8 +114,9 @@ target_x_epsilon = 1
 target_y_epsilon = 3
 capture_targetted = 1
 capture_lifted = 2
-capture_dropped = 3
-gravity_speed = 1
+--todo remove: set dropped_y instead: capture_dropped = 3
+gravity_speed = 0.1
+safe_height = 80
 
 wave_progression = 15  -- seconds
 wave_reset = 2  -- seconds
@@ -154,15 +155,10 @@ function _init()
 	 
 	 hit=nil,
 	 c=7,  -- for explosion
+	 
+	 target=nil,
 	}
 
-	if false then	
-		for i=1,300 do
-			add_pl_score(32000)
-		end
-		add_pl_score(1234)
-	end
-	
 	lasers = {}
 
 	add_stars()
@@ -308,6 +304,22 @@ function _update60()
 	  pl.y = 120
 	 	pl.dy = 0
 	 end
+
+	 if pl.target ~= nil and pl.target.capture == capture_lifted then
+	 	printh("carrying "..pl.x.." "..pl.target.x)
+	 	pl.target.x = pl.x + 1
+	 	pl.target.y = pl.y + 6
+	 	-- todo dx/dy?
+
+			if pl.target.y > 116 then
+		 	printh("dropping "..pl.x.." "..pl.target.x)
+		 	pl.target.dy = gravity_speed
+		 	pl.target.dropped_y=pl.y
+		 	pl.capture = nil
+		 	pl.target = nil
+		 	add_pl_score(500)
+		 end
+		end
 	 
 	 update_wave()
  
@@ -360,7 +372,18 @@ function update_enemies()
 		 		e.hit = t
 				 kill_player(e)
 				end
-			end
+			else -- human - can we catch it?
+				-- todo refine -4 = -h etc? todo wrap?
+				if pl.target == nil and e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and ((e.y-4) - pl.y) < target_y_epsilon*2 then
+			 	-- here!
+			 	printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
+			 	pl.target = e
+			 	e.dy = 0 --pl.dy
+			 	e.dx = 0 --pl.dx
+					e.capture = capture_lifted
+					add_pl_score(500)
+				end
+			end			
 			
 			if not e.hit then
 		  e.x += e.dx
@@ -456,9 +479,16 @@ function update_enemies()
 			 	end
 			 elseif e.k == human then
 			  -- don't bounce - gravity
-					if e.y > 120 then
+					if e.dropped_y ~= nil and e.y > 119 then
 						e.y = 120 
 						e.dy = 0 
+						if e.dropped_y < safe_height then  -- i.e. unsafe
+				 		kill_actor(e,nil,true)  -- kill human 
+				 		-- possibly now nullspace						
+						else
+							add_pl_score(250)
+						end
+						e.dropped_y = nil
 					end 	 
 				-- else other types
 				end
@@ -771,6 +801,7 @@ function _draw_end_wave()
 
 	if pl.hit == nil then
 		-- note: already increased score
+		-- todo wrap in reset_player
 	 cdx = 0 -- freeze  -- todo move into load_wave?
 	 -- todo reset cx?
 		pl.x=cx+20
@@ -779,6 +810,7 @@ function _draw_end_wave()
 		pl.dx=0
 		pl.dy=0
 		pl.thrusting=false
+		pl.target = nil
 	 
 		iwave += 1
 		load_wave()
@@ -1013,6 +1045,7 @@ function kill_actor(e, laser, explode)
 		 	-- todo set drop time / score depending on height/landing
 		 	printh("todo drop human!")
 		 	e.target.dy = gravity_speed
+				e.target.dropped_y = e.y
 		 	e.target.capture = nil
 		 end
 		end
@@ -1043,6 +1076,10 @@ function kill_actor(e, laser, explode)
 	 			a.target = nil
 	 		end
 	 	end
+ 		if pl.target==e then
+ 			printh("unlinking player target after human dead "..pl.target.x.." "..pl.x)
+ 			pl.target = nil
+ 		end
 		end
 	 humans -= 1
 	 -- todo if humans == 0 then null space: convert all landers to mutants
@@ -1094,6 +1131,7 @@ function add_humans()
 		h.h=6
 		h.w=2
 		h.capture=nil
+		h.dropped_y=nil
 	end
 end
 
