@@ -121,6 +121,8 @@ safe_height = 80
 wave_progression = 15  -- seconds
 wave_reset = 2  -- seconds
 
+extra_score_expire = 1
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -174,6 +176,8 @@ function _init()
 	-- palette rotate	
 	pt = time()
 	cc = 1
+	
+	extra_score = nil
 	
 	_draw = _draw_wave
 end
@@ -306,8 +310,8 @@ function _update60()
 	 end
 
 	 if pl.target ~= nil and pl.target.capture == capture_lifted then
-	 	printh("carrying "..pl.x.." "..pl.target.x)
-	 	pl.target.x = pl.x + 1
+	 	--printh("carrying "..pl.x.." "..pl.target.x)
+	 	pl.target.x = pl.x 
 	 	pl.target.y = pl.y + 6
 	 	-- todo dx/dy?
 
@@ -381,7 +385,8 @@ function update_enemies()
 			 	e.dy = 0 --pl.dy
 			 	e.dx = 0 --pl.dx
 					e.capture = capture_lifted
-					add_pl_score(500)
+					-- note: x-12 since score formats for 6 places
+					add_pl_score(500, pl.x-12, pl.y+4)
 				end
 			end			
 			
@@ -401,8 +406,8 @@ function update_enemies()
 						-- todo wrap
 					 if e.target.capture == capture_lifted then
 					 	--printh("lifting "..e.x.." "..e.target.x)
-					 	e.target.x = e.x + 1
-					 	e.target.y = e.y + 6
+					 	e.target.x = e.x 
+					 	e.target.y = e.y + 7
 					 	-- todo dx/dy?
 					 	if e.y < hudy+1 then
 					 		printh("convert to mutant"..e.x)
@@ -569,19 +574,24 @@ function wxtoc(wx)
 	return x
 end
 
-function draw_score(v)
+function draw_score(v, x,y)
+ x=x or 0
+ y=y or 6
  local i=6
  repeat
   local t=v>>>1
   -- todo map to font
-  print((t%0x0.0005<<17)+(v<<16&1),i*4,6,5)
+  print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,5)
   v=t/5
  	i-=1
  until v==0
 end
 
-function add_pl_score(v)
+function add_pl_score(v, x, y)
  assert(v<32767)  
+ if x and y then
+ 	extra_score = {v>>16, wxtoc(x),y, time()}
+ end
 	pl.score += v >> 16
 end
 
@@ -618,6 +628,15 @@ function draw_hud()
  pset(hc+hdc*5+1,hudy-1, 7)
  
  draw_score(pl.score)
+ if extra_score then
+  local t = time()
+ 	local age = t - extra_score[4]
+ 	if age < extra_score_expire then
+		 draw_score(extra_score[1], extra_score[2],extra_score[3])
+		else
+		 extra_score = nil
+		end 
+ end
  
  for i=1,min(pl.bombs,3) do
  	spr(4,25,-7+i*4)
@@ -1031,7 +1050,8 @@ function kill_actor(e, laser, explode)
 	 	end
 	 end
 	end
-	pl.score += e.score >> 16
+	add_pl_score(e.score)
+	--pl.score += e.score >> 16
 
 	del(actors, e)
 	printh(e.k.." dead "..e.x)			 	
