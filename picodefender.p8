@@ -6,7 +6,7 @@ __lua__
 -- remake of the williams classic
 
 debug = true
-debug_test = debug  -- 1 of each enemy per wave
+debug_test = not debug  -- 1 of each enemy per wave
 
 waves = {
  {--1
@@ -70,19 +70,20 @@ hhr = (128-4 - hudy)/hudy + 1
 lmin = 3
 lmax = 56
 
-max_speed = 3
-thrust = 1
+max_speed = 2
+thrust = 0.4
 vert_accel = 0.6
 max_vert_speed = max_speed/2
 max_h_speed_factor = max_speed/48
 
 laser_expire = 1
-laser_size = 40  -- see rate
+laser_size = 30  -- see rate
 laser_rate=8
-laser_max_length = 50  -- cap
-laser_min_length = 6  -- show something immediately
-min_laser_speed = 0.1  -- e.g. static ship, move away still
+laser_max_length = 100  -- cap
+laser_min_length = 8  -- show something immediately
+min_laser_speed = 0.2 -- e.g. static ship, move away still
 laser_speed = 1.8
+laser_min_effective_age = 0.03  -- delay so it can be seen before being effective
 laser_inertia = 0.999
 
 lander_speed = 0.3
@@ -218,9 +219,9 @@ function _update60()
 	 pl.dy *= inertia_py
 	 pl.y += pl.dy 
 	 
+	 cdx *= inertia_cx
 	 cx += cdx * pl.facing
 	 pl.x += cdx * pl.facing
-	 cdx *= inertia_cx
 	
 		-- player thrust/decay
 		-- in screen space to handle any wrapping
@@ -302,11 +303,16 @@ function update_enemies()
 		-- check if hit by laser
 	 for laser in all(lasers) do 	
 	  if not e.hit then
-				local actual_age = (t-laser[4]) --/ laser_expire
-				if actual_age > 0.05 then
-					local x,y = laser[1], laser[2]
+				--local actual_age = (t-laser[4]) --/ laser_expire
+				local age = (t-laser[4])/laser_expire
+				local x,y = laser[1], laser[2]
+			 -- todo include wrap at end
+			 --      or cut short draw!
+				--if actual_age > laser_min_effective_age then
+				if (age * laser_size * laser_rate) > abs(e.x-x) then
 				 -- todo precalc half widths			
 				 -- todo include wrap at end
+				 -- todo maybe cut off at screen/camera
 					if y > (e.y+e.dy+(8-e.h)/2) and y < (e.y+e.dy+8-(e.h/2)) then
 						-- note: quick check against max and assume width == 8 (and player can't be on enemy)
 						if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
@@ -502,23 +508,25 @@ end
 
 function draw_player()
 	local t=time()
+	-- draw_lasers
 	for laser in all(lasers) do
 		--printh(tostr(laser))
 		local x,y = wxtoc(laser[1]), laser[2]
 		local age = (t-laser[4]) / laser_expire
 		local mdx,mdy=1/8,0
-		tline(x,
-							y,
-				  	x+min(
-					  	max((age * laser_size) * laser_rate, 
-    		  				laser_min_length
-				  			  ) * laser[3]
-		  				, 
-				  		laser_max_length
-				  		), 
-				  	y, 
-				  	0,0,
-				  	mdx,mdy
+		tline(
+		 x,
+			y,
+			x+min(
+			  		max((age * laser_size) * laser_rate, 
+    	  				laser_min_length
+				  		  ) 
+ 		  		, 
+	 			 	laser_max_length 
+		 		 ) * laser[3], 
+  	y, 
+	 	0,0,
+	 	mdx,mdy
 		)
 	end
 
@@ -1018,7 +1026,7 @@ __gfx__
 007007000d000000eee6666b00000000000707000d000000000000000000000000b0bb0000b0b0b0000000000000000000000000000000000000000000000000
 00000000dddd1900000000000000000000000000eed1000000000000000000000b00b0b000000000000000000000000000000000000000000000000000000000
 000000000e73dd730000000000000000000000000edd30000000000000000000b000b00b00000000000000000000000000000000000000000000000000000000
-50505005550500550055050505055055505550505055555055555555555555550000000000000000000000000000000000000000000000000000000000000000
+50505005550500550055050505055055505550505055555057755555555555550000000000000000000000000000000000000000000000000000000000000000
 55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
 55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
 55555555555555555555555555555555555555555555555555555555555555550007700000000000000000000000000000000000000000000000000000000000
@@ -1174,6 +1182,6 @@ __gff__
 0000000000000000020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
-1011121314151617000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+1011121314151513121716170000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 0001000024050260502705029050000002c0502e05000000320500000034050350502f0502d05025050210501e050180501605015050150501605018050000001a0501a0501a0501905000000000000000000000
