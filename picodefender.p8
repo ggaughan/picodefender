@@ -97,6 +97,7 @@ laser_min_effective_age = 0.03  -- delay so it can be seen before being effectiv
 laser_inertia = 0.999
 
 lander_speed = 0.3
+mutant_speed = 0.6
 bullet_expire = 1.5
 bullet_speed = 1.6
 
@@ -109,6 +110,11 @@ old_particle = 1
 enemy_die_expire = 1
 
 human_speed = 0.02
+target_x_epsilon = 1
+target_y_epsilon = 3
+capture_targetted = 1
+capture_lifted = 2
+capture_dropped = 3
 
 wave_progression = 15  -- seconds
 wave_reset = 2  -- seconds
@@ -165,8 +171,8 @@ function _init()
 	load_wave()
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
 	--      then actually wrap at 255 with special wave 0
-	add_enemies()
 	add_humans()
+	add_enemies()
 
 	-- palette rotate	
 	pt = time()
@@ -365,43 +371,104 @@ function update_enemies()
 			 end
 		  e.y += e.dy
 				
+				-- todo move to ai/behaviour routine
 				if e.k == lander then  
-					off = rnd(hudy*2)
-					if e.y < hudy + off then
-						e.y = hudy + off
-						e.dy *= -1
-					elseif e.y > 120 - off then
-						e.y = 120 - off
-						e.dy *= -1
-					end 
-					
-					-- ai
-					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
-					 if e.x < pl.x then
+					if e.target ~= nil then
+						-- todo wrap
+					 if e.target.capture == capture_lifted then
+					 	printh("lifting "..e.x.." "..e.target.x)
+					 	e.target.x = e.x
+					 	e.target.y = e.y + 6
+					 	-- todo dx/dy?
+					 	if e.y < hudy+1 then
+					 		printh("todo convert to mutant")
+					 		kill_actor(e.target,nil,false)  -- kill human silently
+					 		-- possibly now nullspace
+					 		e.k = mutant
+					 		e.lazy = 0  -- todo or remove altogether?
+					 		-- todo inc speed
+					 	end
+					 elseif e.target.capture == capture_targetted and abs(e.x - e.target.x) < target_x_epsilon and abs(e.y - e.target.y) < target_y_epsilon then
+					 	-- here!
+					 	printh("capturing! "..e.x.." "..e.target.x)
+					 	e.dy = -lander_speed/2
+					 	e.dx = 0  -- straight up
+							e.target.capture = capture_lifted
+							e.target.dy = 1  -- gravity for if/when dropped
+					 elseif e.x < e.target.x then
 						 e.dx = lander_speed
+		 				if e.y < hudy + 90 and e.dy < 0 then
+								e.dy *= -1
+							end
 						else
 						 e.dx = -lander_speed
+		 				if e.y < hudy + 90 and e.dy < 0 then
+								e.dy *= -1
+							end
+					 end			
+ 				else
+ 					-- will bounce up and down
+						if rnd() < 0.2 then
+							e.dx = lander_speed/4
+						elseif rnd() < 0.2 then
+							e.dx = -lander_speed/4
+						elseif rnd() < 0.2 then
+							e.dx = 0
+						end
+					end				
+					-- attack
+					-- todo wrap?
+					if abs(e.x - pl.x) < 128 then
+						if rnd() < 0.002 then
+							b=add_bullet(e.x, e.y)  -- todo pass weak=true
+						end
+					end				
+				elseif e.k == mutant then
+					-- ai
+					-- todo remove lazy now? use for other type
+					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+					 if e.x < pl.x then
+						 e.dx = mutant_speed
+						else
+						 e.dx = -mutant_speed
+					 end
+					 
+					 if e.y < hudy + rnd(20) and e.y < pl.y and e.dy<0 then
+					 	e.dy *= -1
+					 elseif e.y > 120 - rnd(20) and e.y > pl.y and e.dy>0 then
+					 	e.dy *= -1
 					 end
 					end
+
+					-- attack
+					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
-						if rnd() < 0.005 then
+						if rnd() < 0.006 then
 							b=add_bullet(e.x, e.y)
 						end
-					end
-					if rnd() < 0.2 then
-						e.dx = lander_speed/4
-					elseif rnd() < 0.2 then
-						e.dx = -lander_speed/4
-					elseif rnd() < 0.2 then
-						e.dx = 0
-					end
+					end				
 				elseif e.k == bullet then
 			 	if t-e.t > bullet_expire then
 			 		del(actors,e)
 			 	end
+			 elseif e.k == human then
+			  -- don't bounce - gravity
+					if e.y > 120 then
+						e.y = 120 
+						e.dy = 0 
+					end 	 
 				-- else other types
 				end
-				-- todo stop h out of bounds
+				
+				-- general bounce to stop y out of bounds
+				if e.y < hudy +1 then
+					e.y = hudy +1
+					e.dy *= -1
+				elseif e.y > 120 then
+					e.y = 120 
+					e.dy *= -1
+				end 
+				
 			-- else hit and no more
 			end
 		-- else hit and no more
@@ -437,13 +504,13 @@ function update_wave()
 	local age = t-wave.t_chunk
 	if age > wave_progression then
   wave.t_chunk = t  -- reset
-		if wave.landers > 0 then	 
-		 printh("more at"..t)
-			add_enemies()
-		end
 		if humans > 0 then
 		 printh("humans at"..t)
 			add_humans()
+		end
+		if wave.landers > 0 then	 
+		 printh("more at"..t)
+			add_enemies()
 		end
 	end
 end
@@ -585,8 +652,9 @@ function draw_enemies()
 		else
 			local x,y = wxtoc(e.x), e.y
 			local fx = (e.k==human and e.dx>0)
-			spr(e.k, x, y, 1,1, fx)	
-			 -- todo animate?
+
+ 		spr(e.k, x, y, 1,1, fx)	
+		 -- todo animate?
 		end
 	end
 end
@@ -757,6 +825,7 @@ function _draw_wave()
 		end
 		print(#actors,100,0)
 		print(#particles,100,6)
+		print(humans,120,0)
 		print(iwave+1,120,6)
 	end
 
@@ -932,6 +1001,15 @@ function kill_actor(e, laser, explode)
 	
 	if e.k == lander then
 	 wave.landers_hit += 1
+	 
+	 if e.target ~= nil then
+		 if e.target.capture == capture_lifted then
+		 	-- todo drop human
+		 	-- todo set drop time / score depending on height/landing
+		 	printh("todo drop human!")
+		 end
+		end
+	 
 	 -- note: could have just added a batch! todo fifo?
 	 if wave.landers_hit % 5 == 0 then
 			if wave.landers > 0 then	 
@@ -939,6 +1017,9 @@ function kill_actor(e, laser, explode)
 				add_enemies()
 			end
 		end
+	elseif e.k == mutant then
+		-- todo: also kill human
+		-- todo track hits?
 	elseif e.k == bomber then
 	 wave.bombers_hit += 1
 	 -- todo more?
@@ -946,6 +1027,16 @@ function kill_actor(e, laser, explode)
 	 wave.pods_hit += 1
 	 -- todo more?
 	elseif e.k == human then
+		if e.capture ~= nil then
+	  printh("dead human was captured "..e.x.." "..e.capture)
+	  -- reset any lander that had this as a target (else picks up a phantom)
+	 	for a in all(actors) do
+	 		if a.k==lander and a.target==e then
+	 			printh("unlinking target after human dead "..a.target.x.." "..a.x)
+	 			a.target = nil
+	 		end
+	 	end
+		end
 	 humans -= 1
 	 -- todo if humans == 0 then null space
 	end
@@ -993,8 +1084,9 @@ function add_humans()
 		h.c=6
 		h.dx=rnd(human_speed)  
 		if (rnd() > 0.5) h.dx=h.dx*-1
-		h.h=4
-		h.w=3
+		h.h=6
+		h.w=2
+		h.capture=nil
 	end
 end
 
@@ -1049,7 +1141,7 @@ function load_wave()
 	end
 
 	if	debug_test then
-		wave.landers=1
+		wave.landers=2 --1
 		wave.bombers=min(1,wave.bombers)
 		wave.pods=min(1,wave.pods)
 	end
@@ -1072,6 +1164,18 @@ function add_enemies()
 			l.h=4
 			l.w=3
 			l.score=150	
+			-- find target
+			l.target = nil
+			if true then --humans > 0 then
+				for i,e in pairs(actors) do
+					if e.k == human and e.capture==nil then
+						l.target=e
+						l.target.capture = capture_targetted
+						printh(l.x.." targetting "..i.." = "..e.x)
+						break
+					end
+				end
+			end
 			add_explosion(l, true)  -- reverse i.e. spawn
 		end
 		wave.landers -= make
@@ -1126,6 +1230,10 @@ function	reset_enemies()
 			printh(e.k.." removed "..e.x)			 	
 		elseif e.k == lander then
 			printh(e.k.." undead "..e.x)			 	
+			wave.landers	+= 1
+		elseif e.k == mutant then
+			printh(e.k.." undead "..e.x)			 	
+			-- todo or do we keep as mutants?
 			wave.landers	+= 1
 		elseif e.k == bomber then
 			printh(e.k.." undead "..e.x)			 	
