@@ -96,8 +96,9 @@ laser_speed = 1.8
 laser_min_effective_age = 0.03  -- delay so it can be seen before being effective
 laser_inertia = 0.999
 
-lander_speed = 0.3
-mutant_speed = 0.6
+lander_speed = 0.1
+lander_speed_y_factor = 2
+mutant_speed = 0.4
 bullet_expire = 1.5
 bullet_speed = 1.6
 
@@ -122,6 +123,7 @@ wave_progression = 15  -- seconds
 wave_reset = 2  -- seconds
 
 extra_score_expire = 1
+bombing_expire = 0.3
 
 function _init()
 	w = {}  -- ground + stars
@@ -178,6 +180,7 @@ function _init()
 	cc = 1
 	
 	extra_score = nil
+	bombing_t = nil
 	
 	_draw = _draw_wave
 end
@@ -234,9 +237,26 @@ function _update60()
 	 	laser[1] += laser[5]*laser[3] * laser_speed
 	 	laser[5] *= laser_inertia
 	 end
-	 --if btnp(🅾️) then -- z
+	 
+	 if btnp(🅾️) then 
 	 	-- smart bomb - kill all enemies
-	 --end
+	 	if pl.bombs > 0 then
+		 	sfx(6)
+		 	bombing_t = time()
+				for e in all(actors) do
+				 -- note: we kill bullets and mines too
+				 -- note: original doesn't seem to...
+			  if not(e.k == human) then
+						local sx = wxtoc(e.x)
+						if sx >= 0 and sx <= 127 then
+							e.hit = t
+						 kill_actor(e, nil)
+						end
+			  end
+				end	
+	 		pl.bombs -= 1
+		 end
+	 end
 	 
 	 pl.dy *= inertia_py
 	 pl.y += pl.dy 
@@ -427,7 +447,7 @@ function update_enemies()
 					 elseif e.target.capture == capture_targetted and abs(e.x - e.target.x) < target_x_epsilon and abs(e.y - e.target.y) < target_y_epsilon then
 					 	-- here!
 					 	printh("capturing! "..e.x.." "..e.target.x)
-					 	e.dy = -lander_speed/2
+					 	e.dy = -lander_speed*lander_speed_y_factor
 					 	e.dx = 0  -- straight up
 							e.target.capture = capture_lifted
 							e.target.dy = gravity_speed  -- for if/when dropped
@@ -455,7 +475,7 @@ function update_enemies()
 					-- attack
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
-						if rnd() < 0.002 then
+						if rnd() < 0.0015 then
 							b=add_bullet(e.x, e.y)  -- todo pass weak=true
 						end
 					end				
@@ -783,6 +803,7 @@ function animate_camera()
 end
 
 function _draw_game_over()
+ -- game over
  cls()
  
 	draw_hud()
@@ -812,6 +833,7 @@ function _draw_game_over()
 end
 
 function _draw_end_wave()
+ -- end wave
  cls()
  
 	draw_hud()
@@ -850,10 +872,23 @@ function _draw_end_wave()
 end
 
 function _draw_wave()
- cls()
- 
  local t=time()
- 
+
+ if bombing_t ~= nil then
+		local age = t - bombing_t
+		if age < bombing_expire then
+		 if flr(age * 18) % 2 == 0 then
+				cls(7)
+			else
+				cls(0)
+			end
+		else
+			bombing_t = nil
+		end
+	else
+		cls()
+	end
+
  if t-pt > 0.2 then
   cc = (cc%15) + 1
 	 pal(5, cc) -- todo true?
@@ -1243,7 +1278,7 @@ function add_enemies()
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(lander,x,y,time())
-			l.dy = lander_speed/2
+			l.dy = lander_speed*lander_speed_y_factor
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
 			l.w=7
@@ -1274,7 +1309,7 @@ function add_enemies()
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(mutant,x,y,time())
-			l.dy = mutant_speed/2
+			l.dy = mutant_speed*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
@@ -1294,7 +1329,7 @@ function add_enemies()
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,x,y,time())
-			--l.dy = lander_speed/2
+			--l.dy = lander_speed*lander_speed_y_factor
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
 			l.w=3
@@ -1313,7 +1348,7 @@ function add_enemies()
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,x,y,time())
-			--l.dy = lander_speed/2
+			--l.dy = lander_speed*lander_speed_y_factor
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
 			l.w=5
@@ -1556,3 +1591,4 @@ __sfx__
 000400000661007610086100861006610046100461003610036100461005610086100961009610086100761005610046100361003610056100761009610096100961008610066100561004610056100661007610
 000c0000166501c66020670196601c65017630126200e6100c6200f6401165013650116400f6300c620096200861008610096100c6200d6300b630076200561006610096200c6300c6300a620066100561005610
 0003000031220312303123031230312202d2202c22029220282202822027220252202421023210222102121021210202101f2001e2001e2001d2001c2001b2001b2001a2001a2001a20000200082000620005200
+000200002064029650326603066021650186300b6300a630106301663022630296501d6601067007670036600b650136401a640246401e6501166004670046700b6601d6502a640286401c650126600766001660
