@@ -585,7 +585,7 @@ function _update60_game_over()
 
  update_particles()  -- could include player dying
  
- if timeout then
+ if timeout or (some_timeout and btnp(➡️)) then
   pl.hit = t
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
@@ -620,7 +620,11 @@ function _update60_title()
 
  update_particles()  -- could include special effects
  
- if timeout then
+ if timeout or btnp(➡️) then
+  if pl.score == 0>>16 then
+			add_pl_score(450)  -- why? version?
+		end
+		
   pl.hit = t  
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
@@ -640,8 +644,25 @@ function _update60_highscores()
  -- todo cycle palette here and others	- move into update_particles
  update_particles()  -- could include special effects
  
- if timeout then
-  pl.hit = t  
+ if timeout or btnp(➡️) then
+  pl.hit = t
+
+		-- setup instructions - todo move to routine  
+		-- todo add add_human routine - though this isn't same/random
+		h=make_actor(human,cx+104,120,time())
+		h.c=6
+		h.h=6
+		h.w=2
+		h.capture=nil
+		h.dropped_y=nil
+		--note: avoid (already setup) humans += 1
+		
+		pl.lives = 0
+		pl.bombs = 0
+		pl.x = cx+6
+		pl.y = hudy+12
+		--- end setup
+
  	_update60 = _update60_instructions
  	_draw = _draw_instructions
 	elseif btnp(🅾️) or btnp(❎) then
@@ -653,18 +674,28 @@ function _update60_highscores()
 end
 
 function _update60_instructions()
+ -- note: uses actors and player logic to demo things
 	local t=time()
 	local age = t-pl.hit
 	local timeout = (age > title_delay)
 
  -- todo cycle palette here and others	- move into update_particles
  update_particles()  -- could include special effects
- 
- if timeout then
+
+ if timeout or btnp(➡️) or (btnp(🅾️) or btnp(❎)) then
+  reset_player(true)  -- note: loses last actual score and demo score will replace it
+
+		-- todo move to reset_game() - include call to reset_player(true) above
+		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
+ 	actors={} -- reset - todo move to start_game()?
+		particles = {}
+		lasers = {}
+ end
+ -- ...
+ if timeout or btnp(➡️) then
   pl.hit = t  
-  -- todo or go to title?
- 	_update60 = _update60_highscores
- 	_draw = _draw_highscores
+ 	_update60 = _update60_title
+ 	_draw = _draw_title
 	elseif btnp(🅾️) or btnp(❎) then
   start_game()
   pl.hit = nil  -- start now
@@ -676,6 +707,9 @@ end
 -- todo move to tab3?
 function start_game()
 	-- assumes already reset
+	if pl.score == 450>>16 then
+		add_pl_score(-450)
+	end
  bombing_t = nil
  particles={}
  add_humans()  -- initial 
@@ -777,7 +811,7 @@ function draw_hud()
  end
 end
 
-function draw_player()
+function draw_player(demo_mode)
 	local t=time()
 	-- draw_lasers
 	for laser in all(lasers) do
@@ -801,7 +835,7 @@ function draw_player()
 		)
 	end
 
-	if pl.hit ~= nil then
+	if pl.hit ~= nil and not demo_mode then
 		local age = (t-pl.hit)
 		--printh("player dying "..age)
 		if age > player_die_expire then
@@ -953,28 +987,55 @@ end
 function _draw_highscores()
  -- highscores
  cls()
+
+	draw_score(pl.score)
+ if extra_score then
+  local t = time()
+ 	local age = t - extra_score[4]
+ 	if age < extra_score_expire then
+		 draw_score(extra_score[1], extra_score[2],extra_score[3])
+		else
+		 extra_score = nil
+		end 
+ end
  
 	draw_particles()
 
 	-- never expire! draw_player()  -- needed to expire
 
 	-- todo 3d text?
-	print("hall of fame", 56, hudy+31, 10)
-	print("todays", 48, hudy+38, 8)
-	print("all time", 60, hudy+54, 5)
-	print("highest", 40, hudy+60, 5)
+	print("pico", 56, hudy+1, 10)
+	print("defender", 48, hudy+8, 8)
+	print("hall of fame", 40, hudy+16, 5)
+
+	print("todays", 8, hudy+24, 5)
+	print("all time", 90, hudy+24, 5)
+	print("greatest", 4, hudy+30, 5)
+	print("greatest", 90, hudy+30, 5)
 end
 
 function _draw_instructions()
  -- instructions
  cls()
- 
+
+	draw_hud()
+
+	-- draw_ground	
+	for x = 0,127 do
+		i = ((ceil(cx+x))%ww) + 1
+		--printh(i)
+		pset(x,127 - w[i][1], 4)
+	end
+
+	draw_enemies()
 	draw_particles()
 
-	-- never expire! draw_player()  -- needed to expire
-
+	draw_player(true)  -- pass demo_mode to aviod dying/reset (because p.hit is overused as a timer here)
+ 
 	-- todo 3d text?
-	print("1..2..3", 56, hudy+31, 10)
+	print("scanner", 52, hudy+4, 5)
+
+	print("1..2..3", 52, hudy+31, 10)
 	-- todo: animation steps via timer
 end
 
