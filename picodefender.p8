@@ -126,6 +126,7 @@ extra_score_expire = 1
 bombing_expire = 0.3
 
 title_delay = 8
+title_particle_expire = 3
 game_over_delay = 4
 
 function _init()
@@ -170,7 +171,7 @@ function _init()
 	cc = 1
 	
 	extra_score = nil
-	bombing_t = nil
+	bombing_t = nil  -- also used for title animation
 	
  pl.hit = time()  -- delay
 	_draw = _draw_title
@@ -560,6 +561,7 @@ function update_particles()
 end
 
 function update_wave()
+ -- todo rename: wave_progression
 	local t=time()
 	local age = t-wave.t_chunk
 	if age > wave_progression then
@@ -582,6 +584,7 @@ function _update60_game_over()
 	local some_timeout = (age > 1)  -- make sure we see the message
 
  update_particles()  -- could include player dying
+ 
  if timeout or (some_timeout and (btnp(🅾️) or btnp(❎))) then
   reset_player(true)
 
@@ -604,10 +607,18 @@ function _update60_title()
 	local t=time()
 	local age = t-pl.hit
 	local timeout = (age > title_delay)
+	
+	if bombing_t == nil then
+		add_explosion({x=cx+64,y=50,c=8}, true, particle_speed, title_particle_expire)
+		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
+		bombing_t = t
+	end
 
  update_particles()  -- could include special effects
+ 
  if timeout or btnp(🅾️) or btnp(❎) then
   -- start 
+  bombing_t = nil
   add_humans()  -- initial 
 	 add_enemies() -- initial 
   pl.hit = nil  -- start now
@@ -858,7 +869,7 @@ function _draw_game_over()
 	draw_particles()
 
 	-- todo 3d text?
-	print("game over", 45, hudy+40, 5)
+	print("game over", 48, hudy+40, 5)
 end
 
 function _draw_title()
@@ -1105,8 +1116,8 @@ function add_explosion(e, reverse, speed, expire)
   	f = 1-f  --prevent for next one
   end
   if reverse then
-  	x+=d[1]*60
-  	y+=d[2]*60
+  	x+=d[1]*30
+  	y+=d[2]*30 
   	d[1], d[2] = -1*d[1], -1*d[2]
   end
 		add(particles,{
