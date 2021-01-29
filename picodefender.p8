@@ -96,7 +96,7 @@ laser_speed = 1.8
 laser_min_effective_age = 0.03  -- delay so it can be seen before being effective
 laser_inertia = 0.999
 
-lander_speed = 0.1
+lander_speed = 0.15
 lander_speed_y_factor = 2
 mutant_speed = 0.4
 bullet_expire = 1.5
@@ -182,6 +182,7 @@ function _init()
 	extra_score = nil
 	bombing_t = nil
 	
+	--_draw = _draw_title
 	_draw = _draw_wave
 end
 
@@ -445,9 +446,8 @@ function update_enemies()
 					 		-- todo inc speed
 					 	end
 					 elseif e.target.capture == capture_targetted and abs(e.x - e.target.x) < target_x_epsilon and abs(e.y - e.target.y) < target_y_epsilon then
-					 	-- here!
 					 	printh("capturing! "..e.x.." "..e.target.x)
-					 	e.dy = -lander_speed*lander_speed_y_factor
+					 	e.dy = -lander_speed*(lander_speed_y_factor/2)
 					 	e.dx = 0  -- straight up
 							e.target.capture = capture_lifted
 							e.target.dy = gravity_speed  -- for if/when dropped
@@ -476,6 +476,7 @@ function update_enemies()
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
 						if rnd() < 0.0015 then
+						 sfx(7)
 							b=add_bullet(e.x, e.y)  -- todo pass weak=true
 						end
 					end				
@@ -500,6 +501,7 @@ function update_enemies()
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
 						if rnd() < 0.006 then
+						 sfx(7)
 							b=add_bullet(e.x, e.y)
 						end
 					end				
@@ -605,11 +607,13 @@ end
 function draw_score(v, x,y)
  x=x or 0
  y=y or 6
+ local c=5
  local i=6
  repeat
   local t=v>>>1
   -- todo map to font
-  print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,5)
+  if (y~=6 and i==4) c=10 -- extra_score leading digit
+  print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,c)
   v=t/5
  	i-=1
  until v==0
@@ -852,7 +856,7 @@ function _draw_end_wave()
 		-- note: already increased score
 		-- todo wrap in reset_player
 	 cdx = 0 -- freeze  -- todo move into load_wave?
-	 -- todo reset cx?
+	 -- todo reset cx? bombing_t etc.
 		pl.x=cx+20
 		pl.y=64
 		pl.facing=1  -- todo need camera move?
@@ -1132,6 +1136,7 @@ function kill_actor(e, laser, explode)
 	 wave.pods_hit += 1
 	 -- todo more?
 	elseif e.k == human then
+	 -- todo wrap in kill_human routine?
 		if e.capture ~= nil then
 	  printh("dead human was captured "..e.x.." "..e.capture)
 	  -- reset any lander that had this as a target (else picks up a phantom)
@@ -1139,6 +1144,7 @@ function kill_actor(e, laser, explode)
 	 		if a.k==lander and a.target==e then
 	 			printh("unlinking target after human dead "..a.target.x.." "..a.x)
 	 			a.target = nil
+	 			-- todo find a new one! (not pl.target)
 	 		end
 	 	end
  		if pl.target==e then
@@ -1283,11 +1289,13 @@ function add_enemies()
 			l.h=4
 			l.w=7
 			l.score=150	
-			-- find target
+			-- find a target
 			l.target = nil
 			if true then --humans > 0 then
 				for i,e in pairs(actors) do
 					if e.k == human and e.capture==nil then
+		 			-- note: e.capture==nil implies not pl.target, i.e. player not carrying
+		 			-- todo: though might be funny to have lander steal human from player!
 						l.target=e
 						l.target.capture = capture_targetted
 						printh(l.x.." targetting "..i.." = "..e.x)
@@ -1296,7 +1304,7 @@ function add_enemies()
 				end
 			end
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)
+			sfx(2)  -- todo: if on screen
 		end
 		wave.landers -= make
 	end
@@ -1316,7 +1324,7 @@ function add_enemies()
 			l.w=7
 			l.score=150	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)
+			sfx(2)  -- todo: if on screen
 		end
 		wave.mutants -= make
 	end
@@ -1335,7 +1343,7 @@ function add_enemies()
 			l.w=3
 			l.score=250	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)
+			sfx(2)  -- todo: if on screen
 		end
 		wave.bombers -= make
 	end
@@ -1354,7 +1362,7 @@ function add_enemies()
 			l.w=5
 			l.score=1000	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)
+			sfx(2)  -- todo: if on screen
 		end
 		wave.pods -= make
 	-- todo others
@@ -1585,10 +1593,11 @@ __gff__
 __map__
 1011121314151513121716170000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-0002000034634356343663436634366243662435624346243362432624306242f6142e6142c6142b6142a61429614286142761426614256142461424614236142361422614226142261423624236242462425624
+0002000034634356443665436664366443663435624346243362432624306242f6142e6142c6142b6142a61429614286142761426614256142461424614236142361422614226142261423624236242462425624
 000100001102011020100200e0200b020090200602002020010100000000010020200402006020090200a02009020080100601003010010000000002000030000300000000000000000000000000000000000000
 000300001e6501f65020650216502265023650236502264022630216301f6201c6201a6101861016610156101361012610116100f6100f6100e6100d6100d6200d6200d6200d6200e6300f630116401364013650
 000400000661007610086100861006610046100461003610036100461005610086100961009610086100761005610046100361003610056100761009610096100961008610066100561004610056100661007610
 000c0000166501c66020670196601c65017630126200e6100c6200f6401165013650116400f6300c620096200861008610096100c6200d6300b630076200561006610096200c6300c6300a620066100561005610
 0003000031220312303123031230312202d2202c22029220282202822027220252202421023210222102121021210202101f2001e2001e2001d2001c2001b2001b2001a2001a2001a20000200082000620005200
 000200002064029650326603066021650186300b6300a630106301663022630296501d6601067007670036600b650136401a640246401e6501166004670046700b6601d6502a640286401c650126600766001660
+00010000254402c450314403143020420154201342015420184300040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400
