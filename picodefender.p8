@@ -125,12 +125,13 @@ wave_reset = 2  -- seconds
 extra_score_expire = 1
 bombing_expire = 0.3
 
+title_delay = 8
+game_over_delay = 4
+
 function _init()
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
 	stars = {}
-	actors = {}
-	particles = {}
 
 	cx = 128 * 4
  cdx = 0
@@ -138,43 +139,32 @@ function _init()
  canim_dx = 0
 
 	build_world()
+	add_stars()
 	
 	pl = {
-		x=cx+20,  
-		y=64,
-		
 		w=5,
 		h=3,
 		
-		lives=3,
-		score=0,
-		bombs=3,
-		
-		facing=1,
-		dx=0,
-		dy=0,
-		thrusting=false,
-	 thrusting_t=0,
-	 thrusting_spr=0,
-	 
-	 hit=nil,
 	 c=7,  -- for explosion
 	 
-	 target=nil,
+	 thrusting_t=0,
+	 thrusting_spr=0,
+	 hit=nil,  -- also used for timeouts/delays	
 	}
 
-	lasers = {}
-
-	add_stars()
+	actors = {}
+	particles = {}
 	
+	reset_player(true)
+	
+	-- todo move to reset_game() - include call to reset_player(true) above
+	lasers = {}
 	iwave=0
 	humans=0  -- topped up by load_wave
 	load_wave()
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
 	--      then actually wrap at 255 with special wave 0
-	add_humans()
-	add_enemies()
-
+	
 	-- palette rotate	
 	pt = time()
 	cc = 1
@@ -182,8 +172,10 @@ function _init()
 	extra_score = nil
 	bombing_t = nil
 	
-	--_draw = _draw_title
-	_draw = _draw_wave
+ pl.hit = time()  -- delay
+	_draw = _draw_title
+	_update60 = _update60_title
+	--_draw = _draw_wave
 end
 
 
@@ -191,7 +183,7 @@ end
 -->8
 --update
 
-function _update60()
+function _update_wave()
  local t=time()
 
  update_particles()  -- could include player dying
@@ -583,6 +575,47 @@ function update_wave()
 	end
 end
 
+function _update60_game_over()
+	local t=time()
+	local age = t-pl.hit
+	local timeout = (age > game_over_delay)
+	local some_timeout = (age > 1)  -- make sure we see the message
+
+ update_particles()  -- could include player dying
+ if timeout or (some_timeout and (btnp(🅾️) or btnp(❎))) then
+  reset_player(true)
+
+		-- todo move to reset_game() - include call to reset_player(true) above
+		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
+		actors = {}  -- ok?
+		particles = {}
+		lasers = {}
+		iwave = 0
+		humans=0  -- topped up by load_wave
+		load_wave()
+  
+  pl.hit = t
+ 	_update60 = _update_wave
+ 	_draw = _draw_wave
+ end
+end
+
+function _update60_title()
+	local t=time()
+	local age = t-pl.hit
+	local timeout = (age > title_delay)
+
+ update_particles()  -- could include special effects
+ if timeout or btnp(🅾️) or btnp(❎) then
+  -- start 
+  add_humans()  -- initial 
+	 add_enemies() -- initial 
+  pl.hit = nil  -- start now
+ 	_update60 = _update_wave
+ 	_draw = _draw_wave
+ end
+end
+
 -->8
 --draw
 
@@ -810,8 +843,6 @@ function _draw_game_over()
  -- game over
  cls()
  
-	draw_hud()
-
 	draw_stars()
 
 	draw_hud()
@@ -826,14 +857,23 @@ function _draw_game_over()
 	draw_enemies()
 	draw_particles()
 
+	-- todo 3d text?
+	print("game over", 45, hudy+40, 5)
+end
+
+function _draw_title()
+ -- title
+ cls()
+ 
+	draw_particles()
+
 	-- never expire! draw_player()  -- needed to expire
 
 	-- todo 3d text?
-	print("game over", 45, hudy+40, 5)
-
-	if pl.hit == nil then
-	 -- todo hi-scores then re-init and repoint _draw/_update60
-	end
+	print("pico", 56, hudy+31, 10)
+	print("defender", 48, hudy+38, 8)
+	print("by", 60, hudy+54, 5)
+	print("greg gaughan", 40, hudy+60, 5)
 end
 
 function _draw_end_wave()
@@ -854,16 +894,7 @@ function _draw_end_wave()
 
 	if pl.hit == nil then
 		-- note: already increased score
-		-- todo wrap in reset_player
-	 cdx = 0 -- freeze  -- todo move into load_wave?
-	 -- todo reset cx? bombing_t etc.
-		pl.x=cx+20
-		pl.y=64
-		pl.facing=1  -- todo need camera move?
-		pl.dx=0
-		pl.dy=0
-		pl.thrusting=false
-		pl.target = nil
+		reset_player()
 	 
 		iwave += 1
 		load_wave()
@@ -1162,6 +1193,23 @@ function kill_actor(e, laser, explode)
 	end
 end
 
+function reset_player(full)
+ if full then
+		pl.lives=3
+		pl.score=0
+		pl.bombs=3
+ end
+ cdx = 0 -- freeze  
+ -- todo reset cx? bombing_t etc.
+	pl.x=cx+20
+	pl.y=64
+	pl.facing=1  -- todo need camera move?
+	pl.dx=0
+	pl.dy=0
+	pl.thrusting=false
+	pl.target = nil
+end
+
 function kill_player(e)
  pl.hit = time()
 	sfx(3, -2)
@@ -1180,6 +1228,8 @@ function kill_player(e)
 	pl.lives -= 1
 	add_pl_score(25)
 	
+	-- todo maybe reset_player() here (if so lose cdx = 0 above)
+	
 	printh("player killed by "..e.x)
 	kill_actor(e, nil, false)  -- no explosion
 	if pl.target != nil then
@@ -1191,7 +1241,7 @@ function kill_player(e)
 	if pl.lives < 0 then
 	 pl.hit = time()  -- pause
 		_draw = _draw_game_over
-		-- repoint update60 & draw!
+		_update60 = _update60_game_over
 	end
 
 	--note reset_enemies() will be called during draw (i.e. after death animation)
