@@ -8,6 +8,14 @@ __lua__
 debug = true
 debug_test = not debug  -- 1 of each enemy per wave
 
+today = 1
+alltime = 2
+empty_hs = {nil,0}
+highscores = {
+	{empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs},
+	{empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs},
+}
+
 human=7
 lander=9
 mutant=25
@@ -141,6 +149,8 @@ function _init()
 
 	build_world()
 	add_stars()
+	
+	load_highscores()
 	
 	pl = {
 		w=5,
@@ -625,6 +635,8 @@ function _update60_title()
 			add_pl_score(450)  -- why? version?
 		end
 		
+  bombing_t = t  -- title explosion done
+  particles={}
   pl.hit = t  
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
@@ -694,6 +706,7 @@ function _update60_instructions()
  -- ...
  if timeout or btnp(➡️) then
   pl.hit = t  
+  bombing_t = nil  -- title explosion reset
  	_update60 = _update60_title
  	_draw = _draw_title
 	elseif btnp(🅾️) or btnp(❎) then
@@ -1008,10 +1021,22 @@ function _draw_highscores()
 	print("defender", 48, hudy+8, 8)
 	print("hall of fame", 40, hudy+16, 5)
 
-	print("todays", 8, hudy+24, 5)
-	print("all time", 90, hudy+24, 5)
-	print("greatest", 4, hudy+30, 5)
-	print("greatest", 90, hudy+30, 5)
+	print("todays", 10, hudy+24, 5)
+	print("all time", 92, hudy+24, 5)
+	print("greatest", 6, hudy+30, 5)
+	print("greatest", 92, hudy+30, 5)
+	-- todo underlines
+
+	for hst=today,alltime do
+	 local co = (hst-1)*76
+		for i, hs in pairs(highscores[hst]) do		
+ 		print(i, 1+co, hudy+32+i*6, 5)
+		 if hs[1] ~= nil then
+				print(hs[1], 10+co, hudy+32+i*6, 5)
+				print(hs[2], 30+co, hudy+32+i*6, 5)
+			end
+		end
+	end
 end
 
 function _draw_instructions()
@@ -1609,6 +1634,11 @@ function	reset_enemies()
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
 end
 
+function load_highscores()
+ -- note: needs to be >>16 if > 32k
+ highscores[alltime][1]={"gjg", 21270}
+ -- load highscores[alltime] from cart data
+end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000bb000000bb00000099b00000b9900000bbb0000000000000000000000000000000000
