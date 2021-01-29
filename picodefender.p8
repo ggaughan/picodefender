@@ -102,8 +102,8 @@ mutant_speed = 0.4
 bullet_expire = 1.5
 bullet_speed = 1.6
 
-particle_expire = 1
-particle_speed = 0.8
+particle_expire = 0.8
+particle_speed = 0.6
 --enemy_explode_size = 32
 
 player_die_expire = 3
@@ -126,7 +126,7 @@ extra_score_expire = 1
 bombing_expire = 0.3
 
 title_delay = 8
-title_particle_expire = 3
+title_particle_expire = 1.4
 game_over_delay = 4
 
 function _init()
@@ -173,10 +173,10 @@ function _init()
 	extra_score = nil
 	bombing_t = nil  -- also used for title animation
 	
+	-- todo pl.hit still needed here?
  pl.hit = time()  -- delay
 	_draw = _draw_title
 	_update60 = _update60_title
-	--_draw = _draw_wave
 end
 
 
@@ -184,7 +184,7 @@ end
 -->8
 --update
 
-function _update_wave()
+function _update60_wave()
  local t=time()
 
  update_particles()  -- could include player dying
@@ -585,7 +585,11 @@ function _update60_game_over()
 
  update_particles()  -- could include player dying
  
- if timeout or (some_timeout and (btnp(🅾️) or btnp(❎))) then
+ if timeout then
+  pl.hit = t
+ 	_update60 = _update60_highscores
+ 	_draw = _draw_highscores
+ elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
   reset_player(true)
 
 		-- todo move to reset_game() - include call to reset_player(true) above
@@ -598,7 +602,7 @@ function _update60_game_over()
 		load_wave()
   
   pl.hit = t
- 	_update60 = _update_wave
+ 	_update60 = _update60_wave
  	_draw = _draw_wave
  end
 end
@@ -609,22 +613,73 @@ function _update60_title()
 	local timeout = (age > title_delay)
 	
 	if bombing_t == nil then
-		add_explosion({x=cx+64,y=50,c=8}, true, particle_speed, title_particle_expire)
+		add_explosion({x=cx+64,y=52,c=8}, true, particle_speed/2, title_particle_expire)
 		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
 		bombing_t = t
 	end
 
  update_particles()  -- could include special effects
  
- if timeout or btnp(🅾️) or btnp(❎) then
-  -- start 
-  bombing_t = nil
-  add_humans()  -- initial 
-	 add_enemies() -- initial 
+ if timeout then
+  pl.hit = t  
+ 	_update60 = _update60_highscores
+ 	_draw = _draw_highscores
+	elseif btnp(🅾️) or btnp(❎) then
+  start_game()
   pl.hit = nil  -- start now
- 	_update60 = _update_wave
+ 	_update60 = _update60_wave
  	_draw = _draw_wave
  end
+end
+
+function _update60_highscores()
+	local t=time()
+	local age = t-pl.hit
+	local timeout = (age > title_delay)
+
+ -- todo cycle palette here and others	- move into update_particles
+ update_particles()  -- could include special effects
+ 
+ if timeout then
+  pl.hit = t  
+ 	_update60 = _update60_instructions
+ 	_draw = _draw_instructions
+	elseif btnp(🅾️) or btnp(❎) then
+  start_game()
+  pl.hit = nil  -- start now
+ 	_update60 = _update60_wave
+ 	_draw = _draw_wave
+ end
+end
+
+function _update60_instructions()
+	local t=time()
+	local age = t-pl.hit
+	local timeout = (age > title_delay)
+
+ -- todo cycle palette here and others	- move into update_particles
+ update_particles()  -- could include special effects
+ 
+ if timeout then
+  pl.hit = t  
+  -- todo or go to title?
+ 	_update60 = _update60_highscores
+ 	_draw = _draw_highscores
+	elseif btnp(🅾️) or btnp(❎) then
+  start_game()
+  pl.hit = nil  -- start now
+ 	_update60 = _update60_wave
+ 	_draw = _draw_wave
+ end
+end
+
+-- todo move to tab3?
+function start_game()
+	-- assumes already reset
+ bombing_t = nil
+ particles={}
+ add_humans()  -- initial 
+ add_enemies() -- initial 
 end
 
 -->8
@@ -789,6 +844,14 @@ end
 
 function draw_particles()
 	local t=time()
+
+	-- palette cycle - as good a place as any
+ if t-pt > 0.2 then
+  cc = (cc%15) + 1
+	 pal(5, cc) -- todo true?
+	 pt = t
+	end
+ 
 	for e in all(particles) do
 		local x,y = wxtoc(e.x), e.y
 		local c = e.c
@@ -887,6 +950,34 @@ function _draw_title()
 	print("greg gaughan", 40, hudy+60, 5)
 end
 
+function _draw_highscores()
+ -- highscores
+ cls()
+ 
+	draw_particles()
+
+	-- never expire! draw_player()  -- needed to expire
+
+	-- todo 3d text?
+	print("hall of fame", 56, hudy+31, 10)
+	print("todays", 48, hudy+38, 8)
+	print("all time", 60, hudy+54, 5)
+	print("highest", 40, hudy+60, 5)
+end
+
+function _draw_instructions()
+ -- instructions
+ cls()
+ 
+	draw_particles()
+
+	-- never expire! draw_player()  -- needed to expire
+
+	-- todo 3d text?
+	print("1..2..3", 56, hudy+31, 10)
+	-- todo: animation steps via timer
+end
+
 function _draw_end_wave()
  -- end wave
  cls()
@@ -935,12 +1026,6 @@ function _draw_wave()
 		cls()
 	end
 
- if t-pt > 0.2 then
-  cc = (cc%15) + 1
-	 pal(5, cc) -- todo true?
-	 pt = t
-	end
- 
  if (canim > 0) animate_camera()
 
 	draw_stars()
