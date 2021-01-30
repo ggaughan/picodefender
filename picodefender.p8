@@ -139,10 +139,11 @@ game_over_delay = 4
 new_highscore_delay = 60  -- timeout if no initials in this time
 
 function _init()
+	cart_ok = cartdata("ggaughan_picodefender_1")
+
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
 	stars = {}
-
 	cx = 128 * 4
  cdx = 0
  canim = 0
@@ -727,8 +728,9 @@ function _update60_new_highscore()
  end
 
  if timeout then
-  -- note: too late - don't add new highscore
-  -- todo: we could add with name of ??? or hs_name as-is (default "")
+  -- note: too late!
+  -- 					 we still add with name of hs_name as-is (default "")
+		add_highscore(pl.score, hs_name)
   pl.hit = t
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
@@ -1726,6 +1728,21 @@ function load_highscores()
  -- todo: add via add_highscore to ensure they're kept in order!
  highscores[alltime][1]={"gjg", 21270>>16}
  -- load highscores[alltime] from cart data
+
+	if cart_ok then
+		-- note: bytes 0+1 for future use
+		for hs=1,8 do
+			local name = dget(hs*2)
+			local score = dget(hs*2+1)
+			if score ~= 0 then
+				add_highscore(score, name, false)
+			-- else empty cart (first run) or nothing saved here yet
+			end
+		end 
+	else
+ 	printh("failed dget: not cart_ok")
+	end
+  
 	if debug then
 	 highscores[today][1]={"gjg", 21270>>16}
 	 highscores[today][2]={"g2g", 11270>>16}
@@ -1734,33 +1751,43 @@ function load_highscores()
 	end
 end
 
-function add_highscore(score, name)
+function add_highscore(score, name, new)
 	-- assumes caller already knows we have a highscore (e.g. checked against [8])
- -- todo find position 
- hst = today
- 
- local pos = #highscores[hst]  -- i.e. 8
- while pos>0 and score >	highscores[hst][pos][2] do
-	 pos -= 1
- end
- if pos ~= #highscores[hst] then
-	 if pos >= 0  then
-	 	-- push others down
---	 	for hs=#highscores[hst]-1, pos+1, -1 do
---		 	highscores[hst][hs+1] = highscores[hst][hs]  -- copies name+score
---	 	end
-	 	for hs=#highscores[hst], pos+2, -1 do
-		 	highscores[hst][hs] = highscores[hst][hs-1]  -- copies name+score
-	 	end
-	 	-- insert
-	 	highscores[hst][pos+1] = {name, score}
-	 -- else assert
+	-- pass new=false if loading from cdata, i.e. don't try to store = cycle!
+	if (new == nil) new = true
+ -- find position 
+ for hst=today,alltime do
+ 	-- todo short-circuit if not possibly in alltime, based on today pos
+	 local pos = #highscores[hst]  -- i.e. 8
+	 while pos>0 and score >	highscores[hst][pos][2] do
+		 pos -= 1
 	 end
-	 -- todo >>16 here? or caller?
-		
-		-- todo find position in alltime, if any
-		-- and write to cart data if there is
-	-- else assert? caller shouldn't have called us
+	 if pos ~= #highscores[hst] then
+		 if pos >= 0  then
+		 	-- push others down
+	--	 	for hs=#highscores[hst]-1, pos+1, -1 do
+	--		 	highscores[hst][hs+1] = highscores[hst][hs]  -- copies name+score
+	--	 	end
+		 	for hs=#highscores[hst], pos+2, -1 do
+			 	highscores[hst][hs] = highscores[hst][hs-1]  -- copies name+score
+		 	end
+		 	-- insert
+ 		 -- todo >>16 here? or caller?
+		 	highscores[hst][pos+1] = {name, score}
+		 	
+		 	if hst == alltime and new then
+					printh("writing alltime highscore to cart "..name..":"..score.." at "..pos+1)
+					if cart_ok then
+					 -- todo dset
+					 printh("todo dset "..score.." at "..pos)
+					else
+						printh("failed dset: not cart_ok")
+					end
+		 	end
+		 -- else assert
+		 end	
+		-- else assert? caller shouldn't have called us
+		end
 	end
 end
 
