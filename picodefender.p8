@@ -6,7 +6,7 @@ __lua__
 -- remake of the williams classic
 
 debug = true
-debug_test = not debug  -- 1 of each enemy per wave
+debug_test = debug  -- 1 of each enemy per wave
 
 today = 1
 alltime = 2
@@ -19,11 +19,11 @@ highscores = {
 human=7
 lander=9
 mutant=25
-baiter=41
 bomber=57
 pod=73
-swarmer=89
-mine=105
+swarmer=89  -- comes from pod
+baiter=41  -- spawn near end of level
+mine=105  -- comes from bomber
 bullet=24
 
 waves = {
@@ -107,6 +107,7 @@ laser_inertia = 0.999
 lander_speed = 0.15
 lander_speed_y_factor = 2
 mutant_speed = 0.4
+baiter_speed = 0.3  -- faster than player  -- todo set to max_speed*factor?
 bullet_expire = 1.5
 bullet_speed = 1.6
 
@@ -128,6 +129,8 @@ gravity_speed = 0.1
 safe_height = 80
 
 wave_progression = 15  -- seconds
+wave_old = 60  -- min before baiters
+baiter_next = wave_progression / 3  -- delay baiter re-spawn based on last 3 enemies
 wave_reset = 2  -- seconds
 
 extra_score_expire = 1
@@ -168,13 +171,13 @@ function _init()
 	actors = {}
 	particles = {}
 	
-	reset_player(true)
-	
-	-- todo move to reset_game() - include call to reset_player(true) above
+	reset_player(true)  -- todo remove? will be called via start_game()
+	-- todo move to reset_game(true) - include call to reset_player(true) above
 	lasers = {}
 	iwave=0
 	humans=0  -- topped up by load_wave
-	load_wave()
+	-- todo remove: start_game does this: can't do more than once:
+	--    load_wave()
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
 	--      then actually wrap at 255 with special wave 0
 	
@@ -510,6 +513,23 @@ function update_enemies()
 							b=add_bullet(e.x, e.y)
 						end
 					end				
+				elseif e.k == baiter then
+					-- ai
+					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+					 if e.x < pl.x then
+						 e.dx = baiter_speed
+						else
+						 e.dx = -baiter_speed
+					 end
+					 
+					 if e.y < hudy + rnd(30) and e.y < pl.y and e.dy<0 then
+					 	e.dy *= -1
+					 elseif e.y > 120 - rnd(30) and e.y > pl.y and e.dy>0 then
+					 	e.dy *= -1
+					 end
+					end
+
+					-- attack - todo how? no bullets, ram?
 				elseif e.k == bullet then
 			 	if t-e.t > bullet_expire then
 			 		del(actors,e)
@@ -582,7 +602,8 @@ function update_wave()
 		 printh("humans at"..t)
 			add_humans()
 		end
-		if wave.landers > 0 or wave.mutants > 0 then	 
+		age = t-wave.t
+		if wave.landers > 0 or wave.mutants > 0 or age > wave_old then	 
 		 printh("more at"..t)
 			add_enemies()
 		end
@@ -611,16 +632,17 @@ function _update60_game_over()
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
  elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
-  reset_player(true)
-
-		-- todo move to reset_game() - include call to reset_player(true) above
-		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
-		actors = {}  -- ok?
-		particles = {}
-		lasers = {}
-		iwave = 0
-		humans=0  -- topped up by load_wave
-		load_wave()
+--  reset_player(true)
+--
+--		-- todo move to reset_game() - include call to reset_player(true) above
+--		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
+--		actors = {}  -- ok?
+--		particles = {}
+--		lasers = {}
+--		iwave = 0
+--		humans=0  -- topped up by load_wave
+--		load_wave()
+  start_game(true)
   
   pl.hit = t
  	_update60 = _update60_wave
@@ -652,7 +674,7 @@ function _update60_title()
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
 	elseif btnp(🅾️) or btnp(❎) then
-  start_game()
+  start_game(true)
   pl.hit = nil  -- start now
  	_update60 = _update60_wave
  	_draw = _draw_wave
@@ -688,7 +710,7 @@ function _update60_highscores()
  	_update60 = _update60_instructions
  	_draw = _draw_instructions
 	elseif btnp(🅾️) or btnp(❎) then
-  start_game()
+  start_game(true)
   pl.hit = nil  -- start now
  	_update60 = _update60_wave
  	_draw = _draw_wave
@@ -745,15 +767,16 @@ function _update60_instructions()
 
  update_particles()  -- could include special effects
 
- if timeout or btnp(➡️) or (btnp(🅾️) or btnp(❎)) then
-  reset_player(true)  -- note: loses last actual score and demo score will replace it
-
-		-- todo move to reset_game() - include call to reset_player(true) above
-		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
- 	actors={} -- reset - todo move to start_game()?
-		particles = {}
-		lasers = {}
- end
+	-- todo remove: (start_game does it)
+-- if timeout or btnp(➡️) or (btnp(🅾️) or btnp(❎)) then
+--  reset_player(true)  -- note: loses last actual score and demo score will replace it
+--
+--		-- todo move to reset_game() - include call to reset_player(true) above
+--		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
+-- 	actors={} -- reset - todo move to start_game()?
+--		particles = {}
+--		lasers = {}
+-- end
  -- ...
  if timeout or btnp(➡️) then
   pl.hit = t  
@@ -761,7 +784,7 @@ function _update60_instructions()
  	_update60 = _update60_title
  	_draw = _draw_title
 	elseif btnp(🅾️) or btnp(❎) then
-  start_game()
+  start_game(true)
   pl.hit = nil  -- start now
  	_update60 = _update60_wave
  	_draw = _draw_wave
@@ -769,11 +792,21 @@ function _update60_instructions()
 end
 
 -- todo move to tab3?
-function start_game()
-	-- assumes already reset
-	if pl.score == 450>>16 then
-		add_pl_score(-450)
+function start_game(full)
+	-- todo old: assumes already reset
+--	if pl.score == 450>>16 then
+--		add_pl_score(-450)
+--	end
+ if full then -- todo remove this check!
+		reset_player(true)
+		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
+		actors = {}  -- ok?
+		lasers = {}
+		iwave = 0  -- todo leave out?
+		humans=0  -- topped up by load_wave
+		load_wave()
 	end
+
  bombing_t = nil
  particles={}
  add_humans()  -- initial 
@@ -849,8 +882,10 @@ function draw_hud()
 	end
 
 	-- scanner box 
-	rect(hc,0, hc+hudw,hudy, wave.c)
-	line(0,hudy,127,hudy, wave.c)
+	local c = 1
+	if (wave) c=wave.c
+	rect(hc,0, hc+hudw,hudy, c)
+	line(0,hudy,127,hudy, c)
 	line(hc+hdc*4-1,0, hc+hdc*5+1,0, 7)
 	pset(hc+hdc*4-1,1, 7)
 	pset(hc+hdc*5+1,1, 7)
@@ -1318,7 +1353,8 @@ function make_actor(k, x, y, hit)
   hit=hit,
   score=0,
  }
-	add(actors,a)
+	-- todo if hit player - move
+ add(actors,a)
 	return a
 end
 
@@ -1535,12 +1571,20 @@ function add_humans()
 end
 
 
+function active_enemies(exclude_baiters)
+ local r = 0
+	for e in all(actors) do
+	 if e.k ~= baiter or (e.k == baiter and not exclude_baiters) then
+	  if (not(e.k == bullet or e.k == mine or e.k == human)) r+= 1
+	 end
+ end
+ return r
+end
+
 function is_wave_complete()
 	local r = 0
  -- spawned
-	for e in all(actors) do
-  if (not(e.k == bullet or e.k == mine or e.k == human)) r+= 1
- end
+ r += active_enemies()
 	-- plus yet to spawn
 	r += wave.landers
 	r += wave.bombers
@@ -1587,15 +1631,17 @@ function load_wave()
 	end
 
 	if	debug_test then
-		wave.landers=2 --1
-		wave.bombers=min(1,wave.bombers)
-		wave.pods=min(1,wave.pods)
+		wave_old = 20
+		--wave.landers=2 --1
+		--wave.bombers=min(1,wave.bombers)
+		--wave.pods=min(1,wave.pods)
 	end
 end
 
 function add_enemies()
  -- todo pass in t?
  -- see reset_enemies for undo
+ local make
 	if wave.landers > 0 then
 	 make = min(wave.landers, 5)
 		for e = 1,make do
@@ -1686,9 +1732,43 @@ function add_enemies()
 			sfx(2)  -- todo: if on screen
 		end
 		wave.pods -= make
-	-- todo others
 	end
+	-- todo others
+	
 	-- based on wave.t? and/or remaining
+ -- baiters, if near end of wave
+	local t=time()
+	local age = t-wave.t
+	if age > wave_old*2 or (wave.landers == 0 and wave.bombers == 0 and wave.pods == 0) then
+		if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
+			local ae = active_enemies(true)  -- excludes baiters
+			if ae < 5 or age > wave_old*2 then 
+				if age > wave_old then  -- todo adjust for iwave?			
+				 make = 1 -- remove: 5-ae 
+				 if ae < 4 then
+						-- prime next one sooner
+						wave.t_chunk = t - wave_progression + baiter_next*ae
+						printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
+					end			 
+					for e = 1,make do
+					 local x=rnd(ww)
+					 local y=hudy+2
+						-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
+						l=make_actor(baiter,x,y,time())
+						l.dy = baiter_speed
+						l.lazy = -256  -- higher = less likely to chase
+						l.h=4
+						l.w=7
+						l.score=200	
+						add_explosion(l, true)  -- reverse i.e. spawn
+						sfx(2)  -- todo: if on screen
+						printh("new baiter "..l.x)
+					end
+					-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
+				end		
+		 end
+		end
+	end
 end
 
 function	reset_enemies()
@@ -1698,26 +1778,30 @@ function	reset_enemies()
 	for e in all(actors) do
 		-- todo check not just hit?
 		if e.k == bullet then
-			printh(e.k.." removed "..e.x)			 	
+			--printh(e.k.." removed "..e.x)			 	
 		elseif e.k == lander then
-			printh(e.k.." undead "..e.x)			 	
+			--printh(e.k.." undead "..e.x)			 	
 			wave.landers	+= 1
 		elseif e.k == mutant then
-			printh(e.k.." undead "..e.x)			 	
-			--note: no need: already added on conversion: 
+			--printh(e.k.." undead "..e.x)			 	
+			--todo old: note: no need: already added on conversion: 
 			wave.mutants	+= 1
 		elseif e.k == bomber then
-			printh(e.k.." undead "..e.x)			 	
+			--printh(e.k.." undead "..e.x)			 	
 			wave.bombers	+= 1
 		elseif e.k == pod then
-			printh(e.k.." undead "..e.x)			 	
+			--printh(e.k.." undead "..e.x)			 	
 			wave.pods	+= 1
 		elseif e.k == human then
-			printh(e.k.." removed "..e.x)			 		
+			--printh(e.k.." removed "..e.x)			 		
+			-- accounted for by humans var
+		elseif e.k == baiter then
+			--printh(e.k.." removed "..e.x)			 		
+			-- not counted: re-generate as needed
 		else
 			assert(false, "unknown e.k:"..e.k)		
 		end
-		del(actors, e)  -- todo: assuming we don't retain the positions on respawn!
+		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
 	-- prime the respawning
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
@@ -1887,6 +1971,48 @@ __gfx__
 000000000000000000000000000000000000000000000000000000000000000000000000000b0b00000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000b000000000000000000000000000000000000000000000000000
 000000000000000000000000000000000000000000000000000000000000000000000000000b0b00000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000009999990099999909999990999999099000090099999900000000000000000000000000000000000000000000000000000000000000000000000000
+00000000099999999099999809999900999999099900099899999990000000000000000000000000000000000000000000000000000000000000000000000000
+00000000999888990998888899888809988888099990099899888990000000000000000000000000000000000000000000000000000000000000000000000000
+00000009998889989988888899888809988888099999099899888899000000000000000000000000000000000000000000000000000000000000000000000000
+00000099988889989999998999999099999900099899999889988899000000000000000000000000000000000000000000000000000000000000000000000000
+00000999888899899999988999990099999900099889999989988889900000000000000000000000000000000000000000000000000000000000000000000000
+00009998888899898888889998880999888800099088999989988889900000000000000000000000000000000000000000000000000000000000000000000000
+00099988888998998888889988880999888800099088899988998889990000000000000000000000000000000000000000000000000000000000000000000000
+00999999999998999999989988809999999999099008899988999999990000000000000000000000000000000000000000000000000000000000000000000000
+09999999999989999999899980009999999999099000889998999999990000000000000000000000000000000000000000000000000000000000000000000000
+99999999999889999999899880009999999999099000089998999999980000000000000000000000000000000000000000000000000000000000000000000000
+88888888888888888888888800008888888888088000088888888888880000000000000000000000000000000000000000000000000000000000000000000000
+88888888888888888888088800008888888888088000008880888888880000000000000000000000000000000000000000000000000000000000000000000000
+88888888888088888888088800008888888888088000008880888888800000000000000000000000000000000000000000000000000000000000000000000000
 __label__
 00000000000000000000000000000000444444444444444444444444444777777777744444444444444444444444444440000000000000000000000000000000
 04440444044400000440044404040444400000000000000000000000000700000000700000000000000000000000000040000000000000000000000000000000
