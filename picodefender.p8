@@ -136,6 +136,7 @@ bombing_expire = 0.3
 title_delay = 8
 title_particle_expire = 1.4
 game_over_delay = 4
+new_highscore_delay = 60  -- timeout if no initials in this time
 
 function _init()
 	w = {}  -- ground + stars
@@ -595,6 +596,15 @@ function _update60_game_over()
 
  update_particles()  -- could include player dying
  
+ if some_timeout and pl.score > highscores[today][8][2] then
+ 	-- we have a highscore (at least for today)
+ 	hs_name = ""
+ 	hs_chr = "a"
+  pl.hit = t
+ 	_update60 = _update60_new_highscore
+ 	_draw = _draw_new_highscore
+ end
+ 
  if timeout or (some_timeout and btnp(➡️)) then
   pl.hit = t
  	_update60 = _update60_highscores
@@ -653,7 +663,6 @@ function _update60_highscores()
 	local age = t-pl.hit
 	local timeout = (age > title_delay)
 
- -- todo cycle palette here and others	- move into update_particles
  update_particles()  -- could include special effects
  
  if timeout or btnp(➡️) then
@@ -685,13 +694,53 @@ function _update60_highscores()
  end
 end
 
+function _update60_new_highscore()
+	local t=time()
+	local age = t-pl.hit
+	local timeout = (age > new_highscore_delay)
+
+ update_particles()  -- could include special effects
+
+	-- todo if key: pl.hit = t  -- reset timeout
+	if btnp(⬆️) then  -- todo or ⬅️?
+		-- todo wrap/limit
+		hs_chr = chr(ord(hs_chr)-1)
+		pl.hit = t  -- reset timeout
+	elseif btnp(⬇️) then  -- todo or ➡️?
+		-- todo wrap/limit
+		hs_chr = chr(ord(hs_chr)+1)
+		pl.hit = t  -- reset timeout
+	elseif btnp(❎) then
+		hs_name = hs_name .. hs_chr
+		pl.hit = t  -- reset timeout
+		if #hs_name >= 3 then
+			add_highscore(pl.score, hs_name)
+	  pl.hit = t 
+	 	_update60 = _update60_highscores
+	 	_draw = _draw_highscores
+		end
+	elseif btnp(🅾️) then
+		-- todo stop if empty?
+		hs_chr = sub(hs_name, #hs_name, #hs_name)
+	 hs_name = sub(hs_name, 1, #hs_name-1)
+		pl.hit = t  -- reset timeout
+ end
+
+ if timeout then
+  -- note: too late - don't add new highscore
+  -- todo: we could add with name of ??? or hs_name as-is (default "")
+  pl.hit = t
+ 	_update60 = _update60_highscores
+ 	_draw = _draw_highscores
+ end
+end
+
 function _update60_instructions()
  -- note: uses actors and player logic to demo things
 	local t=time()
 	local age = t-pl.hit
 	local timeout = (age > title_delay)
 
- -- todo cycle palette here and others	- move into update_particles
  update_particles()  -- could include special effects
 
  if timeout or btnp(➡️) or (btnp(🅾️) or btnp(❎)) then
@@ -750,7 +799,8 @@ function wxtoc(wx)
 	return x
 end
 
-function draw_score(v, x,y)
+function draw_score(v, x,y, extra)
+	-- if extra, 1st of 3 digits will be yellow
  x=x or 0
  y=y or 6
  local c=5
@@ -758,7 +808,8 @@ function draw_score(v, x,y)
  repeat
   local t=v>>>1
   -- todo map to font
-  if (y~=6 and i==4) c=10 -- extra_score leading digit
+  --todo remove: if (y~=6 and i==4) c=10 -- extra_score leading digit
+  if (extra and i==4) c=10 -- extra_score leading digit
   print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,c)
   v=t/5
  	i-=1
@@ -810,7 +861,7 @@ function draw_hud()
   local t = time()
  	local age = t - extra_score[4]
  	if age < extra_score_expire then
-		 draw_score(extra_score[1], extra_score[2],extra_score[3])
+		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
 		else
 		 extra_score = nil
 		end 
@@ -1002,11 +1053,12 @@ function _draw_highscores()
  cls()
 
 	draw_score(pl.score)
+	-- todo remove: why extra_score here?
  if extra_score then
   local t = time()
  	local age = t - extra_score[4]
  	if age < extra_score_expire then
-		 draw_score(extra_score[1], extra_score[2],extra_score[3])
+		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
 		else
 		 extra_score = nil
 		end 
@@ -1022,9 +1074,9 @@ function _draw_highscores()
 	print("hall of fame", 40, hudy+16, 5)
 
 	print("todays", 10, hudy+24, 5)
-	print("all time", 92, hudy+24, 5)
+	print("all time", 82, hudy+24, 5)
 	print("greatest", 6, hudy+30, 5)
-	print("greatest", 92, hudy+30, 5)
+	print("greatest", 82, hudy+30, 5)
 	-- todo underlines
 
 	for hst=today,alltime do
@@ -1033,17 +1085,52 @@ function _draw_highscores()
  		print(i, 1+co, hudy+32+i*6, 5)
 		 if hs[1] ~= nil then
 				print(hs[1], 10+co, hudy+32+i*6, 5)
-				print(hs[2], 30+co, hudy+32+i*6, 5)
+				--print(hs[2], 30+co, hudy+32+i*6, 5)
+				draw_score(hs[2], 24+co, hudy+32+i*6)
 			end
 		end
 	end
+end
+
+function _draw_new_highscore()
+ -- new highscore
+ cls()
+
+	draw_score(pl.score)
+	-- todo removed if extra_score: why extra_score here?
+ 
+	draw_particles()
+
+	-- never expire! draw_player()  -- needed to expire
+
+	-- todo 3d text?
+	print("player one", 56, hudy+1, 2)
+	print("you have qualified for", 16, hudy+16, 2)
+	print("the defender hall of fame", 16, hudy+24, 2)
+
+	print("select initials with ⬆️/⬇️", 16, hudy+36, 2)
+
+	print("press fire to enter initial", 16, hudy+48, 2)
+
+	-- todo mention bomb to backspace?
+
+	for ci=1,#hs_name do
+ 	print(sub(hs_name,ci,ci), 54+ci*10, 80, 2)
+ end
+ local ci = #hs_name+1
+	print(hs_chr, 54+ci*10, 80, 2)
+	-- underlines
+	for ci = #hs_name+2,3 do
+ 	line(54+ci*10, 88, 54+ci*10+3, 88, 2)
+ end
+
 end
 
 function _draw_instructions()
  -- instructions
  cls()
 
-	draw_hud()
+	draw_hud()  -- note: includes extra_score
 
 	-- draw_ground	
 	for x = 0,127 do
@@ -1636,9 +1723,47 @@ end
 
 function load_highscores()
  -- note: needs to be >>16 if > 32k
- highscores[alltime][1]={"gjg", 21270}
+ -- todo: add via add_highscore to ensure they're kept in order!
+ highscores[alltime][1]={"gjg", 21270>>16}
  -- load highscores[alltime] from cart data
+	if debug then
+	 highscores[today][1]={"gjg", 21270>>16}
+	 highscores[today][2]={"g2g", 11270>>16}
+	 highscores[today][3]={"g3g", 1270>>16}
+	 highscores[today][4]={"g4g", 270>>16}
+	end
 end
+
+function add_highscore(score, name)
+	-- assumes caller already knows we have a highscore (e.g. checked against [8])
+ -- todo find position 
+ hst = today
+ 
+ local pos = #highscores[hst]  -- i.e. 8
+ while pos>0 and score >	highscores[hst][pos][2] do
+	 pos -= 1
+ end
+ if pos ~= #highscores[hst] then
+	 if pos >= 0  then
+	 	-- push others down
+--	 	for hs=#highscores[hst]-1, pos+1, -1 do
+--		 	highscores[hst][hs+1] = highscores[hst][hs]  -- copies name+score
+--	 	end
+	 	for hs=#highscores[hst], pos+2, -1 do
+		 	highscores[hst][hs] = highscores[hst][hs-1]  -- copies name+score
+	 	end
+	 	-- insert
+	 	highscores[hst][pos+1] = {name, score}
+	 -- else assert
+	 end
+	 -- todo >>16 here? or caller?
+		
+		-- todo find position in alltime, if any
+		-- and write to cart data if there is
+	-- else assert? caller shouldn't have called us
+	end
+end
+
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000bb000000bb00000099b00000b9900000bbb0000000000000000000000000000000000
