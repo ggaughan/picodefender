@@ -139,7 +139,7 @@ game_over_delay = 4
 new_highscore_delay = 60  -- timeout if no initials in this time
 
 function _init()
-	cart_ok = cartdata("ggaughan_picodefender_1")
+	cart_exists = cartdata("ggaughan_picodefender_1")
 
 	w = {}  -- ground + stars
 	sw = {} -- ground summary
@@ -1724,15 +1724,33 @@ function	reset_enemies()
 end
 
 function load_highscores()
- -- note: needs to be >>16 if > 32k
- -- todo: add via add_highscore to ensure they're kept in order!
- highscores[alltime][1]={"gjg", 21270>>16}
- -- load highscores[alltime] from cart data
-
-	if cart_ok then
+	if cart_exists then
+	 -- note: 8 slots hardcoded here
 		-- note: bytes 0+1 for future use
 		for hs=1,8 do
-			local name = dget(hs*2)
+			--local name_bytes = dget(hs*2)
+			local name = nil  -- i.e. stored as 0
+			-- endian issue?
+--			if name_bytes ~= 0 then
+--				printh("24:"..((name_bytes>>>24) & 0xff))
+--				printh("16:"..((name_bytes>>>16) & 0xff))
+--				printh(" 8:"..((name_bytes>>>8) & 0xff))
+--				name = "" .. chr((name_bytes>>>24) & 0xff)
+--				name = name..chr((name_bytes>>>16) & 0xff)
+--				name = name..chr((name_bytes>>>8) & 0xff)
+--				-- note: ignore (name_bytes>>>0) & 0xff
+--			end
+   -- todo @ instead of peek
+			local c1=peek(0x5e00 + (hs*2)*4+0) 
+   local c2=peek(0x5e00 + (hs*2)*4+1)
+			local c3=peek(0x5e00 + (hs*2)*4+2)
+			--local c4=peek(0x5e00 + (hs*2)*4+3)
+			-- todo assert c4==0
+			if c1 ~= 0 or c2 ~= 0 or c3 ~= 0 then
+				name = chr(c1)..chr(c2)..chr(c3)
+				printh("!"..name.." "..c1..c2..c3)
+			-- else ?assert score==0
+			end
 			local score = dget(hs*2+1)
 			if score ~= 0 then
 				add_highscore(score, name, false)
@@ -1740,7 +1758,12 @@ function load_highscores()
 			end
 		end 
 	else
- 	printh("failed dget: not cart_ok")
+ 	printh("skipped dget: not cart_exists")
+ 	-- todo remove/debug?
+	 -- note: needs to be >>16 if > 32k
+	 -- todo: add via add_highscore to ensure they're kept in order!
+	 highscores[alltime][1]={"gjg", 21270>>16}
+	 -- load highscores[alltime] from cart data
 	end
   
 	if debug then
@@ -1765,9 +1788,6 @@ function add_highscore(score, name, new)
 	 if pos ~= #highscores[hst] then
 		 if pos >= 0  then
 		 	-- push others down
-	--	 	for hs=#highscores[hst]-1, pos+1, -1 do
-	--		 	highscores[hst][hs+1] = highscores[hst][hs]  -- copies name+score
-	--	 	end
 		 	for hs=#highscores[hst], pos+2, -1 do
 			 	highscores[hst][hs] = highscores[hst][hs-1]  -- copies name+score
 		 	end
@@ -1777,11 +1797,32 @@ function add_highscore(score, name, new)
 		 	
 		 	if hst == alltime and new then
 					printh("writing alltime highscore to cart "..name..":"..score.." at "..pos+1)
-					if cart_ok then
-					 -- todo dset
-					 printh("todo dset "..score.." at "..pos)
+					if true then -- todo remove: cart_exists then
+					 -- note: 8 slots hardcoded here
+						-- note: bytes 0+1 for future use
+						for hs=1,8 do
+						 local hs_name = highscores[hst][hs][1]
+						 local name_bytes = 0  -- i.e. nil = not set
+						 -- endian issue?
+--						 if hs_name ~= nil then
+--							 name_bytes = (ord(sub(hs_name,1,1)) << 24) |
+--																					(ord(sub(hs_name,2,2)) << 16) |
+--																					(ord(sub(hs_name,3,3)) << 8) |
+--																					(ord(chr(0)) << 0) 
+--								printh("!"..hs_name.." "..name_bytes)
+--							end
+--							dset(hs*2, name_bytes)
+						 if hs_name ~= nil then
+							 poke(0x5e00 + (hs*2)*4+0, ord(sub(hs_name,1,1))) 
+        poke(0x5e00 + (hs*2)*4+1, ord(sub(hs_name,2,2)))
+								poke(0x5e00 + (hs*2)*4+2, ord(sub(hs_name,3,3)))
+								poke(0x5e00 + (hs*2)*4+3, ord(chr(0)))
+								printh("!"..hs_name.." "..name_bytes)
+							end
+							dset(hs*2+1, highscores[hst][hs][2])
+						end 			 
 					else
-						printh("failed dset: not cart_ok")
+						printh("failed dset: not cart_exists")
 					end
 		 	end
 		 -- else assert
