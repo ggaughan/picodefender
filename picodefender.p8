@@ -516,10 +516,12 @@ function update_enemies()
 					end				
 				elseif e.k == baiter then
 					-- ai
+					-- todo less overlap with other baiters
 					-- todo wrap/bug?
-					if abs(e.x - pl.x) > 32+rnd(16) then
+					local dx = abs(e.x - pl.x)
+					if dx > 32+rnd(16) then
 						-- todo need lazy here? yes to vary baiters
-						if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+						if dx < (rnd(256) - e.lazy) then
 						 if e.x < pl.x then
 							 e.dx = baiter_speed
 							else
@@ -538,7 +540,8 @@ function update_enemies()
  				  e.dx *= -1  -- random move
  				 end
 					end	 
-					if abs(e.y - pl.y) > 16+rnd(16) then
+					local dy = abs(e.y - pl.y) 
+					if dy > 16+rnd(16) then
 					 if e.y < hudy + rnd(30) or (e.y < pl.y and e.dy<=0) then
 					 	e.dy = baiter_speed/3
 					 elseif e.y > 120 - rnd(30) or (e.y > pl.y and e.dy>=0) then
@@ -547,7 +550,7 @@ function update_enemies()
 					else
 						-- don't get too close/ram
 						e.dy = 0
- 				 if rnd() < 0.99 then
+ 				 if rnd() < 0.1 then
 	 				 if (e.y < pl.y) e.dy = -1  -- rand away
 	 				 if (e.y > pl.y) e.dy = 1  -- rand away
 	 				end
@@ -558,7 +561,7 @@ function update_enemies()
 
 					-- attack
 					-- todo wrap?
-					if abs(e.x - pl.x) < 128 then
+					if dx < 128 then
 						if rnd() < 0.015 then -- todo higher? var!
 						 -- todo?? sfx(7)
 							b=add_bullet(e.x, e.y, e, true)  -- track
@@ -1414,15 +1417,14 @@ function add_bullet(x, y, from, track)
 	local tx,ty = pl.x, pl.y  -- aim at player
 	-- todo if bad aimer, add miss (slow bv does this to some extent)
 	if track then
-	 -- todo also take account of e.dx and e.dy
-	 local proj_speed = bv + from.dx
+	 -- todo also take account of e.dy
+	 local proj_speed = bv + from.dx  -- todo remove from.dx?
 	 local pldx = cdx * pl.facing
 		local ta=pldx*pldx + pl.dy*pl.dy - proj_speed*proj_speed
 		local tb=2 * (pldx * (pl.x-b.x) + pl.dy * (pl.y - b.y))
 		local tc=(pl.x-b.x)*(pl.x-b.x) + (pl.y-b.y)*(pl.y-b.y)
 		local disc=tb*tb - 4 * ta * tc
 		if disc >= 0 then
-			printh("disc "..disc)
 			local t1=(-tb + sqrt(disc)) / (2*ta)
 			local t2
 			if disc ~= 0 then
@@ -1435,14 +1437,15 @@ function add_bullet(x, y, from, track)
 			if tt>0 then
 				tx = tt * pldx + pl.x
 				ty = tt * pl.dy + pl.y
-				printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
+				if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
 			 -- else none +ve (can't fire back in time)
 			end	
-		-- else forget it - todo perhaps undo fire?
+		-- else no discriminant, forget it - todo perhaps undo fire?
 		end
 	end
 	--b.dx = ((tx - b.x)/128) * bullet_speed
  --b.dy = ((ty - b.y)/128) * bullet_speed
+ -- todo why 30!?
 	b.dx = ((tx - b.x)/30) * bv
  b.dy = ((ty - b.y)/30) * bv
 	b.t = t
@@ -1574,6 +1577,7 @@ function kill_actor(e, laser, explode)
 		end
 	 humans -= 1
 	 -- todo if humans == 0 then null space: convert all landers to mutants
+	 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters?
 	end
 	if is_wave_complete() then
 	 pl.hit = time()  -- pause
@@ -1653,11 +1657,15 @@ function add_humans()
 end
 
 
-function active_enemies(exclude_baiters)
+function active_enemies(include_only)
+ -- don't count baiters (and include_only, if given)
+ -- don't count bullet,mine,human
  local r = 0
 	for e in all(actors) do
-	 if e.k ~= baiter or (e.k == baiter and not exclude_baiters) then
-	  if (not(e.k == bullet or e.k == mine or e.k == human)) r+= 1
+	 if (include_only and e.k ~= include_only) then
+	   -- ignore
+	 else
+	  if (not(e.k == baiter or e.k == bullet or e.k == mine or e.k == human)) r+= 1
 	 end
  end
  return r
@@ -1666,13 +1674,13 @@ end
 function is_wave_complete()
 	local r = 0
  -- spawned (except generated baiters)
- r += active_enemies(true)
+ r += active_enemies()
 	-- plus yet to spawn
 	r += wave.landers
 	r += wave.bombers
 	r += wave.pods
 	-- todo? swarmers	
-	-- note: baiters counted in active_enemies (since generated as needed)
+	-- note: baiters not counted towards completion
 	-- note: mutants don't spawn initially but they accrue during play
 	r += wave.mutants  
 	printh("r="..r)
@@ -1826,7 +1834,7 @@ function add_enemies()
 		local age = t-wave.t
 		if age > wave_old*2 or (wave.landers == 0 and wave.bombers == 0 and wave.pods == 0) then
 			if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
-				local ae = active_enemies(true)  -- excludes baiters
+				local ae = active_enemies(lander) + active_enemies(mutant) -- excludes baiters
 				if ae < 5 or age > wave_old*2 then 
 					if age > wave_old then  -- todo adjust for iwave?			
 					 make = 1 -- remove: 5-ae 
