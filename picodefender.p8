@@ -107,9 +107,9 @@ laser_inertia = 0.999
 lander_speed = 0.15
 lander_speed_y_factor = 2
 mutant_speed = 0.4
-baiter_speed = 0.3  -- faster than player  -- todo set to max_speed*factor?
-bullet_expire = 1.5
-bullet_speed = 1.6
+baiter_speed = 2.6  -- faster than player  -- todo set to max_speed*factor?
+bullet_expire = 1.4  -- todo depend on actual bullet_speed?
+bullet_speed = 1.0
 
 particle_expire = 0.8
 particle_speed = 0.6
@@ -131,6 +131,7 @@ safe_height = 80
 wave_progression = 15  -- seconds
 wave_old = 60  -- min before baiters
 baiter_next = wave_progression / 3  -- delay baiter re-spawn based on last 3 enemies
+max_baiters = 4
 wave_reset = 2  -- seconds
 
 extra_score_expire = 1
@@ -272,7 +273,7 @@ function _update60_wave()
 	 
 	 cdx *= inertia_cx
 	 cx += cdx * pl.facing
-	 pl.x += cdx * pl.facing
+	 pl.x += cdx * pl.facing  -- note: this is effectively pl.dy
 	
 		-- player thrust/decay
 		-- in screen space to handle any wrapping
@@ -416,7 +417,7 @@ function update_enemies()
 			 	printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
 			 	pl.target = e
 			 	e.dy = 0 --pl.dy
-			 	e.dx = 0 --pl.dx
+			 	e.dx = 0 --pl.dx = cdx * pl.facing
 					e.capture = capture_lifted
 					-- note: x-12 since score formats for 6 places
 					add_pl_score(500, pl.x-12, pl.y+4)
@@ -485,7 +486,7 @@ function update_enemies()
 					if abs(e.x - pl.x) < 128 then
 						if rnd() < 0.0015 then
 						 sfx(7)
-							b=add_bullet(e.x, e.y)  -- todo pass weak=true
+							b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
 						end
 					end				
 				elseif e.k == mutant then
@@ -510,31 +511,57 @@ function update_enemies()
 					if abs(e.x - pl.x) < 128 then
 						if rnd() < 0.006 then
 						 sfx(7)
-							b=add_bullet(e.x, e.y)
+							b=add_bullet(e.x, e.y, e)
 						end
 					end				
 				elseif e.k == baiter then
 					-- ai
-					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
-					 if e.x < pl.x then
-						 e.dx = baiter_speed
-						else
-						 e.dx = -baiter_speed
+					-- todo wrap/bug?
+					if abs(e.x - pl.x) > 32+rnd(16) then
+						-- todo need lazy here? yes to vary baiters
+						if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+						 if e.x < pl.x then
+							 e.dx = baiter_speed
+							else
+							 e.dx = -baiter_speed
+						 end
+						end
+					else 
+ 					-- don't get too close
+ 				 e.dx *= 0.96+rnd(0.08)  -- todo var inertia
+ 				 if rnd() < 0.99 then
+	 				 -- todo wrap/bug
+	 				 if (e.x < pl.x) e.dx = -1  -- rand away
+	 				 if (e.x > pl.x) e.dx = 1  -- rand away
+	 				end
+ 				 if rnd() < 0.02 then
+ 				  e.dx *= -1  -- random move
+ 				 end
+					end	 
+					if abs(e.y - pl.y) > 16+rnd(16) then
+					 if e.y < hudy + rnd(30) or (e.y < pl.y and e.dy<=0) then
+					 	e.dy = baiter_speed/3
+					 elseif e.y > 120 - rnd(30) or (e.y > pl.y and e.dy>=0) then
+					 	e.dy *= -baiter_speed/3
 					 end
-					 
-					 if e.y < hudy + rnd(30) and e.y < pl.y and e.dy<0 then
-					 	e.dy *= -1
-					 elseif e.y > 120 - rnd(30) and e.y > pl.y and e.dy>0 then
-					 	e.dy *= -1
-					 end
+					else
+						-- don't get too close/ram
+						e.dy = 0
+ 				 if rnd() < 0.99 then
+	 				 if (e.y < pl.y) e.dy = -1  -- rand away
+	 				 if (e.y > pl.y) e.dy = 1  -- rand away
+	 				end
+ 				 if rnd() < 0.02 then
+ 				  e.dx *= -1  -- random move
+ 				 end
 					end
 
 					-- attack
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
-						if rnd() < 0.02 then -- todo higher? var!
+						if rnd() < 0.015 then -- todo higher? var!
 						 -- todo?? sfx(7)
-							b=add_bullet(e.x, e.y)
+							b=add_bullet(e.x, e.y, e, true)  -- track
 						end
 					end				
 				elseif e.k == bullet then
@@ -562,11 +589,19 @@ function update_enemies()
 				
 				-- general bounce to stop y out of bounds
 				if e.y < hudy +1 then
-					e.y = hudy +1
-					e.dy *= -1
+				 if e.k == bullet then
+			 		del(actors,e)  -- avoid bullet bounce
+			 	else
+						e.y = hudy +1
+						e.dy *= -1
+					end
 				elseif e.y > 120 then
-					e.y = 120 
-					e.dy *= -1
+				 if e.k == bullet then
+			 		del(actors,e)  -- avoid bullet bounce
+			 	else
+						e.y = 120 
+						e.dy *= -1
+					end
 				end 
 				
 			-- else hit and no more
@@ -1370,14 +1405,46 @@ function make_actor(k, x, y, hit)
 	return a
 end
 
-function add_bullet(x, y)
+function add_bullet(x, y, from, track)
  t=time()
 	b=make_actor(bullet,x,y)
-	-- todo aim at pl!
-	-- todo for some, include pl.dx/pl.dy
+	local bv = bullet_speed
+	if (from and from.k == lander) bv *= 0.25
 	-- todo for some, hang around player?
-	b.dx = ((pl.x - b.x)/128) * bullet_speed
-	b.dy = ((pl.y - b.y)/128) * bullet_speed
+	local tx,ty = pl.x, pl.y  -- aim at player
+	-- todo if bad aimer, add miss (slow bv does this to some extent)
+	if track then
+	 -- todo also take account of e.dx and e.dy
+	 local proj_speed = bv + from.dx
+	 local pldx = cdx * pl.facing
+		local ta=pldx*pldx + pl.dy*pl.dy - proj_speed*proj_speed
+		local tb=2 * (pldx * (pl.x-b.x) + pl.dy * (pl.y - b.y))
+		local tc=(pl.x-b.x)*(pl.x-b.x) + (pl.y-b.y)*(pl.y-b.y)
+		local disc=tb*tb - 4 * ta * tc
+		if disc >= 0 then
+			printh("disc "..disc)
+			local t1=(-tb + sqrt(disc)) / (2*ta)
+			local t2
+			if disc ~= 0 then
+				t2=(-tb - sqrt(disc)) / (2*ta)
+			else
+				t2=t1
+			end
+			local tt=t1
+			if (tt<0 or (t2>tt and t2>0)) tt=t2
+			if tt>0 then
+				tx = tt * pldx + pl.x
+				ty = tt * pl.dy + pl.y
+				printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
+			 -- else none +ve (can't fire back in time)
+			end	
+		-- else forget it - todo perhaps undo fire?
+		end
+	end
+	--b.dx = ((tx - b.x)/128) * bullet_speed
+ --b.dy = ((ty - b.y)/128) * bullet_speed
+	b.dx = ((tx - b.x)/30) * bv
+ b.dy = ((ty - b.y)/30) * bv
 	b.t = t
 	b.w = 1
 	b.h = 1
@@ -1487,6 +1554,7 @@ function kill_actor(e, laser, explode)
 	elseif e.k == pod then
 	 wave.pods_hit += 1
 	 -- todo more?
+	-- todo count baiters_hit - why not
 	elseif e.k == human then
 	 -- todo wrap in kill_human routine?
 		if e.capture ~= nil then
@@ -1525,7 +1593,7 @@ function reset_player(full)
 	pl.x=cx+20
 	pl.y=64
 	pl.facing=1  -- todo need camera move?
-	pl.dx=0
+	pl.dx=0 -- todo remove
 	pl.dy=0
 	pl.thrusting=false
 	pl.target = nil
@@ -1597,14 +1665,14 @@ end
 
 function is_wave_complete()
 	local r = 0
- -- spawned
- r += active_enemies()
+ -- spawned (except generated baiters)
+ r += active_enemies(true)
 	-- plus yet to spawn
 	r += wave.landers
 	r += wave.bombers
 	r += wave.pods
-	-- todo? baiters
 	-- todo? swarmers	
+	-- note: baiters counted in active_enemies (since generated as needed)
 	-- note: mutants don't spawn initially but they accrue during play
 	r += wave.mutants  
 	printh("r="..r)
@@ -1635,7 +1703,8 @@ function load_wave()
  		
  		humans_added=nil,
 	}
-
+	wave.baiters_generated = 0
+	
 	if iwave == 0 or ((iwave+1)%5 == 0) then
   -- replenish
 		wave.humans_added = 10 - humans
@@ -1645,8 +1714,9 @@ function load_wave()
 	end
 
 	if	debug_test then
-		wave_old = 20
-		--wave.landers=2 --1
+		wave_old = 1
+		wave_progression=1
+		wave.landers=2 --1
 		--wave.bombers=min(1,wave.bombers)
 		--wave.pods=min(1,wave.pods)
 	end
@@ -1751,37 +1821,41 @@ function add_enemies()
 	
 	-- based on wave.t? and/or remaining
  -- baiters, if near end of wave
-	local t=time()
-	local age = t-wave.t
-	if age > wave_old*2 or (wave.landers == 0 and wave.bombers == 0 and wave.pods == 0) then
-		if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
-			local ae = active_enemies(true)  -- excludes baiters
-			if ae < 5 or age > wave_old*2 then 
-				if age > wave_old then  -- todo adjust for iwave?			
-				 make = 1 -- remove: 5-ae 
-				 if ae < 4 then
-						-- prime next one sooner
-						wave.t_chunk = t - wave_progression + baiter_next*ae
-						printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
-					end			 
-					for e = 1,make do
-					 local x=rnd(ww)
-					 local y=hudy+2
-						-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-						l=make_actor(baiter,x,y,time())
-						l.dy = baiter_speed
-						l.lazy = -256  -- higher = less likely to chase
-						l.h=4
-						l.w=7
-						l.score=200	
-						add_explosion(l, true)  -- reverse i.e. spawn
-						sfx(2)  -- todo: if on screen
-						printh("new baiter "..l.x)
-					end
-					-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
-				end		
-		 end
+ if wave.baiters_generated < max_baiters then  -- todo adjust for iwave?
+		local t=time()
+		local age = t-wave.t
+		if age > wave_old*2 or (wave.landers == 0 and wave.bombers == 0 and wave.pods == 0) then
+			if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
+				local ae = active_enemies(true)  -- excludes baiters
+				if ae < 5 or age > wave_old*2 then 
+					if age > wave_old then  -- todo adjust for iwave?			
+					 make = 1 -- remove: 5-ae 
+					 if ae < 4 then
+							-- prime next one sooner
+							wave.t_chunk = t - wave_progression + baiter_next*ae
+							printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
+						end			 
+						for e = 1,make do
+						 local x=rnd(ww)
+						 local y=hudy+2
+							-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
+							l=make_actor(baiter,x,y,time())
+							l.dy = baiter_speed/3
+							l.lazy = -256  -- higher = less likely to chase
+							l.h=4
+							l.w=7
+							l.score=200	
+							add_explosion(l, true)  -- reverse i.e. spawn
+							sfx(2)  -- todo: if on screen
+							printh("new baiter "..l.x)
+						end
+						-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
+						wave.baiters_generated += make
+					end		
+			 end
+			end
 		end
+	-- else max_baiters reached
 	end
 end
 
@@ -1817,6 +1891,7 @@ function	reset_enemies()
 		end
 		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
+	wave.baiters_generated = 0
 	-- prime the respawning
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
 end
