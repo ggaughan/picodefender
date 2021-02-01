@@ -409,8 +409,7 @@ function update_enemies()
 		if not e.hit then  
 			-- check if hit player
 		 -- todo include wrap at end
-			--local x=(e.x+flr(8-e.w)/2+flr(e.w/2)+e.dx) - (pl.x+flr(8-pl.w)/2 + flr(pl.w/2))  -- todo: precalc/hardcode player offset (2)
-			--local y=(e.y+flr(8-e.h)/2+flr(e.w/2)+e.dy) - (pl.y+flr(8-pl.h)/2 + flr(pl.h/2))  -- todo: precalc/hardcode player offset (2)
+		 -- note: assumes all are drawn centred
 			local x=(e.x+4+e.dx) - (pl.x+4)
 			local y=(e.y+4+e.dy) - (pl.y+4)  
 			if e.k ~= human then
@@ -670,8 +669,7 @@ function update_enemies()
 						e.y = 120 
 						e.dy *= -1
 					end
-				end 
-				
+				end 			
 			-- else hit and no more
 			end
 		-- else hit and no more
@@ -752,16 +750,6 @@ function _update60_game_over()
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
  elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
---  reset_player(true)
---
---		-- todo move to reset_game() - include call to reset_player(true) above
---		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
---		actors = {}  -- ok?
---		particles = {}
---		lasers = {}
---		iwave = 0
---		humans=0  -- topped up by load_wave
---		load_wave()
   start_game(true)
   
   pl.hit = t
@@ -887,17 +875,6 @@ function _update60_instructions()
 
  update_particles()  -- could include special effects
 
-	-- todo remove: (start_game does it)
--- if timeout or btnp(➡️) or (btnp(🅾️) or btnp(❎)) then
---  reset_player(true)  -- note: loses last actual score and demo score will replace it
---
---		-- todo move to reset_game() - include call to reset_player(true) above
---		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
--- 	actors={} -- reset - todo move to start_game()?
---		particles = {}
---		lasers = {}
--- end
- -- ...
  if timeout or btnp(➡️) then
   pl.hit = t  
   bombing_t = nil  -- title explosion reset
@@ -911,6 +888,7 @@ function _update60_instructions()
  end
 end
 
+-- todo remove: debug only
 function _update60_debug_stop()
  --update_particles()  -- could include special effects
 end
@@ -944,7 +922,6 @@ end
 --draw
 
 function wtos(wx,wy)
-	--x=hc + ((ocx + wx)\hwr) % hudw
 	x=hc + ((ocx + wx - cx)\hwr) % hudw
 	y=wy\hhr
 	return x,y
@@ -969,7 +946,6 @@ function draw_score(v, x,y, extra)
  local i=6
  repeat
   local t=v>>>1
-  -- todo map to font
   --todo remove: if (y~=6 and i==4) c=10 -- extra_score leading digit
   if (extra and i==4) c=10 -- extra_score leading digit
   print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,c)
@@ -1001,7 +977,7 @@ function draw_hud()
 
 	-- enemies
 	for e in all(actors) do
-	 -- todo skip if bullet?
+	 -- todo skip if bullet? though handy!
 	 --if e.k~=bullet then
 		sx,sy = wtos(e.x, e.y)
 		pset(sx,sy, e.c)
@@ -1043,7 +1019,6 @@ function draw_player(demo_mode)
 	local t=time()
 	-- draw_lasers
 	for laser in all(lasers) do
-		--printh(tostr(laser))
 		local x,y = wxtoc(laser[1]), laser[2]
 		local age = (t-laser[4]) / laser_expire
 		local mdx,mdy=1/8,0
@@ -1097,13 +1072,6 @@ function draw_player(demo_mode)
 		if debug_kill then
 			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
 			if debug_kill and debug_data then
-				--local e = debug_rect
-				--local ex = wxtoc(e.x)+(8-e.w)/2+e.dx
-				--local ey = e.y+(8-e.h)/2+e.dy
-				--line(ex, ey,  
-				--					wxtoc(pl.x), pl.y+(8-pl.h)/2, 12)						
-				--rect(ex, ey,
-				--					ex + (e.w+pl.w), ey + (e.h+pl.h), 10)
 				line(wxtoc(debug_data[1]), debug_data[2],  
 									wxtoc(debug_data[3]), debug_data[4], 12)						
 				rect(wxtoc(debug_data[1]), 
@@ -1218,7 +1186,6 @@ function animate_camera()
 end
 
 function _draw_game_over()
- -- game over
  cls()
  
 	draw_stars()
@@ -1240,7 +1207,6 @@ function _draw_game_over()
 end
 
 function _draw_title()
- -- title
  cls()
  
 	draw_particles(true)
@@ -1249,15 +1215,11 @@ function _draw_title()
 
 	map(0,1, 24,hudy+16, 10,4)
 
-	--print("pico", 56, hudy+31, 10)
-	--print("defender", 48, hudy+38, 8)
-	
 	print("by", 60, hudy+54, 5)
 	print("greg gaughan", 40, hudy+60, 5)
 end
 
 function _draw_highscores()
- -- highscores
  cls()
 
 	draw_score(pl.score)
@@ -1278,8 +1240,7 @@ function _draw_highscores()
 	-- never expire! draw_player()  -- needed to expire
 
 	map(0,1, 24,0, 10,4)
-	--print("pico", 56, hudy+1, 10)
-	--print("defender", 48, hudy+8, 8)
+
 	print("hall of fame", 40, hudy+24, 5)
 
 	print("todays", 10, hudy+32, 5)
@@ -1294,7 +1255,6 @@ function _draw_highscores()
  		print(i, 1+co, hudy+40+i*6, 5)
 		 if hs[1] ~= nil then
 				print(hs[1], 10+co, hudy+40+i*6, 5)
-				--print(hs[2], 30+co, hudy+40+i*6, 5)
 				draw_score(hs[2], 24+co, hudy+40+i*6)
 			end
 		end
@@ -1302,7 +1262,6 @@ function _draw_highscores()
 end
 
 function _draw_new_highscore()
- -- new highscore
  cls()
 
 	draw_score(pl.score)
@@ -1312,7 +1271,6 @@ function _draw_new_highscore()
 
 	-- never expire! draw_player()  -- needed to expire
 
-	-- todo 3d text?
 	print("player one", 56, hudy+1, 2)
 	print("you have qualified for", 16, hudy+16, 2)
 	print("the defender hall of fame", 16, hudy+24, 2)
@@ -1336,7 +1294,6 @@ function _draw_new_highscore()
 end
 
 function _draw_instructions()
- -- instructions
  cls()
 
 	draw_hud()  -- note: includes extra_score
@@ -1353,7 +1310,6 @@ function _draw_instructions()
 
 	draw_player(true)  -- pass demo_mode to aviod dying/reset (because p.hit is overused as a timer here)
  
-	-- todo 3d text?
 	print("scanner", 52, hudy+4, 5)
 
 	print("1..2..3", 52, hudy+31, 10)
@@ -1361,7 +1317,6 @@ function _draw_instructions()
 end
 
 function _draw_end_wave()
- -- end wave
  cls()
  
 	draw_hud()
@@ -1566,11 +1521,6 @@ function add_bullet(x, y, from, track)
 		-- else no discriminant, forget it - todo perhaps undo fire?
 		end
 	end
-	--b.dx = ((tx - b.x)/128) * bullet_speed
- --b.dy = ((ty - b.y)/128) * bullet_speed
- -- todo why 30!?
-	--b.dx = ((tx - b.x)/30) * bv
- --b.dy = ((ty - b.y)/30) * bv
  -- todo here: add miss-factor!
  -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
 	b.dx = ((tx - b.x)) * bv
@@ -1652,7 +1602,6 @@ function kill_actor(e, laser, explode)
 	 end
 	end
 	add_pl_score(e.score)
-	--pl.score += e.score >> 16
 
 	del(actors, e)
 	printh(e.k.." dead "..e.x)			 	
@@ -1663,7 +1612,6 @@ function kill_actor(e, laser, explode)
 	 
 	 if e.target ~= nil then
 		 if e.target.capture == capture_lifted then
-		 	-- todo drop human
 		 	-- todo set drop time / score depending on height/landing
 		 	printh("todo drop human!")
 		 	e.target.dy = gravity_speed
@@ -1693,15 +1641,13 @@ function kill_actor(e, laser, explode)
 	 -- todo sfx(?)
 	 -- spawn swarmers
 	 local r = flr(rnd(256))
-	 local make = 7
+	 local make = 7 -- 172..255
 	 if r < 64 then
 	  make = 4
 	 elseif r < 128 then
 	  make = 5
 	 elseif r < 172 then
 	  make = 6
-	 --elseif r < 256 then
-	 -- make = 7
 	 end
 	 if (r == 65) make = 1
 	 if (r == 129) make = 2
@@ -1907,7 +1853,6 @@ function add_enemies()
 	 make = min(wave.landers, 5)
 		for e = 1,make do
 		 local x=rnd(ww)
-		 --local y=rnd(128-hudy)+hudy
 		 local y=hudy+2
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
@@ -1940,7 +1885,6 @@ function add_enemies()
 	 make = wave.mutants
 		for e = 1,make do
 		 local x=rnd(ww)
-		 --local y=rnd(128-hudy)+hudy
 		 local y=hudy+2
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
@@ -1963,7 +1907,6 @@ function add_enemies()
 		if (rnd() < 0.5) groupdx *= -1
 		for e = 1,make do
 		 local x=groupx + rnd(ww/20)
-		 --local y=rnd(128-hudy)+hudy
 		 local y=hudy+2 + rnd(80)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
@@ -1985,7 +1928,6 @@ function add_enemies()
 	 make = min(wave.pods, 4) -- ok?
 		for e = 1,make do
 		 local x=rnd(ww)
-		 --local y=rnd(128-hudy)+hudy
 		 local y=hudy+2+rnd(30)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
@@ -2089,18 +2031,7 @@ function load_highscores()
 	 -- note: 8 slots hardcoded here
 		-- note: bytes 0+1 for future use
 		for hs=1,8 do
-			--local name_bytes = dget(hs*2)
 			local name = nil  -- i.e. stored as 0
-			-- endian issue?
---			if name_bytes ~= 0 then
---				printh("24:"..((name_bytes>>>24) & 0xff))
---				printh("16:"..((name_bytes>>>16) & 0xff))
---				printh(" 8:"..((name_bytes>>>8) & 0xff))
---				name = "" .. chr((name_bytes>>>24) & 0xff)
---				name = name..chr((name_bytes>>>16) & 0xff)
---				name = name..chr((name_bytes>>>8) & 0xff)
---				-- note: ignore (name_bytes>>>0) & 0xff
---			end
    -- todo @ instead of peek
 			local c1=peek(0x5e00 + (hs*2)*4+0) 
    local c2=peek(0x5e00 + (hs*2)*4+1)
@@ -2124,7 +2055,6 @@ function load_highscores()
 	 -- note: needs to be >>16 if > 32k
 	 -- todo: add via add_highscore to ensure they're kept in order!
 	 highscores[alltime][1]={"gjg", 21270>>16}
-	 -- load highscores[alltime] from cart data
 	end
   
 	if debug then
@@ -2164,15 +2094,6 @@ function add_highscore(score, name, new)
 						for hs=1,8 do
 						 local hs_name = highscores[hst][hs][1]
 						 local name_bytes = 0  -- i.e. nil = not set
-						 -- endian issue?
---						 if hs_name ~= nil then
---							 name_bytes = (ord(sub(hs_name,1,1)) << 24) |
---																					(ord(sub(hs_name,2,2)) << 16) |
---																					(ord(sub(hs_name,3,3)) << 8) |
---																					(ord(chr(0)) << 0) 
---								printh("!"..hs_name.." "..name_bytes)
---							end
---							dset(hs*2, name_bytes)
 						 if hs_name ~= nil then
 							 poke(0x5e00 + (hs*2)*4+0, ord(sub(hs_name,1,1))) 
         poke(0x5e00 + (hs*2)*4+1, ord(sub(hs_name,2,2)))
