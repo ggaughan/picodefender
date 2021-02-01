@@ -78,7 +78,7 @@ cx = 128 * 4
 ocx = cx
 
 inertia_py = 0.95
-inertia_cx = 0.99
+inertia_cx = 0.98
 
 
 hc = 128/4
@@ -391,8 +391,9 @@ function update_enemies()
 					 -- todo precalc half widths			
 					 -- todo include wrap at end
 					 -- todo maybe cut off at screen/camera
-						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-(e.h/2)) then
+						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-((8-e.h)/2)) then
 							-- note: quick check against max and assume width == 8 (and player can't be on enemy)
+							-- todo maybe min instead of max since we already checked age/reach
 							if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
 								-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
 								--printh("laser hit "..e.x)
