@@ -6,7 +6,7 @@ __lua__
 -- remake of the williams classic
 
 debug = true
-debug_test = debug  -- 1 of each enemy per wave
+debug_test = not debug  -- 1 of each enemy per wave
 debug_kill = not debug
 
 today = 1
@@ -1062,7 +1062,7 @@ function draw_player(demo_mode)
 	 	mdx,mdy
 		)
 	
-		if debug then
+		if debug_kill then
 		 local off=((age * laser_size) * laser_rate)
 			line(
 			 x+(off)*laser[3],
@@ -1891,9 +1891,9 @@ function load_wave()
 	end
 
 	if	debug_test then
-		wave_old = 1
-		wave_progression=1
-		wave.landers=2 --1
+		--wave_old = 1
+		--wave_progression=1
+		--wave.landers=2 --1
 		--wave.bombers=min(1,wave.bombers)
 		--wave.pods=min(1,wave.pods)
 	end
