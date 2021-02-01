@@ -183,6 +183,7 @@ function _init()
 	lasers = {}
 	iwave=0
 	humans=0  -- topped up by load_wave
+	add_humans_needed = true
 	-- todo remove: start_game does this: can't do more than once:
 	--    load_wave()
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
@@ -436,8 +437,7 @@ function update_enemies()
 				end
 			else -- human - can we catch it?
 				-- todo refine -4 = -h etc? todo wrap?
-				if pl.target == nil and e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and ((e.y-4) - pl.y) < target_y_epsilon*2 then
-			 	-- here!
+				if pl.target == nil and e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
 			 	printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
 			 	pl.target = e
 			 	e.dy = 0 --pl.dy
@@ -476,7 +476,7 @@ function update_enemies()
 					 		e.k = mutant
 					 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
 					 		e.lazy = 0  -- todo or remove altogether?
-					 		-- todo inc speed
+								l.dy = mutant_speed*lander_speed_y_factor
 					 	end
 					 elseif e.target.capture == capture_targetted and abs(e.x - e.target.x) < target_x_epsilon and abs(e.y - e.target.y) < target_y_epsilon then
 					 	printh("capturing! "..e.x.." "..e.target.x)
@@ -612,7 +612,9 @@ function update_enemies()
 						else
 						 e.dx = -swarmer_speed
 					 end
-					 
+
+						-- todo undulate: delay between y flips?					 
+						--      or sin(e.t)?
 					 if e.y < hudy + rnd(40) and e.y < pl.y and e.dy<0 then
 					 	e.dy *= -1
 					 elseif e.y > 120 - rnd(40) and e.y > pl.y and e.dy>0 then
@@ -623,6 +625,7 @@ function update_enemies()
 					-- attack
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
+					 -- todo delay before 1st shot?
 						if rnd() < 0.005 then  -- todo differ from mutant
 						 sfx(7)  -- todo differ?
 							b=add_bullet(e.x, e.y, e)
@@ -701,19 +704,32 @@ function update_particles()
 	end
 end
 
+-- todo rename: wave_progression
 function update_wave()
- -- todo rename: wave_progression
+	-- call regularly to top-up things
+	-- note: wave_progression hacked to call on wave re-start e.g. after player death
 	local t=time()
-	local age = t-wave.t_chunk
+	local age = t-wave.t_chunk  -- since last update
 	if age > wave_progression then
   wave.t_chunk = t  -- reset
-		if humans > 0 then
-		 printh("humans at"..t)
+		age = t-wave.t  -- total age
+
+		--printh("p# "..age\wave_progression)
+		--printh("p# "..t.." "..wave.t.." "..wave.t_chunk)
+		--if age\wave_progression == 0 then
+		--printh("p#"..wave.t.." "..wave.t_chunk)
+		--if wave.t==wave.t_chunk then
+		if	add_humans_needed then
+		 -- first call, add humans
+			-- note: do anyway to reset the flag: if humans > 0 then
+		 printh("add_humans call at "..t)
 			add_humans()
+		else
+			if (debug) printh("add_humans_needed is false")
 		end
-		age = t-wave.t
+
 		if wave.landers > 0 or wave.mutants > 0 or age > wave_old then	 
-		 printh("more at"..t)
+		 printh("add_enemies call at "..t)
 			add_enemies()
 		end
 	end
@@ -910,6 +926,7 @@ function start_game(full)
 			iwave=1
 		end
 		humans=0  -- topped up by load_wave
+		add_humans_needed = true
 		load_wave()
 	end
 
@@ -939,6 +956,17 @@ function wxtoc(wx)
 	return x
 end
 
+function draw_ground(force_ground)
+	if force_ground or humans > 0 then
+		for x = 0,127 do
+			i = ((ceil(cx+x))%ww) + 1
+			--printh(i)
+			pset(x,127 - w[i][1], 4)
+		end
+	-- else null space
+	end
+end
+
 function draw_score(v, x,y, extra)
 	-- if extra, 1st of 3 digits will be yellow
  x=x or 0
@@ -963,13 +991,16 @@ function add_pl_score(v, x, y)
 	pl.score += v >> 16
 end
 
-function draw_hud()
+function draw_hud(force_ground)
  local hdc = hudw/9
  
  -- ground
-	for x = 0,hudw-1 do
-		i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
-		pset(hc+x,hudy - (sw[i]), 4)
+	if force_ground or humans > 0 then
+		for x = 0,hudw-1 do
+			i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
+			pset(hc+x,hudy - (sw[i]), 4)
+		end
+	-- else null space
 	end
 	
 	-- player
@@ -1193,12 +1224,7 @@ function _draw_game_over()
 
 	draw_hud()
 
-	-- draw_ground	
-	for x = 0,127 do
-		i = ((ceil(cx+x))%ww) + 1
-		--printh(i)
-		pset(x,127 - w[i][1], 4)
-	end
+	draw_ground()
 
 	draw_enemies()
 	draw_particles()
@@ -1297,15 +1323,10 @@ end
 function _draw_instructions()
  cls()
 
-	draw_hud()  -- note: includes extra_score
+	draw_hud(true)  -- note: includes extra_score
 
-	-- draw_ground	
-	for x = 0,127 do
-		i = ((ceil(cx+x))%ww) + 1
-		--printh(i)
-		pset(x,127 - w[i][1], 4)
-	end
-
+	draw_ground(true)
+	
 	draw_enemies()
 	draw_particles()
 
@@ -1370,12 +1391,7 @@ function _draw_wave()
 
 	draw_hud()
 
-	-- draw_ground	
-	for x = 0,127 do
-		i = ((ceil(cx+x))%ww) + 1
-		--printh(i)
-		pset(x,127 - w[i][1], 4)
-	end
+	draw_ground()
 
 	draw_enemies()
 	draw_particles()
@@ -1674,9 +1690,10 @@ function kill_actor(e, laser, explode)
 	 wave.swarmers_generated -= 1  -- i.e.so max_swarmers => max active swarmers
 		-- todo count swarmers_hit - why not
 	elseif e.k == human then
+		printh("dead human "..e.x)
 	 -- todo wrap in kill_human routine?
 		if e.capture ~= nil then
-	  printh("dead human was captured "..e.x.." "..e.capture)
+	  printh("dead human had been captured "..e.x.." "..e.capture)
 	  -- reset any lander that had this as a target (else picks up a phantom)
 	 	for a in all(actors) do
 	 		if a.k==lander and a.target==e then
@@ -1691,8 +1708,24 @@ function kill_actor(e, laser, explode)
  		end
 		end
 	 humans -= 1
-	 -- todo if humans == 0 then null space: convert all landers to mutants
-	 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters?
+		printh(" humans left "..humans)
+	 if humans <= 0 then
+	 	-- null space
+	 	-- todo explode planet! flash/camera shake?
+	 	-- convert any existing landers to mutants
+	 	for a in all(actors) do
+	 		if a.k==lander then
+	 			printh("converting lander to mutant after null space (all humans dead) "..a.x)
+	 			a.k = mutant
+		 		a.lazy = 0  -- todo or remove altogether?
+					a.dy = mutant_speed*lander_speed_y_factor
+	 		end
+	 	end
+			wave.mutants += wave.landers
+			wave.landers = 0
+	 	-- also any further landers will be mutants - even on later levels until humans are replenished
+		end
+	 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters? - no need since is_wave_complete will be true
 	end
 	if is_wave_complete() then
 	 pl.hit = time()  -- pause
@@ -1757,6 +1790,17 @@ end
 
 function add_humans()
  -- todo pass in t?
+ if debug then
+	 local hc = 0
+		for e in all(actors) do
+			if (e.k == human) hc+=1
+		end
+		if hc~=0 then
+			printh(humans.." "..wave.t)
+			assert(hc~=0)
+		end
+	end
+
 	for h = 1,humans do
 	 local x=rnd(ww)  -- todo groups?
 	 local y=120 - flr(rnd(4))
@@ -1769,12 +1813,15 @@ function add_humans()
 		h.capture=nil
 		h.dropped_y=nil
 	end
+	printh("added "..humans.." humans") -- replenish on 1st wave update
+	add_humans_needed = false
 end
 
 
 function active_enemies(include_only)
  -- don't count baiters (and include_only, if given)
  -- don't count bullet,mine,human
+ -- does count swarmers (wave.swarmers_generated) - though level restart not required if only swarmers remain - todo:ok?
  local r = 0
 	for e in all(actors) do
 	 if (include_only and e.k ~= include_only) then
@@ -1834,9 +1881,16 @@ function load_wave()
 		wave.humans_added = 10 - humans
 		humans += wave.humans_added
 		-- todo: use humans_added to avoid re-adding
+		assert(humans<=10)  --todo remove
 		printh("adding humans "..wave.humans_added.."="..humans)
 	end
-
+	
+ if humans <= 0 then
+  -- null space
+ 	wave.mutants += wave.landers
+ 	wave.landers = 0
+ end
+ 
 	if	debug_test then
 		--wave_old = 1
 		--wave_progression=1
@@ -2023,6 +2077,7 @@ function	reset_enemies()
 	end
 	wave.baiters_generated = 0
 	wave.swarmers_generated = 0
+	add_humans_needed = true
 	-- prime the respawning
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
 end
