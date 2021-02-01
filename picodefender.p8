@@ -7,6 +7,7 @@ __lua__
 
 debug = true
 debug_test = debug  -- 1 of each enemy per wave
+debug_kill = not debug
 
 today = 1
 alltime = 2
@@ -94,20 +95,20 @@ vert_accel = 0.6
 max_vert_speed = max_speed/2
 max_h_speed_factor = max_speed/48
 
-laser_expire = 1
-laser_size = 30  -- see rate
-laser_rate=8
+laser_expire = 0.5
+laser_size = 22  -- see rate
+laser_rate=4
 laser_max_length = 100  -- cap
 laser_min_length = 8  -- show something immediately
 min_laser_speed = 0.2 -- e.g. static ship, move away still
-laser_speed = 1.8
+laser_speed = 2.0
 laser_min_effective_age = 0.03  -- delay so it can be seen before being effective
 laser_inertia = 0.999
 
 lander_speed = 0.15
 lander_speed_y_factor = 2
 mutant_speed = 0.4
-baiter_speed = 2.6  -- faster than player  -- todo set to max_speed*factor?
+baiter_speed = 2.2  -- faster than player  -- todo set to max_speed*factor?
 bomber_speed = 0.3
 pod_speed = 0.2
 swarmer_speed = 0.6
@@ -164,7 +165,7 @@ function _init()
 	load_highscores()
 	
 	pl = {
-		w=5,
+		w=6,
 		h=3,
 		
 	 c=7,  -- for explosion
@@ -234,7 +235,7 @@ function _update60_wave()
 	
 	 if btnp(❎) then
 			-- fire laser
-			-- todo limit
+			-- todo limit 
 	  local x = pl.x
 	 	if pl.facing > 0 then
 	 		x = x+8 + 1+1+1
@@ -376,44 +377,62 @@ end
 function update_enemies()
 	local t = time()
 	for e in all(actors) do
-		-- check if hit by laser
-	 for laser in all(lasers) do 	
-	  if not e.hit and e.k ~= mine then
-				--local actual_age = (t-laser[4]) --/ laser_expire
-				local age = (t-laser[4])/laser_expire
-				local x,y = laser[1], laser[2]
-			 -- todo include wrap at end
-			 --      or cut short draw!
-				--if actual_age > laser_min_effective_age then
-				if (age * laser_size * laser_rate) > abs(e.x-x) then
-				 -- todo precalc half widths			
+ 	if e.k ~= mine then
+			-- check if hit by laser
+		 for laser in all(lasers) do 	
+		  if not e.hit then
+					--local actual_age = (t-laser[4]) --/ laser_expire
+					local age = (t-laser[4])/laser_expire
+					local x,y = laser[1], laser[2]
 				 -- todo include wrap at end
-				 -- todo maybe cut off at screen/camera
-					if y > (e.y+e.dy+(8-e.h)/2) and y < (e.y+e.dy+8-(e.h/2)) then
-						-- note: quick check against max and assume width == 8 (and player can't be on enemy)
-						if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
-							-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
-							--printh("laser hit "..e.x)
-				 		e.hit = t
-						 kill_actor(e, laser)
-						end			
-					end 	
-				-- else just fired - give it chance to be seen
-				end
-		 end		
+				 --      or cut short draw!
+					--if actual_age > laser_min_effective_age then
+					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w/2))-(x+4)) then
+					 -- todo precalc half widths			
+					 -- todo include wrap at end
+					 -- todo maybe cut off at screen/camera
+						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-(e.h/2)) then
+							-- note: quick check against max and assume width == 8 (and player can't be on enemy)
+							if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
+								-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
+								--printh("laser hit "..e.x)
+					 		e.hit = t
+							 kill_actor(e, laser)
+							end			
+						end 	
+					-- else just fired - give it chance to be seen
+					end
+			 end		
+			end
 		end
 		
 		if not e.hit then  
 			-- check if hit player
 		 -- todo include wrap at end
-			local x=(e.x+e.dx) - pl.x 
-			local y=(e.y+e.dy) - pl.y
+			--local x=(e.x+flr(8-e.w)/2+flr(e.w/2)+e.dx) - (pl.x+flr(8-pl.w)/2 + flr(pl.w/2))  -- todo: precalc/hardcode player offset (2)
+			--local y=(e.y+flr(8-e.h)/2+flr(e.w/2)+e.dy) - (pl.y+flr(8-pl.h)/2 + flr(pl.h/2))  -- todo: precalc/hardcode player offset (2)
+			local x=(e.x+4+e.dx) - (pl.x+4)
+			local y=(e.y+4+e.dy) - (pl.y+4)  
 			if e.k ~= human then
-				if (abs(ceil(x)) < (e.w+pl.w) and
-						 (abs(ceil(y))) < (e.h+pl.h))
+				if (abs((x)*2) < (e.w+pl.w) and
+						 (abs((y))*2) < (e.h+pl.h))
 				then
-		 		e.hit = t
-				 kill_player(e)
+					if debug_kill then
+						pl.dx, pl.dy = 0,0
+					 debug_data = {(e.x+(8-e.w)/2+e.w/2+e.dx),
+					 														(e.y+(8-e.h)/2+e.h/2+e.dy), 
+					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
+					 														(pl.y+(8-pl.h)/2)+pl.h/2,
+					 												  (e.w+pl.w),(e.h+pl.h)}
+					 printh(x.."<"..(e.w+pl.w))
+					 printh(y.."<"..(e.h+pl.h))
+					 printh(debug_data[1].." "..debug_data[3])
+					 printh(debug_data[2].." "..debug_data[4])
+					 _update60=_update60_debug_stop
+					else
+		 			e.hit = t
+				 	kill_player(e)
+				 end
 				end
 			else -- human - can we catch it?
 				-- todo refine -4 = -h etc? todo wrap?
@@ -892,6 +911,10 @@ function _update60_instructions()
  end
 end
 
+function _update60_debug_stop()
+ --update_particles()  -- could include special effects
+end
+
 -- todo move to tab3?
 function start_game(full)
 	-- todo old: assumes already reset
@@ -1038,6 +1061,20 @@ function draw_player(demo_mode)
 	 	0,0,
 	 	mdx,mdy
 		)
+	
+		if debug then
+		 local off=((age * laser_size) * laser_rate)
+			line(
+			 x+(off)*laser[3],
+				y-1,
+				x+(
+				 		off
+			 		) * laser[3], 
+	  	y-1, 
+	  	15
+			)					
+			--printh(age.." "..x.."("..laser[1]..") "..off*laser[3])	
+		end	
 	end
 
 	if pl.hit ~= nil and not demo_mode then
@@ -1056,6 +1093,26 @@ function draw_player(demo_mode)
 		else
 			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
 		end
+
+		if debug_kill then
+			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
+			if debug_kill and debug_data then
+				--local e = debug_rect
+				--local ex = wxtoc(e.x)+(8-e.w)/2+e.dx
+				--local ey = e.y+(8-e.h)/2+e.dy
+				--line(ex, ey,  
+				--					wxtoc(pl.x), pl.y+(8-pl.h)/2, 12)						
+				--rect(ex, ey,
+				--					ex + (e.w+pl.w), ey + (e.h+pl.h), 10)
+				line(wxtoc(debug_data[1]), debug_data[2],  
+									wxtoc(debug_data[3]), debug_data[4], 12)						
+				rect(wxtoc(debug_data[1]), 
+									debug_data[2],
+									wxtoc(debug_data[1])+debug_data[5], 
+									debug_data[2]+debug_data[6], 
+									10)
+			end
+		end		
 	end
 end
 
@@ -1077,6 +1134,12 @@ function draw_enemies()
 
  		spr(e.k, x, y, 1,1, fx)	
 		 -- todo animate?
+
+			if debug_kill then		 
+		 	 rect(x+e.dx+(8-e.w)/2, e.y+e.dy+(8-e.h)/2,
+		 	 					x+e.dx+8-(e.w/2), e.y+e.dy+8-(e.h/2), 15) 
+	 	end
+
 		end
 	end
 end
@@ -1472,7 +1535,7 @@ function add_bullet(x, y, from, track)
  t=time()
 	b=make_actor(bullet,x,y)
 	local bv = bullet_speed
-	if (from and from.k == baiter) bv *= 1.9
+	if (from and from.k == baiter) bv *= 1.6
 	-- todo for some, hang around player?
 	local tx,ty = pl.x, pl.y  -- aim at player
 	-- todo if bad aimer, add miss (slow bv does this to some extent)
@@ -1651,8 +1714,8 @@ function kill_actor(e, laser, explode)
 			l.c=9 -- or 8?
 			l.dy = swarmer_speed/2
 			if (rnd()<0.5) l.dy *= -1
-			l.dx = swarmer_speed
-			if (rnd()<0.5) l.dx *= -1
+			-- don't go towards player at first: l.dx = swarmer_speed
+			-- if (rnd()<0.5) l.dx *= -1
 			l.lazy = rnd(64)  -- higher = less likely to chase
 			l.h=4
 			l.w=5		
@@ -1828,9 +1891,9 @@ function load_wave()
 	end
 
 	if	debug_test then
-		--wave_old = 1
-		--wave_progression=1
-		--wave.landers=2 --1
+		wave_old = 1
+		wave_progression=1
+		wave.landers=2 --1
 		--wave.bombers=min(1,wave.bombers)
 		--wave.pods=min(1,wave.pods)
 	end
@@ -1851,7 +1914,7 @@ function add_enemies()
 			l=make_actor(lander,x,y,time())
 			l.dy = lander_speed*lander_speed_y_factor
 			l.lazy = rnd(512)  -- higher = less likely to chase
-			l.h=4
+			l.h=5
 			l.w=7
 			l.score=150	
 			-- find a target
@@ -1885,7 +1948,7 @@ function add_enemies()
 			l.dy = mutant_speed*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy = rnd(512)  -- higher = less likely to chase
-			l.h=4
+			l.h=5
 			l.w=7
 			l.score=150	
 			add_explosion(l, true)  -- reverse i.e. spawn
