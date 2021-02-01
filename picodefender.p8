@@ -107,11 +107,11 @@ laser_inertia = 0.999
 
 lander_speed = 0.15
 lander_speed_y_factor = 2
-mutant_speed = 0.4
+mutant_speed = 0.3
 baiter_speed = 2.2  -- faster than player  -- todo set to max_speed*factor?
 bomber_speed = 0.3
 pod_speed = 0.2
-swarmer_speed = 0.6
+swarmer_speed = 0.7
 bullet_expire = 1.4  -- todo depend on actual bullet_speed?
 bullet_speed = 0.02
 mine_expire = 6
@@ -124,6 +124,7 @@ player_die_expire = 3
 old_particle = 1
 enemy_die_expire = 1
 
+max_humans = 10
 human_speed = 0.02
 target_x_epsilon = 1
 target_y_epsilon = 3
@@ -142,11 +143,16 @@ wave_reset = 2  -- seconds
 
 extra_score_expire = 1
 bombing_expire = 0.3
+ground_destroy_expire = 1
 
 title_delay = 8
 title_particle_expire = 1.4
 game_over_delay = 4
 new_highscore_delay = 60  -- timeout if no initials in this time
+
+if debug_test then
+	max_humans = 3
+end
 
 function _init()
 	cart_exists = cartdata("ggaughan_picodefender_1")
@@ -194,7 +200,8 @@ function _init()
 	cc = 1
 	
 	extra_score = nil
-	bombing_t = nil  -- also used for title animation
+	bombing_t = nil  -- also used for title animation and null space ground explode
+	bombing_e = bombing_expire  -- todo rename bombing_e -> flash_e
 	
 	-- todo pl.hit still needed here?
  pl.hit = time()  -- delay
@@ -260,6 +267,8 @@ function _update60_wave()
 	 	if pl.bombs > 0 then
 		 	sfx(6)
 		 	bombing_t = time()
+		 	bombing_c = 7
+		 	bombing_e = bombing_expire
 				for e in all(actors) do
 				 -- note: we kill bullets and mines too
 				 -- note: original doesn't seem to...
@@ -621,12 +630,15 @@ function update_enemies()
 					 	e.dy *= -1
 					 end
 					end
+					-- overshoot?/don't get too close
+				 e.dx *= 0.96+rnd(0.08)  -- todo var inertia
+
 
 					-- attack
 					-- todo wrap?
 					if abs(e.x - pl.x) < 128 then
 					 -- todo delay before 1st shot?
-						if rnd() < 0.005 then  -- todo differ from mutant
+						if rnd() < 0.004 then  -- todo differ from mutant
 						 sfx(7)  -- todo differ?
 							b=add_bullet(e.x, e.y, e)
 						end
@@ -706,26 +718,18 @@ end
 
 -- todo rename: wave_progression
 function update_wave()
-	-- call regularly to top-up things
+	-- called regularly to top-up things
 	-- note: wave_progression hacked to call on wave re-start e.g. after player death
 	local t=time()
 	local age = t-wave.t_chunk  -- since last update
 	if age > wave_progression then
   wave.t_chunk = t  -- reset
 		age = t-wave.t  -- total age
-
-		--printh("p# "..age\wave_progression)
-		--printh("p# "..t.." "..wave.t.." "..wave.t_chunk)
-		--if age\wave_progression == 0 then
-		--printh("p#"..wave.t.." "..wave.t_chunk)
-		--if wave.t==wave.t_chunk then
 		if	add_humans_needed then
 		 -- first call, add humans
-			-- note: do anyway to reset the flag: if humans > 0 then
+			-- note: do even if humans==0 to reset the flag: if humans > 0 then
 		 printh("add_humans call at "..t)
 			add_humans()
-		else
-			if (debug) printh("add_humans_needed is false")
 		end
 
 		if wave.landers > 0 or wave.mutants > 0 or age > wave_old then	 
@@ -784,6 +788,7 @@ function _update60_title()
 		add_explosion({x=cx+64,y=48,c=8}, true, particle_speed/2, title_particle_expire)
 		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
 		bombing_t = t
+		bombing_e = bombing_expire -- todo increase here!
 	end
 
  update_particles()  -- could include special effects
@@ -931,6 +936,7 @@ function start_game(full)
 	end
 
  bombing_t = nil
+ bombing_e = bombing_expire
  particles={}
  add_humans()  -- initial 
  add_enemies() -- initial 
@@ -1372,14 +1378,15 @@ function _draw_wave()
 
  if bombing_t ~= nil then
 		local age = t - bombing_t
-		if age < bombing_expire then
+		if age < bombing_e then
 		 if flr(age * 18) % 2 == 0 then
-				cls(7)
+				cls(bombing_c)
 			else
 				cls(0)
 			end
 		else
 			bombing_t = nil
+			bombing_e = bombing_expire  -- reset to default
 		end
 	else
 		cls()
@@ -1407,7 +1414,7 @@ function _draw_wave()
 		end
 		print(#actors,100,0)
 		print(#particles,100,6)
-		assert(humans<=10)
+		assert(humans<=max_humans)
 		print(humans,120,0)
 		print(iwave+1,120,6)
 	end
@@ -1712,6 +1719,7 @@ function kill_actor(e, laser, explode)
 	 if humans <= 0 then
 	 	-- null space
 	 	-- todo explode planet! flash/camera shake?
+	 	music(8,0,8)  -- review last 8 = channel 3 reserve
 	 	-- convert any existing landers to mutants
 	 	for a in all(actors) do
 	 		if a.k==lander then
@@ -1724,6 +1732,9 @@ function kill_actor(e, laser, explode)
 			wave.mutants += wave.landers
 			wave.landers = 0
 	 	-- also any further landers will be mutants - even on later levels until humans are replenished
+	 	bombing_c = 5
+	 	bombing_e = ground_destroy_expire
+	 	bombing_t = time()
 		end
 	 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters? - no need since is_wave_complete will be true
 	end
@@ -1742,6 +1753,7 @@ function reset_player(full)
  end
  cdx = 0 -- freeze  
  -- todo reset cx? bombing_t etc.
+ bombing_e = bombing_expire
 	pl.x=cx+20
 	pl.y=64
 	pl.facing=1  -- todo need camera move?
@@ -1875,13 +1887,13 @@ function load_wave()
 	}
 	wave.baiters_generated = 0
 	wave.swarmers_generated = 0
-	
+
 	if iwave == 0 or ((iwave+1)%5 == 0) then
   -- replenish
-		wave.humans_added = 10 - humans
+		wave.humans_added = max_humans - humans
 		humans += wave.humans_added
-		-- todo: use humans_added to avoid re-adding
-		assert(humans<=10)  --todo remove
+		-- todo: use humans_added to avoid re-adding (update: we now do this via add_humans_needed)
+		assert(humans<=max_humans)  --todo remove
 		printh("adding humans "..wave.humans_added.."="..humans)
 	end
 	
@@ -1894,7 +1906,8 @@ function load_wave()
 	if	debug_test then
 		--wave_old = 1
 		--wave_progression=1
-		--wave.landers=2 --1
+		wave.landers=2 --1
+		wave.mutants=0
 		--wave.bombers=min(1,wave.bombers)
 		--wave.pods=min(1,wave.pods)
 	end
@@ -2125,8 +2138,10 @@ function add_highscore(score, name, new)
 	-- assumes caller already knows we have a highscore (e.g. checked against [8])
 	-- pass new=false if loading from cdata, i.e. don't try to store = cycle!
 	if (new == nil) new = true
+	local start_board=today
+	if (not new) start_board=alltime  -- don't load cart/alltime into today
  -- find position 
- for hst=today,alltime do
+ for hst=start_board,alltime do
  	-- todo short-circuit if not possibly in alltime, based on today pos
 	 local pos = #highscores[hst]  -- i.e. 8
 	 while pos>0 and score >	highscores[hst][pos][2] do
@@ -2419,3 +2434,18 @@ __sfx__
 0003000031220312303123031230312202d2202c22029220282202822027220252202421023210222102121021210202101f2001e2001e2001d2001c2001b2001b2001a2001a2001a20000200082000620005200
 000200002064029650326603066021650186300b6300a630106301663022630296501d6601067007670036600b650136401a640246401e6501166004670046700b6601d6502a640286401c650126600766001660
 00010000254402c450314403143020420154201342015420184300040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400
+0001000022150281502b160261601b170191701a1701d15022140291302e130301402d150231601817017170171501c14022160291602f170351703b1702516018140141301513019130201301e1201312011120
+0001000011150161501c1602216026140211201a12018120181301b13028130231301b110151101912011120121200e12012120121201a1102211018120131301d14025140161300c12009120061200812009120
+__music__
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 08424344
+00 09424344
+04 06424344
+
