@@ -108,8 +108,12 @@ lander_speed = 0.15
 lander_speed_y_factor = 2
 mutant_speed = 0.4
 baiter_speed = 2.6  -- faster than player  -- todo set to max_speed*factor?
+bomber_speed = 0.3
+pod_speed = 0.2
+swarmer_speed = 0.6
 bullet_expire = 1.4  -- todo depend on actual bullet_speed?
 bullet_speed = 0.02
+mine_expire = 6
 
 particle_expire = 0.8
 particle_speed = 0.6
@@ -132,6 +136,7 @@ wave_progression = 15  -- seconds
 wave_old = 60  -- min before baiters
 baiter_next = wave_progression / 3  -- delay baiter re-spawn based on last 3 enemies
 max_baiters = 4
+max_swarmers = 20
 wave_reset = 2  -- seconds
 
 extra_score_expire = 1
@@ -373,7 +378,7 @@ function update_enemies()
 	for e in all(actors) do
 		-- check if hit by laser
 	 for laser in all(lasers) do 	
-	  if not e.hit then
+	  if not e.hit and e.k ~= mine then
 				--local actual_age = (t-laser[4]) --/ laser_expire
 				local age = (t-laser[4])/laser_expire
 				local x,y = laser[1], laser[2]
@@ -483,10 +488,12 @@ function update_enemies()
 					end				
 					-- attack
 					-- todo wrap?
-					if abs(e.x - pl.x) < 128 then
-						if rnd() < 0.0015 then
-						 sfx(7)
-							b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
+					if abs(e.x - pl.x) < 128 then  
+						if wxtoc(e.x) < 128 and wxtoc(e.x) > 0 then  -- on screen
+							if rnd() < 0.0025 then
+							 sfx(7)
+								b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
+							end
 						end
 					end				
 				elseif e.k == mutant then
@@ -567,6 +574,45 @@ function update_enemies()
 							b=add_bullet(e.x, e.y, e, true)  -- track
 						end
 					end				
+				elseif e.k == bomber then
+				 if e.y < hudy + rnd(30) or e.y > 120 - rnd(30) then
+				 	e.dy *= -1
+				 end
+					-- lay mine
+					-- todo wrap?
+					if rnd() < 0.005 then
+					 -- todo sfx(?)
+						b=add_bullet(e.x, e.y, e)
+					end
+				elseif e.k == swarmer then
+					-- ai
+					-- todo overshoot
+					if abs(e.x - pl.x) < (rnd(256) - e.lazy) then
+					 if e.x < pl.x or rnd()<0.05 then
+						 e.dx = swarmer_speed
+						else
+						 e.dx = -swarmer_speed
+					 end
+					 
+					 if e.y < hudy + rnd(40) and e.y < pl.y and e.dy<0 then
+					 	e.dy *= -1
+					 elseif e.y > 120 - rnd(40) and e.y > pl.y and e.dy>0 then
+					 	e.dy *= -1
+					 end
+					end
+
+					-- attack
+					-- todo wrap?
+					if abs(e.x - pl.x) < 128 then
+						if rnd() < 0.005 then  -- todo differ from mutant
+						 sfx(7)  -- todo differ?
+							b=add_bullet(e.x, e.y, e)
+						end
+					end								
+				elseif e.k == mine then
+			 	if t-e.t > mine_expire then
+			 		del(actors,e)
+			 	end
 				elseif e.k == bullet then
 			 	if t-e.t > bullet_expire then
 			 		del(actors,e)
@@ -664,6 +710,11 @@ function _update60_game_over()
  update_particles()  -- could include player dying
  
  if some_timeout and pl.score > highscores[today][8][2] then
+		actors = {}  -- ok?
+		particles = {}
+		lasers = {}
+		-- todo stop sfx
+
  	-- we have a highscore (at least for today)
  	hs_name = ""
  	hs_chr = "a"
@@ -673,6 +724,11 @@ function _update60_game_over()
  end
  
  if timeout or (some_timeout and btnp(➡️)) then
+		actors = {}  -- ok?
+		particles = {}
+		lasers = {}
+		-- todo stop sfx
+
   pl.hit = t
  	_update60 = _update60_highscores
  	_draw = _draw_highscores
@@ -848,6 +904,9 @@ function start_game(full)
 		actors = {}  -- ok?
 		lasers = {}
 		iwave = 0  -- todo leave out?
+		if	debug_test then
+			iwave=1
+		end
 		humans=0  -- topped up by load_wave
 		load_wave()
 	end
@@ -1409,6 +1468,7 @@ function make_actor(k, x, y, hit)
 end
 
 function add_bullet(x, y, from, track)
+ -- note: also creates mines
  t=time()
 	b=make_actor(bullet,x,y)
 	local bv = bullet_speed
@@ -1456,6 +1516,11 @@ function add_bullet(x, y, from, track)
 	b.w = 1
 	b.h = 1
 	b.c = 6
+	if from and from.k == bomber then
+		b.k = mine
+		b.dx, b.dy = 0,0	
+		b.c = 5
+	end
 	return b
 end
 
@@ -1555,13 +1620,49 @@ function kill_actor(e, laser, explode)
 	elseif e.k == mutant then
 	 wave.landers_hit += 1  -- same as lander since we can compare with spawn number 1 for 1
 		-- todo track separate hits too?
+	elseif e.k == baiter then
+	 wave.baiters_generated -= 1  -- i.e.so max_baiters => max active batiers
+		-- todo count baiters_hit - why not
 	elseif e.k == bomber then
 	 wave.bombers_hit += 1
-	 -- todo more?
 	elseif e.k == pod then
 	 wave.pods_hit += 1
-	 -- todo more?
-	-- todo count baiters_hit - why not
+	 -- todo sfx(?)
+	 -- spawn swarmers
+	 local r = flr(rnd(256))
+	 local make = 7
+	 if r < 64 then
+	  make = 4
+	 elseif r < 128 then
+	  make = 5
+	 elseif r < 172 then
+	  make = 6
+	 --elseif r < 256 then
+	 -- make = 7
+	 end
+	 if (r == 65) make = 1
+	 if (r == 129) make = 2
+	 if (r == 173) make = 3
+	 make = min(make, max_swarmers - wave.swarmers_generated)
+	 for sw = 1,make do
+		 local x=e.x+rnd(3)
+		 local y=e.y+rnd(6)
+			l=make_actor(swarmer,x,y)  -- no time = show immediately
+			l.c=9 -- or 8?
+			l.dy = swarmer_speed/2
+			if (rnd()<0.5) l.dy *= -1
+			l.dx = swarmer_speed
+			if (rnd()<0.5) l.dx *= -1
+			l.lazy = rnd(64)  -- higher = less likely to chase
+			l.h=4
+			l.w=5		
+			l.score=150	
+			-- todo sfx(?)  -- todo: if on screen
+		end
+		wave.swarmers_generated += make
+	elseif e.k == swarmer then
+	 wave.swarmers_generated -= 1  -- i.e.so max_swarmers => max active swarmers
+		-- todo count swarmers_hit - why not
 	elseif e.k == human then
 	 -- todo wrap in kill_human routine?
 		if e.capture ~= nil then
@@ -1716,6 +1817,7 @@ function load_wave()
  		humans_added=nil,
 	}
 	wave.baiters_generated = 0
+	wave.swarmers_generated = 0
 	
 	if iwave == 0 or ((iwave+1)%5 == 0) then
   -- replenish
@@ -1726,7 +1828,7 @@ function load_wave()
 	end
 
 	if	debug_test then
-		wave_old = 1
+		--wave_old = 1
 		--wave_progression=1
 		--wave.landers=2 --1
 		--wave.bombers=min(1,wave.bombers)
@@ -1755,13 +1857,13 @@ function add_enemies()
 			-- find a target
 			l.target = nil
 			if true then --humans > 0 then
-				for i,e in pairs(actors) do
-					if e.k == human and e.capture==nil then
+				for i,a in pairs(actors) do
+					if a.k == human and a.capture==nil then
 		 			-- note: e.capture==nil implies not pl.target, i.e. player not carrying
 		 			-- todo: though might be funny to have lander steal human from player!
-						l.target=e
+						l.target=a
 						l.target.capture = capture_targetted
-						printh(l.x.." targetting "..i.." = "..e.x)
+						printh(l.x.." targetting "..i.." = "..a.x)
 						break
 					end
 				end
@@ -1792,18 +1894,24 @@ function add_enemies()
 		wave.mutants -= make
 	end
 	if wave.bombers > 0 then
-	 make = min(wave.bombers, 5) -- ok?
+	 make = min(wave.bombers, 3) -- ok?
+	 local groupx = rnd(ww)
+	 local groupdx = 1
+		if (rnd() < 0.5) groupdx *= -1
 		for e = 1,make do
-		 local x=rnd(ww)
+		 local x=groupx + rnd(ww/20)
 		 --local y=rnd(128-hudy)+hudy
-		 local y=hudy+2
+		 local y=hudy+2 + rnd(80)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,x,y,time())
+			l.c=14
 			--l.dy = lander_speed*lander_speed_y_factor
-			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=4
-			l.w=3
+			l.w=4
+			l.dy = bomber_speed
+ 		if (rnd() < 0.5) l.dy *= -1
+			l.dx = groupdx * bomber_speed
 			l.score=250	
 			add_explosion(l, true)  -- reverse i.e. spawn
 			sfx(2)  -- todo: if on screen
@@ -1811,26 +1919,25 @@ function add_enemies()
 		wave.bombers -= make
 	end
  if wave.pods > 0 then
-	 make = min(wave.pods, 5) -- ok?
+	 make = min(wave.pods, 4) -- ok?
 		for e = 1,make do
 		 local x=rnd(ww)
 		 --local y=rnd(128-hudy)+hudy
-		 local y=hudy+2
+		 local y=hudy+2+rnd(30)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,x,y,time())
-			--l.dy = lander_speed*lander_speed_y_factor
-			l.lazy = rnd(512)  -- higher = less likely to chase
-			l.h=4
-			l.w=5
+			l.c=8
+			l.dy=pod_speed
+			l.dx=pod_speed/4
+			l.h=5
+			l.w=7
 			l.score=1000	
 			add_explosion(l, true)  -- reverse i.e. spawn
 			sfx(2)  -- todo: if on screen
 		end
 		wave.pods -= make
 	end
-	-- todo others
-	
 	-- based on wave.t? and/or remaining
  -- baiters, if near end of wave
  if wave.baiters_generated < max_baiters then  -- todo adjust for iwave?
@@ -1840,7 +1947,7 @@ function add_enemies()
 			if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
 				local ae = active_enemies(lander) + active_enemies(mutant) -- excludes baiters
 				if ae < 5 or age > wave_old*2 then 
-					if age > wave_old then  -- todo adjust for iwave?			
+					if age > wave_old then  -- todo adjust for iwave?	2,3,4+ need more time?		
 					 make = 1 -- remove: 5-ae 
 					 if ae < 4 then
 							-- prime next one sooner
@@ -1879,6 +1986,8 @@ function	reset_enemies()
 		-- todo check not just hit?
 		if e.k == bullet then
 			--printh(e.k.." removed "..e.x)			 	
+		elseif e.k == mine then
+			--printh(e.k.." removed "..e.x)			 	
 		elseif e.k == lander then
 			--printh(e.k.." undead "..e.x)			 	
 			wave.landers	+= 1
@@ -1898,12 +2007,16 @@ function	reset_enemies()
 		elseif e.k == baiter then
 			--printh(e.k.." removed "..e.x)			 		
 			-- not counted: re-generate as needed
+		elseif e.k == swarmer then
+			--printh(e.k.." removed "..e.x)			 		
+			-- not counted: re-generate as needed
 		else
 			assert(false, "unknown e.k:"..e.k)		
 		end
 		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
 	wave.baiters_generated = 0
+	wave.swarmers_generated = 0
 	-- prime the respawning
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
 end
@@ -2045,17 +2158,17 @@ __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000000b00000000000000000000000000000000000000000000eee00000000000000000000000000000000000000000000000000
-00000908000007e80000097000000778000000000000000000000000000000000000000000111e00000000000000000000000000000000000000000000000000
-0000077e0000087000000eee000009000000000000000000000000000000000000000000001a1e00000000000000000000000000000000000000000000000000
-00000708000000000000000000000000000000000000000000000000000000000000000000111000000000000000000000000000000000000000000000000000
+00000908000007e80000097000000778000000000000000000000000000000000000000000555e00000000000000000000000000000000000000000000000000
+0000077e0000087000000eee000009000000000000000000000000000000000000000000005a5e00000000000000000000000000000000000000000000000000
+00000708000000000000000000000000000000000000000000000000000000000000000000555000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000010a010000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000e1e00000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000001e1e1e1000000000000000000000000000000000000000000000000
-000000000000000000000000000000000000000000000000000000000000000000000000000e1e00000000000000000000000000000000000000000000000000
-0000000000000000000000000000000000000000000000000000000000000000000000000010a010000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000000050a050000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000000000000000000000000000000e5e00000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000005e5e5e5000000000000000000000000000000000000000000000000
+000000000000000000000000000000000000000000000000000000000000000000000000000e5e00000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000000050a050000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
