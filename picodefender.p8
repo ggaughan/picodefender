@@ -27,6 +27,8 @@ baiter=41  -- spawn near end of level
 mine=105  -- comes from bomber
 bullet=24
 
+max_stars=100
+
 waves = {
  {--1
 	 c=1, 
@@ -73,7 +75,7 @@ waves = {
 }
 
 
-ww = 128 * 9
+ww = 128 * 9  --1152
 cx = 128 * 4
 ocx = cx
 
@@ -86,8 +88,7 @@ hudy=12  -- = hudh
 hudw=hc*2
 hwr = ww/hudw
 hhr = (128-4 - hudy)/hudy + 1
-lmin = 3
-lmax = 56
+lmax = 82
 
 max_speed = 2
 thrust = 0.4
@@ -140,6 +141,7 @@ baiter_next = wave_progression / 3  -- delay baiter re-spawn based on last 3 ene
 max_baiters = 4
 max_swarmers = 20
 wave_reset = 2  -- seconds
+delay_first_enemies = 0.5 -- give time for initial music to finish
 
 extra_score_expire = 1
 bombing_expire = 0.3
@@ -922,6 +924,7 @@ function start_game(full)
 --		add_pl_score(-450)
 --	end
  if full then -- todo remove this check!
+ 	music(16,0,8)  -- review last 8 = channel 3 reserve
 		reset_player(true)
 		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
 		actors = {}  -- ok?
@@ -939,7 +942,7 @@ function start_game(full)
  bombing_e = bombing_expire
  particles={}
  add_humans()  -- initial 
- add_enemies() -- initial 
+ add_enemies(time()+delay_first_enemies) -- initial 
 end
 
 -->8
@@ -1173,27 +1176,31 @@ end
 
 function draw_stars()
 	for star in all(stars) do
-		local x = star[1] - (cx/star[3])  -- -cx for screen; /star[3] for move-delay
-		local col = 5
-		if cx + 128 > ww then
-			if star[1]-(cx/star[3]) < (128 - (ww-cx)) then
- 			x = (star[1]+(ww/star[3])) - (cx/star[3])
-				col = 14  --new or fade depending on dir
+	 if not(humans <= 0) and star[2] > lmax then
+	  -- not null space and star behind ground level
+	 else
+			local x = star[1] - (cx/star[3])  -- -cx for screen; /star[3] for move-delay
+			local col = 5
+			if cx + 128 > ww then
+				if star[1]-(cx/star[3]) < (128 - (ww-cx)) then
+	 			x = (star[1]+(ww/star[3])) - (cx/star[3])
+					col = 14  --new or fade depending on dir
+				end
+	
+				if star[1] > ((ww/star[3]) - 128) then
+	 			if col == 14 then
+	 				--all! how!? 
+	 				--col = 11  --new+fade?
+	 			else
+						col = 12  --fade or new depending on dir
+					end
+	 		end
 			end
 
-			if star[1] > ((ww/star[3]) - 128) then
- 			if col == 14 then
- 				--all! how!? 
- 				--col = 11  --new+fade?
- 			else
-					col = 12  --fade or new depending on dir
-				end
- 		end
+			if (col ~= 5) col = 5
+			
+			pset(x, star[2], col)
 		end
-		
-		if (col ~= 5) col = 5
-		
-		pset(x, star[2], col)
 	end
 end
 
@@ -1213,16 +1220,18 @@ function animate_camera()
 --  cx = 0
 -- end
 
---	-- in screen space to handle any wrapping
---	local x = wxtoc(pl.x)
---	if x < 20 then
--- 	pl.x = (cx + 20) % ww
--- 	canim = 0
---	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
---	 pl.x = (cx + 100) % ww
---	 canim = 0
---	end
---	-- note: player wrap done via %	
+	-- in screen space to handle any wrapping
+	local x = wxtoc(pl.x) 
+	if x < 20 then
+		--printh("!plx<20 "..x)
+ 	pl.x = (cx + 20) % ww
+ 	canim = 0
+	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
+		--printh("!plx>100 "..x)
+	 pl.x = (cx + 100) % ww
+	 canim = 0
+	end
+	-- note: player wrap done via %	
 end
 
 function _draw_game_over()
@@ -1428,61 +1437,73 @@ end
 --build world
 
 function build_world()
- local l = 10
- local ldy = 1
- local ls = nil
- local ll = nil
-	for i = 1,ww do
-	 local r = rnd()
-	 
-	 if r > 0.8 then
-	 	ldy = 1
-	 elseif r < 0.2 then
-	  ldy = -1
-	 else
-	 	if r > 0.79 or r < 0.21 then
-		 	ldy = -1 * ldy
-		 end
-	 end
-	 
-	 if ldy > 0 then
-	  if l <= lmax then
-   	l += 1
-		 else
-		 	ldy = -1
-		 end
-	 elseif ldy < 0 then
-	 	if l >= lmin then
- 	  l -= 1	
-		 else 
-		  ldy = 1
-		 end
-	 end
-	 
-	 if i % hwr == 0 then
-   ls = ll
-   ll = ceil(l/hhr)  -- pre-calc
-   if ls and abs(ll - ls) > 1 then
-    -- patch any holes
-   	if ll - ls < 0 then
-	   	ll = ll + 1
-   	else
-	   	ll = ll - 1
-   	end
-   end
-	 	sw[i \ hwr] = ll
-	 end
+	local wd=[[
+	 5+2+1-3+2-2+2=4+2=2+2-2=4+2-2+1-3+2-2+1-3+1-2+1-4+1-5+2=2-1+2-2+3-2=3+1-4=2+3-7+1-7+2=
+	 7-1+4-1+7-4=4-1+4-1+3-3+4-2+5-2+2=3-2+1-3+2-2+3-4=1-6=3-4=2-10=2-48=2+8=
+	 3+36=2+10=4-14=3+1-2+2-3+2=2-6+3-2+1-2+4-2+3-1+3-6=1+2-2+1-2+1-2+1-2+4=2+4=3-1+4-2+3-3+4=6-2=4+1-4+4=4+5-2=4+1-3+2=4+2-4=2-2+4=2+5-2+8-
+	 18=2+4=3-1+18=1+6=20+20-10=6+6-24=5+5-12=
+	 7+7-6=20+20-6=9+7-12=4+4-10=
+	 6-14+8-10=4+4-4-20+14-4+6-10=3-
+	 20=1+4=2+10=2+4=4+12=6+6-4+4-6+2-6=8+20-
+	 5+1-2+1-2+1-4=1+2-1+2-1+2-1+2-1+2-2=2+1-2+1-2+1-2+2=2-2+3-1+2-
+	 2+1-3+1-2+1-2+3-1+2-1+3-2+2=2-
+	 2-2+5-1+3-1+3-1+
+	 3+4-1+2-4+3-2+4=4-5+2-3+3=3-
+	]]
+	local s,c="",""
+	local n=nil
+	local d="="  -- -down, ="flat"(-+), +up
+	local dy=1
+ local l=1
+ local wi = 1
+ local ll=nil
+	for si=1,#wd do
+		c = sub(wd,si,si)
+		if not(c=="+" or c=="-" or c=="=") then
+			s = s..c
+		else
+			n = tonum(s)
+			d = c
+			s = "" -- reset
+			for j=1,n do
+				if d=="+" then
+				 dy = 1
+				elseif d=="-" then
+				 dy = -1
+				elseif d=="=" then
+					dy *= -1
+				end
+				-- note: no error checking (lmin/lmax)
+				l = l+dy
+				w[wi] = {l}	
 
-	 -- todo make level ends meet!	 
-	 
-		w[i] = {l}
+				-- pre-calc for scanner				
+			 if wi % hwr == 0 then
+		   ls = ll
+		   ll = ceil(l/hhr)  
+		   if ls and abs(ll - ls) > 1 then
+		    -- patch any holes
+		   	if ll - ls < 0 then
+			   	ll = ll + 1
+		   	else
+			   	ll = ll - 1
+		   	end
+		   end
+			 	sw[wi \ hwr] = ll
+			 end
+			
+				wi+=1	
+			end
+		end
 	end
+	printh("end w:"..wi.." at level "..l)
 end
 
 function add_stars()
-	for s = 1,100 do
+	for s = 1,max_stars do
 		add(stars, {
-			rnd(ww), rnd(127-hudy-lmax-8)+hudy, 
+		 -- note: we add some behind the ground level but don't draw them unless null space
+			rnd(ww), rnd(120-hudy)+hudy, 
 			rnd(2)+10  -- parallax depth
 		})
 	end
@@ -1915,8 +1936,11 @@ function load_wave()
 	end
 end
 
-function add_enemies()
- -- todo pass in t?
+function add_enemies(ht)
+ -- note: pass in ht to override make_actor hit time
+ if (ht==nil) ht = time()
+ local t=time()
+ local sound = not(ht>t) -- if ht>t we don't fire sfx - i.e. assume game starting music is playing
  -- see reset_enemies for undo
  local make
 	if wave.landers > 0 then
@@ -1926,7 +1950,7 @@ function add_enemies()
 		 local y=hudy+2
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(lander,x,y,time())
+			l=make_actor(lander,x,y,ht)
 			l.dy = lander_speed*lander_speed_y_factor
 			l.lazy = rnd(512)  -- higher = less likely to chase
 			l.h=5
@@ -1947,7 +1971,7 @@ function add_enemies()
 				end
 			end
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)  -- todo: if on screen
+			if (sound) sfx(2)  -- todo: if on screen
 		end
 		wave.landers -= make
 	end
@@ -1958,7 +1982,7 @@ function add_enemies()
 		 local y=hudy+2
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(mutant,x,y,time())
+			l=make_actor(mutant,x,y,ht)
 			l.dy = mutant_speed*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy = rnd(512)  -- higher = less likely to chase
@@ -1966,7 +1990,7 @@ function add_enemies()
 			l.w=7
 			l.score=150	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)  -- todo: if on screen
+			if (sound) sfx(2)  -- todo: if on screen
 		end
 		wave.mutants -= make
 	end
@@ -1980,7 +2004,7 @@ function add_enemies()
 		 local y=hudy+2 + rnd(80)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(bomber,x,y,time())
+			l=make_actor(bomber,x,y,ht)
 			l.c=14
 			--l.dy = lander_speed*lander_speed_y_factor
 			l.h=4
@@ -1990,7 +2014,7 @@ function add_enemies()
 			l.dx = groupdx * bomber_speed
 			l.score=250	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)  -- todo: if on screen
+			if (sound) sfx(2)  -- todo: if on screen
 		end
 		wave.bombers -= make
 	end
@@ -2001,7 +2025,7 @@ function add_enemies()
 		 local y=hudy+2+rnd(30)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(pod,x,y,time())
+			l=make_actor(pod,x,y,ht)
 			l.c=8
 			l.dy=pod_speed
 			l.dx=pod_speed/4
@@ -2009,7 +2033,7 @@ function add_enemies()
 			l.w=7
 			l.score=1000	
 			add_explosion(l, true)  -- reverse i.e. spawn
-			sfx(2)  -- todo: if on screen
+			if (sound) sfx(2)  -- todo: if on screen
 		end
 		wave.pods -= make
 	end
@@ -2033,14 +2057,14 @@ function add_enemies()
 						 local x=rnd(ww)
 						 local y=hudy+2
 							-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-							l=make_actor(baiter,x,y,time())
+							l=make_actor(baiter,x,y,ht)
 							l.dy = baiter_speed/3
 							l.lazy = -256  -- higher = less likely to chase
 							l.h=4
 							l.w=7
 							l.score=200	
 							add_explosion(l, true)  -- reverse i.e. spawn
-							sfx(2)  -- todo: if on screen
+							if (sound) sfx(2)  -- todo: if on screen
 							printh("new baiter "..l.x)
 						end
 						-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
@@ -2438,6 +2462,14 @@ __sfx__
 00010000254402c450314403143020420154201342015420184300040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400
 0001000022150281502b160261601b170191701a1701d15022140291302e130301402d150231601817017170171501c14022160291602f170351703b1702516018140141301513019130201301e1201312011120
 0001000011150161501c1602216026140211201a12018120181301b13028130231301b110151101912011120121200e12012120121201a1102211018120131301d14025140161300c12009120061200812009120
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000400000e2500e2500e2500e2500e2500e2500e2500e2500e2500e2500e2500e2500e2500e2501125016250172401724013240102301623016230162300a2300f2300f24006240072400a2400e250102500f250
+000400000d2400d2500e250072500b2500f2500f2500f2500b2500824006240062400624007250082500b2500e2500e2500e2500e2500c2500a250082500724006240062400f2400f25008250062500b2500d250
 __music__
 00 41424344
 00 41424344
@@ -2450,4 +2482,11 @@ __music__
 00 08424344
 00 09424344
 04 06424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 10424344
+04 11424344
 
