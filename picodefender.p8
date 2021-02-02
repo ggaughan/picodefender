@@ -1201,26 +1201,28 @@ function animate_camera()
  -- e.g. player reversing
 	-- assumes canim>0
 	canim -= 1
-	cx += canim_dx
-	pl.x -= canim_dx
+	cx = (cx + canim_dx) % ww
 
- -- camera wrap
- if cx<0 then
- 	cx = ww
- elseif cx > ww then
-  cx = 0
- end
-	
-	-- in screen space to handle any wrapping
-	local x = wxtoc(pl.x)
-	if x < 20 then
- 	pl.x = (cx + 20) % ww
- 	canim = 0
-	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
-	 pl.x = (cx + 100) % ww
-	 canim = 0
-	end
-	-- note: player wrap done via %	
+	-- todo remove	
+	--pl.x -= canim_dx
+
+-- -- camera wrap
+-- if cx<0 then
+-- 	cx = ww
+-- elseif cx > ww then
+--  cx = 0
+-- end
+
+--	-- in screen space to handle any wrapping
+--	local x = wxtoc(pl.x)
+--	if x < 20 then
+-- 	pl.x = (cx + 20) % ww
+-- 	canim = 0
+--	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
+--	 pl.x = (cx + 100) % ww
+--	 canim = 0
+--	end
+--	-- note: player wrap done via %	
 end
 
 function _draw_game_over()
