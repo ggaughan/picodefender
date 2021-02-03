@@ -131,7 +131,6 @@ target_x_epsilon = 1
 target_y_epsilon = 3
 capture_targetted = 1
 capture_lifted = 2
---todo remove: set dropped_y instead: capture_dropped = 3
 gravity_speed = 0.1
 safe_height = 80
 
@@ -167,7 +166,7 @@ function _init()
  canim = 0
  canim_dx = 0
 
-	build_world()
+	build_world()  -- if this takes any time, move to update60_title, i.e. draw something first
 	add_stars()
 	
 	load_highscores()
@@ -393,12 +392,10 @@ function update_enemies()
 			-- check if hit by laser
 		 for laser in all(lasers) do 	
 		  if not e.hit then
-					--local actual_age = (t-laser[4]) --/ laser_expire
 					local age = (t-laser[4])/laser_expire
 					local x,y = laser[1], laser[2]
 				 -- todo include wrap at end
 				 --      or cut short draw!
-					--if actual_age > laser_min_effective_age then
 					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w/2))-(x+4)) then
 					 -- todo precalc half widths			
 					 -- todo include wrap at end
@@ -430,7 +427,7 @@ function update_enemies()
 						 (abs((y))*2) < (e.h+pl.h))
 				then
 					if debug_kill then
-						pl.dx, pl.dy = 0,0
+						pl.dy = 0
 					 debug_data = {(e.x+(8-e.w)/2+e.w/2+e.dx),
 					 														(e.y+(8-e.h)/2+e.h/2+e.dy), 
 					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
@@ -919,10 +916,6 @@ end
 
 -- todo move to tab3?
 function start_game(full)
-	-- todo old: assumes already reset
---	if pl.score == 450>>16 then
---		add_pl_score(-450)
---	end
  if full then -- todo remove this check!
  	music(16,0,8)  -- review last 8 = channel 3 reserve
 		reset_player(true)
@@ -984,7 +977,6 @@ function draw_score(v, x,y, extra)
  local i=6
  repeat
   local t=v>>>1
-  --todo remove: if (y~=6 and i==4) c=10 -- extra_score leading digit
   if (extra and i==4) c=10 -- extra_score leading digit
   print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,c)
   v=t/5
@@ -1213,13 +1205,6 @@ function animate_camera()
 	-- todo remove	
 	--pl.x -= canim_dx
 
--- -- camera wrap
--- if cx<0 then
--- 	cx = ww
--- elseif cx > ww then
---  cx = 0
--- end
-
 	-- in screen space to handle any wrapping
 	local x = wxtoc(pl.x) 
 	if x < 20 then
@@ -1437,6 +1422,7 @@ end
 --build world
 
 function build_world()
+ local t=time()
 	local wd=[[
 	 5+2+1-3+2-2+2=4+2=2+2-2=4+2-2+1-3+2-2+1-3+1-2+1-4+1-5+2=2-1+2-2+3-2=3+1-4=2+3-7+1-7+2=
 	 7-1+4-1+7-4=4-1+4-1+3-3+4-2+5-2+2=3-2+1-3+2-2+3-4=1-6=3-4=2-10=2-48=2+8=
@@ -1496,7 +1482,7 @@ function build_world()
 			end
 		end
 	end
-	printh("end w:"..wi.." at level "..l)
+	printh("end w:"..wi.." at level "..l.." took "..time()-t)
 end
 
 function add_stars()
@@ -1779,8 +1765,7 @@ function reset_player(full)
  bombing_e = bombing_expire
 	pl.x=cx+20
 	pl.y=64
-	pl.facing=1  -- todo need camera move?
-	pl.dx=0 -- todo remove
+	pl.facing=1  -- todo need camera move?	
 	pl.dy=0
 	pl.thrusting=false
 	pl.target = nil
@@ -1790,7 +1775,6 @@ function kill_player(e)
  pl.hit = time()
 	sfx(3, -2)
 	sfx(4)
- -- todo remove: t_chunk is reset by reset_enemies() later
 	wave.t_chunk -= player_die_expire  -- don't include dying time
  cdx = 0 -- freeze
  for i=1,16 do
@@ -2084,30 +2068,21 @@ function	reset_enemies()
 	for e in all(actors) do
 		-- todo check not just hit?
 		if e.k == bullet then
-			--printh(e.k.." removed "..e.x)			 	
 		elseif e.k == mine then
-			--printh(e.k.." removed "..e.x)			 	
 		elseif e.k == lander then
-			--printh(e.k.." undead "..e.x)			 	
 			wave.landers	+= 1
 		elseif e.k == mutant then
-			--printh(e.k.." undead "..e.x)			 	
 			--todo old: note: no need: already added on conversion: 
 			wave.mutants	+= 1
 		elseif e.k == bomber then
-			--printh(e.k.." undead "..e.x)			 	
 			wave.bombers	+= 1
 		elseif e.k == pod then
-			--printh(e.k.." undead "..e.x)			 	
 			wave.pods	+= 1
 		elseif e.k == human then
-			--printh(e.k.." removed "..e.x)			 		
 			-- accounted for by humans var
 		elseif e.k == baiter then
-			--printh(e.k.." removed "..e.x)			 		
 			-- not counted: re-generate as needed
 		elseif e.k == swarmer then
-			--printh(e.k.." removed "..e.x)			 		
 			-- not counted: re-generate as needed
 		else
 			assert(false, "unknown e.k:"..e.k)		
@@ -2146,9 +2121,7 @@ function load_highscores()
 		end 
 	else
  	printh("skipped dget: not cart_exists")
- 	-- todo remove/debug?
-	 -- note: needs to be >>16 if > 32k
-	 -- todo: add via add_highscore to ensure they're kept in order!
+	 -- todo: better score + add via add_highscore to ensure they're kept in order!
 	 highscores[alltime][1]={"gjg", 21270>>16}
 	end
   
