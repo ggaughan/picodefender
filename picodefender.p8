@@ -6,15 +6,15 @@ __lua__
 -- remake of the williams classic
 
 debug = true
-debug_test = debug  -- 1 of each enemy per wave
+debug_test = not debug  
 debug_kill = not debug
 
 today = 1
 alltime = 2
-empty_hs = {nil,0}
+e_hs = {nil,0}
 highscores = {
-	{empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs},
-	{empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs,empty_hs},
+	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
+	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
 
 human=7
@@ -22,10 +22,10 @@ lander=9
 mutant=25
 bomber=57
 pod=73
-swarmer=89  -- comes from pod
+swarmer=89  -- from pod
 baiter=41  -- spawn near end of level
-mine=105  -- comes from bomber
-bullet=24
+mine=105  -- from bomber
+bullet=24	
 
 max_stars=100
 
@@ -159,8 +159,8 @@ end
 function _init()
 	cart_exists = cartdata("ggaughan_picodefender_1")
 
-	w = {}  -- ground + stars
-	sw = {} -- ground summary
+	w = {}  -- ground level
+	sw = {} -- scanner ground summary
 	stars = {}
 	cx = 128 * 4
  cdx = 0
@@ -290,7 +290,7 @@ function _update60_wave()
 	 pl.y += pl.dy 
 	 
 	 cdx *= inertia_cx
-	 cx += cdx * pl.facing
+	 cx = (cx + cdx * pl.facing) % ww
 	 pl.x += cdx * pl.facing  -- note: this is effectively pl.dy
 	
 		-- player thrust/decay
@@ -338,20 +338,9 @@ function _update60_wave()
 	
 	 update_enemies()  -- checks for player hit
 	  
-	 -- camera wrap
-	 if cx<0 then
-	 	cx = ww
-	 elseif cx > ww then
-	  cx = 0
-	 end
-	 
 	 -- player wrap
+	 pl.x = pl.x % ww
 	 -- todo retain screen offset pos!
-	 if pl.x<0 then
-	 	pl.x = ww
-	 elseif pl.x > ww then
-	  pl.x = 0
-	 end
 	 
 	 if pl.y < hudy then
 	 	pl.y = hudy
@@ -460,13 +449,7 @@ function update_enemies()
 			end			
 			
 			if not e.hit then
-		  e.x += e.dx
-		  -- todo % simplify
-			 if e.x<0 then
-			 	e.x = ww 
-			 elseif e.x > ww then
-			  e.x = 0
-			 end
+				e.x = (e.x + e.dx) % ww
 		  e.y += e.dy
 				
 				-- todo move to ai/behaviour routine
@@ -711,13 +694,7 @@ function update_particles()
 	  if e.y < hudy or e.y > 127 then
 	 		del(particles,e)
 	  else
-		  e.x += e.dx
-		  -- todo % simplify
-			 if e.x<0 then
-			 	e.x = ww 
-			 elseif e.x > ww then
-			  e.x = 0
-			 end
+		  e.x = (e.x + e.dx) % ww
 			 -- todo opt: cull if off-screen - though short-lived
 			end
 	 end
@@ -974,7 +951,7 @@ function draw_ground(force_ground)
 		for x = 0,127 do
 			i = ((ceil(cx+x))%ww) + 1
 			--printh(i)
-			pset(x,127 - w[i][1], 4)
+			pset(x,127 - w[i], 4)
 		end
 	-- else null space
 	end
@@ -1471,7 +1448,7 @@ function build_world()
 			if ld == d then
 		  -- insert gap
 				l = l+(dy*-1)
-				w[wi] = {l}	
+				w[wi] = l	
 				wi+=1  
 			end
 			for j=1,n do
@@ -1484,7 +1461,7 @@ function build_world()
 				end
 				-- note: no error checking (lmin/lmax)
 				l = l+dy
-				w[wi] = {l}	
+				w[wi] = l	
 			
 				wi+=1	
 			end
@@ -1494,7 +1471,8 @@ function build_world()
 	-- pre-calc for scanner				
 	for wi=1,ww do	
 	 if wi % hwr == 0 then
-		 l = w[wi][1]
+		 l = w[wi]
+		 -- todo hardcode any holes?
    ls = ll
    ll = ceil(l/hhr)  
    if ls and abs(ll - ls) > 1 then
@@ -2093,9 +2071,7 @@ function	reset_enemies()
 	t = time()
 	for e in all(actors) do
 		-- todo check not just hit?
-		if e.k == bullet then
-		elseif e.k == mine then
-		elseif e.k == lander then
+		if e.k == lander then
 			wave.landers	+= 1
 		elseif e.k == mutant then
 			--todo old: note: no need: already added on conversion: 
@@ -2104,14 +2080,16 @@ function	reset_enemies()
 			wave.bombers	+= 1
 		elseif e.k == pod then
 			wave.pods	+= 1
-		elseif e.k == human then
-			-- accounted for by humans var
-		elseif e.k == baiter then
-			-- not counted: re-generate as needed
-		elseif e.k == swarmer then
-			-- not counted: re-generate as needed
-		else
-			assert(false, "unknown e.k:"..e.k)		
+		--elseif e.k == human then
+		--	-- accounted for by humans var
+		--elseif e.k == baiter then
+		--	-- not counted: re-generate as needed
+		--elseif e.k == swarmer then
+		--	-- not counted: re-generate as needed
+		--elseif e.k == bullet then
+		--elseif e.k == mine then
+		--else -- todo remove
+		--	assert(false, "unknown e.k:"..e.k)		
 		end
 		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
@@ -2152,10 +2130,11 @@ function load_highscores()
 	end
   
 	if debug then
-	 highscores[today][1]={"gjg", 21270>>16}
-	 highscores[today][2]={"g2g", 11270>>16}
-	 highscores[today][3]={"g3g", 1270>>16}
-	 highscores[today][4]={"g4g", 270>>16}
+	 local hste = highscores[today]
+	 hste[1]={"gjg", 21270>>16}
+	 hste[2]={"g2g", 11270>>16}
+	 hste[3]={"g3g", 1270>>16}
+	 hste[4]={"g4g", 270>>16}
 	end
 end
 
@@ -2220,11 +2199,11 @@ __gfx__
 00000000dddd1900000000000000000000000000eed5000000000000000040000004000000000000000000000000000000000000000000000000000000000000
 000000000e73dd730000000000000000000000000edd300000000000000000000000000000000000000000000000000000000000000000000000000000000000
 50505005550500550055050505055055505550505055555057755555555555550000000000000000000000000000000000000000000000000000000000000000
-55555555555555555555555555555555555555555555555555555555555555550000000000055b00000000000000000000000000000000000000000000000000
-55555555555555555555555555555555555555555555555555555555555555550000000000b55eb0000000000000000000000000000000000000000000000000
-555555555555555555555555555555555555555555555555555555555555555500077000000e2e00000000000000000000000000000000000000000000000000
-55555555555555555555555555555555555555555555555555555555555555550007700000b040b0000000000000000000000000000000000000000000000000
-5555555555555555555555555555555555555555555555555555555555555555000000000b00400b000000000000000000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000055b0000055b0000055b0000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550000000000b55eb000b55eb000b55eb000000000000000000000000000000000
+555555555555555555555555555555555555555555555555555555555555555500077000000e2e00000e2e00000e2e0000000000000000000000000000000000
+55555555555555555555555555555555555555555555555555555555555555550007700000b040b000b040b000b040b000000000000000000000000000000000
+5555555555555555555555555555555555555555555555555555555555555555000000000b00400b0b00400b0b00400b00000000000000000000000000000000
 55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
 55555555555555555555555555555555555555555555555555555555555555550000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -2438,7 +2417,7 @@ b0b0b000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 __gff__
-0000000000000000000202020000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000202020000000000000000000000000002020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __map__
 1011121314151513121716170000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
