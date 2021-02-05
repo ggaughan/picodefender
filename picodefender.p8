@@ -536,16 +536,6 @@ function update_enemies()
 						end				
 						
 						enemy_attack(e)
---						-- attack
---						-- todo wrap?
---						if abs(e.x - pl.x) < 128 then  
---							if wxtoc(e.x) < 128 and wxtoc(e.x) > 0 then  -- on screen
---								if rnd() < 0.0025 then
---								 sfx(7)
---									b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
---								end
---							end
---						end				
 					elseif e.k == mutant then
 						-- ai
 						-- todo remove lazy now? use for other type
@@ -564,14 +554,6 @@ function update_enemies()
 						end
 	
 						enemy_attack(e)
---						-- attack
---						-- todo wrap?
---						if abs(e.x - pl.x) < 128 then
---							if rnd() < 0.006 then
---							 sfx(7)
---								b=add_bullet(e.x, e.y, e)
---							end
---						end				
 					elseif e.k == baiter then
 						-- ai
 						-- todo less overlap with other baiters
@@ -618,25 +600,11 @@ function update_enemies()
 						end
 	
 					 enemy_attack(e)
---						-- attack
---						-- todo wrap?
---						if dx < 128 then
---							if rnd() < 0.015 then -- todo higher? var!
---							 -- todo?? sfx(7)
---								b=add_bullet(e.x, e.y, e, true)  -- track
---							end
---						end				
 					elseif e.k == bomber then
 					 if e.y < hudy + rnd(30) or e.y > 120 - rnd(30) then
 					 	e.dy *= -1
 					 end
 					 enemy_attack(e)
---						-- lay mine
---						-- todo wrap?
---						if rnd() < 0.005 then
---						 -- todo sfx(?)
---							b=add_bullet(e.x, e.y, e)
---						end
 					elseif e.k == swarmer then
 						-- ai
 						-- todo overshoot
@@ -663,18 +631,6 @@ function update_enemies()
 					 -- todo maybe if e.dx < limit set e.dx=0 and can chase again
 
  					enemy_attack(e)	
---						-- attack
---						-- todo wrap?
---						if abs(e.x - pl.x) < 128 then
---						 -- delay before 1st shot?
---						 if (e.dx > 0 and e.x < pl.x) or (e.dx < 0 and e.x > pl.x) then
---								if rnd() < 0.004 then  -- todo differ from mutant
---								 sfx(7)  -- todo differ?
---									b=add_bullet(e.x, e.y, e)
---								end
---							-- else not chasing yet or chasing but gone past so stop firing (todo:for now)
---							end
---						end								
 					elseif e.k == mine then
 				 	if t-e.t > mine_expire then
 				 		del(actors,e)
@@ -701,6 +657,8 @@ function update_enemies()
 						end 	 
 					-- else other types
 					end
+					
+					-- todo perhaps move enemy_attack() here and inside return if bullety or human?
 				
 					-- general bounce to stop y out of bounds
 					if e.y < hudy +1 then
