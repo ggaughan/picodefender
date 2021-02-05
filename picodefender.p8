@@ -449,22 +449,22 @@ function update_enemies()
 				if (abs((x)*2) < (e.w+pl.w) and
 						 (abs((y))*2) < (e.h+pl.h))
 				then
-					if debug_kill then
-						pl.dy = 0
-					 debug_data = {(e.x+(8-e.w)/2+e.w/2+e.dx),
-					 														(e.y+(8-e.h)/2+e.h/2+e.dy), 
-					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
-					 														(pl.y+(8-pl.h)/2)+pl.h/2,
-					 												  (e.w+pl.w),(e.h+pl.h)}
-					 printh(x.."<"..(e.w+pl.w))
-					 printh(y.."<"..(e.h+pl.h))
-					 printh(debug_data[1].." "..debug_data[3])
-					 printh(debug_data[2].." "..debug_data[4])
-					 _update60=_update60_debug_stop
-					else
-		 			e.hit = t
-				 	kill_player(e)
-				 end
+--					if debug_kill then
+--						pl.dy = 0
+--					 debug_data = {(e.x+(8-e.w)/2+e.w/2+e.dx),
+--					 														(e.y+(8-e.h)/2+e.h/2+e.dy), 
+--					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
+--					 														(pl.y+(8-pl.h)/2)+pl.h/2,
+--					 												  (e.w+pl.w),(e.h+pl.h)}
+--					 printh(x.."<"..(e.w+pl.w))
+--					 printh(y.."<"..(e.h+pl.h))
+--					 printh(debug_data[1].." "..debug_data[3])
+--					 printh(debug_data[2].." "..debug_data[4])
+--					 _update60=_update60_debug_stop
+--					else
+	 			e.hit = t
+			 	kill_player(e)
+				 --end
 				end
 			else -- human - can we catch it?
 				-- todo refine -4 = -h etc? todo wrap?
@@ -534,16 +534,18 @@ function update_enemies()
 								e.dx = 0
 							end
 						end				
-						-- attack
-						-- todo wrap?
-						if abs(e.x - pl.x) < 128 then  
-							if wxtoc(e.x) < 128 and wxtoc(e.x) > 0 then  -- on screen
-								if rnd() < 0.0025 then
-								 sfx(7)
-									b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
-								end
-							end
-						end				
+						
+						enemy_attack(e)
+--						-- attack
+--						-- todo wrap?
+--						if abs(e.x - pl.x) < 128 then  
+--							if wxtoc(e.x) < 128 and wxtoc(e.x) > 0 then  -- on screen
+--								if rnd() < 0.0025 then
+--								 sfx(7)
+--									b=add_bullet(e.x, e.y, e)  -- todo pass weak=true
+--								end
+--							end
+--						end				
 					elseif e.k == mutant then
 						-- ai
 						-- todo remove lazy now? use for other type
@@ -561,14 +563,15 @@ function update_enemies()
 						 end
 						end
 	
-						-- attack
-						-- todo wrap?
-						if abs(e.x - pl.x) < 128 then
-							if rnd() < 0.006 then
-							 sfx(7)
-								b=add_bullet(e.x, e.y, e)
-							end
-						end				
+						enemy_attack(e)
+--						-- attack
+--						-- todo wrap?
+--						if abs(e.x - pl.x) < 128 then
+--							if rnd() < 0.006 then
+--							 sfx(7)
+--								b=add_bullet(e.x, e.y, e)
+--							end
+--						end				
 					elseif e.k == baiter then
 						-- ai
 						-- todo less overlap with other baiters
@@ -614,24 +617,26 @@ function update_enemies()
 	 				 end
 						end
 	
-						-- attack
-						-- todo wrap?
-						if dx < 128 then
-							if rnd() < 0.015 then -- todo higher? var!
-							 -- todo?? sfx(7)
-								b=add_bullet(e.x, e.y, e, true)  -- track
-							end
-						end				
+					 enemy_attack(e)
+--						-- attack
+--						-- todo wrap?
+--						if dx < 128 then
+--							if rnd() < 0.015 then -- todo higher? var!
+--							 -- todo?? sfx(7)
+--								b=add_bullet(e.x, e.y, e, true)  -- track
+--							end
+--						end				
 					elseif e.k == bomber then
 					 if e.y < hudy + rnd(30) or e.y > 120 - rnd(30) then
 					 	e.dy *= -1
 					 end
-						-- lay mine
-						-- todo wrap?
-						if rnd() < 0.005 then
-						 -- todo sfx(?)
-							b=add_bullet(e.x, e.y, e)
-						end
+					 enemy_attack(e)
+--						-- lay mine
+--						-- todo wrap?
+--						if rnd() < 0.005 then
+--						 -- todo sfx(?)
+--							b=add_bullet(e.x, e.y, e)
+--						end
 					elseif e.k == swarmer then
 						-- ai
 						-- todo overshoot
@@ -656,19 +661,20 @@ function update_enemies()
 						-- overshoot?/don't get too close
 					 e.dx *= swarmer_inertia --+rnd(0.08)  -- todo remove?
 					 -- todo maybe if e.dx < limit set e.dx=0 and can chase again
-	
-						-- attack
-						-- todo wrap?
-						if abs(e.x - pl.x) < 128 then
-						 -- delay before 1st shot?
-						 if (e.dx > 0 and e.x < pl.x) or (e.dx < 0 and e.x > pl.x) then
-								if rnd() < 0.004 then  -- todo differ from mutant
-								 sfx(7)  -- todo differ?
-									b=add_bullet(e.x, e.y, e)
-								end
-							-- else not chasing yet or chasing but gone past so stop firing (todo:for now)
-							end
-						end								
+
+ 					enemy_attack(e)	
+--						-- attack
+--						-- todo wrap?
+--						if abs(e.x - pl.x) < 128 then
+--						 -- delay before 1st shot?
+--						 if (e.dx > 0 and e.x < pl.x) or (e.dx < 0 and e.x > pl.x) then
+--								if rnd() < 0.004 then  -- todo differ from mutant
+--								 sfx(7)  -- todo differ?
+--									b=add_bullet(e.x, e.y, e)
+--								end
+--							-- else not chasing yet or chasing but gone past so stop firing (todo:for now)
+--							end
+--						end								
 					elseif e.k == mine then
 				 	if t-e.t > mine_expire then
 				 		del(actors,e)
@@ -1160,19 +1166,19 @@ function draw_player()
 	 	mdx,mdy
 		)
 	
-		if debug_kill then
-		 local off=((age * laser_size) * laser_rate)
-			line(
-			 x+(off)*laser[3],
-				y-1,
-				x+(
-				 		off
-			 		) * laser[3], 
-	  	y-1, 
-	  	15
-			)					
-			--printh(age.." "..x.."("..laser[1]..") "..off*laser[3])	
-		end	
+--		if debug_kill then
+--		 local off=((age * laser_size) * laser_rate)
+--			line(
+--			 x+(off)*laser[3],
+--				y-1,
+--				x+(
+--				 		off
+--			 		) * laser[3], 
+--	  	y-1, 
+--	  	15
+--			)					
+--			--printh(age.." "..x.."("..laser[1]..") "..off*laser[3])	
+--		end	
 	end
 
 	if pl.hit ~= nil and demo.t==0 then
@@ -1192,18 +1198,18 @@ function draw_player()
 			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
 		end
 
-		if debug_kill then
-			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
-			if debug_kill and debug_data then
-				line(wxtoc(debug_data[1]), debug_data[2],  
-									wxtoc(debug_data[3]), debug_data[4], 12)						
-				rect(wxtoc(debug_data[1]), 
-									debug_data[2],
-									wxtoc(debug_data[1])+debug_data[5], 
-									debug_data[2]+debug_data[6], 
-									10)
-			end
-		end		
+--		if debug_kill then
+--			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
+--			if debug_kill and debug_data then
+--				line(wxtoc(debug_data[1]), debug_data[2],  
+--									wxtoc(debug_data[3]), debug_data[4], 12)						
+--				rect(wxtoc(debug_data[1]), 
+--									debug_data[2],
+--									wxtoc(debug_data[1])+debug_data[5], 
+--									debug_data[2]+debug_data[6], 
+--									10)
+--			end
+--		end		
 	end
 end
 
@@ -2184,6 +2190,35 @@ function	reset_enemies()
 	-- prime the respawning
 	wave.t_chunk = t - wave_progression + wave_reset  -- reset
 end
+
+function enemy_attack(e) 
+	-- todo wrap?
+ local fire = (e.k==bomber or (abs(e.x - pl.x) < 128))  -- bomber lays mines
+	if fire then   
+	 -- todo move rnd to table
+
+	 -- todo elseif more efficient	
+		if ((e.k == lander) and (wxtoc(e.x) > 128 or wxtoc(e.x) < 0)) fire=false  -- off screen
+
+		if (e.k==lander and rnd() > 0.0025) fire=false
+		if (e.k==mutant and rnd() > 0.006) fire=false
+
+		-- todo wrap?								
+		if (e.k==baiter and (abs(e.x - pl.x)>128 or rnd()>0.015)) fire=false -- todo higher rnd?	
+		if (e.k==swarmer and (abs(e.x - pl.x)>128 or not((e.dx > 0 and e.x < pl.x) or (e.dx < 0 and e.x > pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
+					-- swarmer may not be chasing yet or chasing but gone past so stop firing (todo:for now)
+
+		if (e.k==bomber and rnd() > 0.005) fire=false
+		
+		if fire then		
+			local this_sound=(sound and e.k~=bomber)
+			-- move sfx # to table (and allow none)
+		 if (this_sound) sfx(7)  -- todo not if baiter? why? another sound!? also for swarmer
+			b=add_bullet(e.x, e.y, e, (e.k==baiter))  -- todo pass weak=true for lander
+		end	
+	end		
+end
+
 
 function load_highscores()
 	if cart_exists then
