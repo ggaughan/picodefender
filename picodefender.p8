@@ -57,8 +57,19 @@ demo={
 -- note: ns match steps
 ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
-scores={[lander]=100,[mutant]=150,[baiter]=200,[bomber]=250,[pod]=1000,[swarmer]=150}
-colours={[lander]=11,[mutant]=11,[baiter]=11,[bomber]=14,[pod]=8,[swarmer]=9,[human]=6}
+attrs={
+	[lander]={100,11,5,7,3},
+	[mutant]={150,11,5,7,3},
+	[baiter]={200,11,4,7,3},
+	[bomber]={250,14,4,4,3},
+	[pod]={1000,8,5,7,4},
+	[swarmer]={150,9,4,5,1},
+	
+	[human]={500,6,6,2,2},
+	
+	[bullet]={nil,6,1,1,1},
+}
+
 
 max_stars=100
 
@@ -845,9 +856,6 @@ function _update60_highscores()
 			-- todo move some to demo
 			-- todo add add_human routine - though this isn't same/random
 			h=make_actor(human,cx+demo_sx,120,time())
-			--h.c=6
-			h.h=6
-			h.w=2
 			h.capture=nil
 			h.dropped_y=nil
 			--note: avoid (already setup) humans += 1
@@ -930,7 +938,6 @@ function _update60_instructions()
 			if demo.step_next_part == 1 then
 				l=make_actor(demo.steps[demo.step][1],cx+demo_sx,demo_sy,t)
 				l.dy = -lander_speed	*2
-				-- todo set l.c
 				add_explosion(l, true)  -- reverse i.e. spawn
 				demo.step_next_part += 1
 			-- note: 2 = waiting to hit top
@@ -944,7 +951,6 @@ function _update60_instructions()
 			elseif demo.step_next_part == 5 then
 			 -- todo wait for death explosion - new timer step?
 				l=make_actor(demo.steps[demo.step][1],cx+12+((demo.step-1)%3*36),demo_sy-20+((demo.step-1)\3)*30,t)
-				-- todo set l.c
 				l.name=names[demo.step]
 				-- note: draw name+score in draw
 				add_explosion(l, true)  -- reverse i.e. spawn
@@ -1589,22 +1595,23 @@ function add_stars()
 end
 
 function make_actor(k, x, y, hit)
+ local at = attrs[k]
  local a={
  	k=k,
- 	c=colours[k],
+ 	c=at[2],
   x=x,
   y=y,
   dx=0,
   dy=0,
   frame=0,
   t=0,  -- used as frame step or birth time for bullets/mines which have no frames
-  frames=1,
-  w=8,
-  h=8,  
+  frames=at[5],
+  w=at[3],
+  h=at[4],  
   
   lazy=0,
   hit=hit,
-  score=scores[k],
+  score=attrs[k][1],
  }
 	-- todo if hit player - move
  add(actors,a)
@@ -1652,9 +1659,6 @@ function add_bullet(x, y, from, track)
 	b.dx = ((tx - b.x)) * bv
  b.dy = ((ty - b.y)) * bv
 	b.t = t
-	b.w = 1
-	b.h = 1
-	b.c = 6
 	if from and from.k == bomber then
 		b.k = mine
 		b.dx, b.dy = 0,0	
@@ -1785,15 +1789,11 @@ function kill_actor(e, laser, explode)
 			 local x=e.x+rnd(3)
 			 local y=e.y+rnd(6)
 				l=make_actor(swarmer,x,y)  -- no time = show immediately
-				--l.c=9 -- or 8?
 				l.dy = swarmer_speed/2
 				if (rnd()<0.5) l.dy *= -1  
 				-- don't go towards player at first: l.dx = swarmer_speed
 				-- if (rnd()<0.5) l.dx *= -1
 				l.lazy = rnd(64)  -- higher = less likely to chase
-				l.h=4
-				l.w=5		
-				--todo remove:l.score=150	
 				-- todo sfx(?)  -- todo: if on screen
 			end
 			wave.swarmers_generated += make
@@ -1924,13 +1924,8 @@ function add_humans()
 	 local x=rnd(ww)  -- todo groups?
 	 local y=120 - flr(rnd(4))
 		h=make_actor(human,x,y,time())
-		--h.c=6
 		h.dx=rnd(human_speed)  
 		if (rnd() > 0.5) h.dx=h.dx*-1
-		h.h=6
-		h.w=2
-		h.score=500
-		h.frames=2
 		-- todo rnd frame?
 		h.capture=nil
 		h.dropped_y=nil
@@ -2043,7 +2038,7 @@ function add_enemies(ht)
 			l.h=5
 			l.w=7
 			--todo remove l.score=150	
-			l.frames = 3
+			--l.frames = 3
 			-- find a target
 			l.target = nil
 			if true then --humans > 0 then
@@ -2074,8 +2069,8 @@ function add_enemies(ht)
 			l.dy = mutant_speed*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy = rnd(512)  -- higher = less likely to chase
-			l.h=5
-			l.w=7
+			--l.h=5
+			--l.w=7
 			--todo remove l.score=150	
 			add_explosion(l, true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
@@ -2093,15 +2088,9 @@ function add_enemies(ht)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,x,y,ht)
-			--l.c=14
-			--l.dy = lander_speed*lander_speed_y_factor
-			l.h=4
-			l.w=4
 			l.dy = bomber_speed
  		if (rnd() < 0.5) l.dy *= -1
 			l.dx = groupdx * bomber_speed
-			--todo remove l.score=250	
-			l.frames=3
 			add_explosion(l, true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
 		end
@@ -2115,13 +2104,8 @@ function add_enemies(ht)
 		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,x,y,ht)
-			--l.c=8
 			l.dy=pod_speed
 			l.dx=pod_speed/4
-			l.h=5
-			l.w=7
-			--todo remove l.score=1000	
-			l.frames=4
 			add_explosion(l, true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
 		end
@@ -2150,10 +2134,6 @@ function add_enemies(ht)
 							l=make_actor(baiter,x,y,ht)
 							l.dy = baiter_speed/3
 							l.lazy = -256  -- higher = less likely to chase
-							l.h=4
-							l.w=7
-							--todo remove l.score=200	
-							l.frames=3
 							add_explosion(l, true)  -- reverse i.e. spawn
 							if (sound) sfx(2)  -- todo: if on screen
 							printh("new baiter "..l.x)
