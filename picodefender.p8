@@ -67,7 +67,7 @@ attrs={
 	
 	[human]={500,6,6,2,2},
 	
-	[bullet]={nil,6,1,1,1},
+	[bullet]={0,6,1,1,1},
 }
 
 
@@ -852,7 +852,7 @@ function _update60_highscores()
   pl.hit = t
 
 		-- setup instructions - todo move to routine  
-		if false then -- when phase 2 ready
+		if true then -- when phase 2 ready
 			-- todo move some to demo
 			-- todo add add_human routine - though this isn't same/random
 			h=make_actor(human,cx+demo_sx,120,time())
@@ -863,6 +863,7 @@ function _update60_highscores()
 		demo.step = 1
 		demo.step_next_part = 1
 		demo.t = t -- start demo mode
+		cx=ocx
 
 		pl.facing = 1
 		-- todo pl.dy?		
@@ -931,6 +932,7 @@ function _update60_instructions()
 	local timeout = (age > title_delay)
 
 	if demo then
+	 -- note: we animate the enemies here unlike the original - todo:stop?
 		local l
 		-- todo first step = lander:human pickup/shoot/catch/drop
 	 if demo.step <= #demo.steps then
@@ -1228,7 +1230,7 @@ function draw_enemies()
 				 e.frame = (e.frame + 1) % e.frames
 				end
  		end
- 		if demo.t ~= 0 and e.dy==0 and y~=hudy+demo_ty then
+ 		if demo.t ~= 0 and e.dy==0 and y~=hudy+demo_ty and e.k ~= human then
 				print(e.name,x-((#e.name/2)*3)+4,y+10, 5)		
 				print(e.score,x-(((#tostr(e.score)+1)/2)*3)+6,y+17, 5)		
  		end
