@@ -154,6 +154,7 @@ particle_expire = 0.8
 particle_speed = 0.6
 --enemy_explode_size = 32
 
+player_birth_expire = 1
 player_die_expire = 3
 old_particle = 1
 enemy_die_expire = 1
@@ -254,7 +255,7 @@ function _update60_wave()
 
  update_particles()  -- could include player dying
 
-	if pl.hit == nil then
+	if pl.hit==nil and pl.birth==nil then
 	 if btnp(⬅️) then
 	  -- todo avoid repeat with re-press
 		 pl.facing = -1*pl.facing
@@ -297,26 +298,41 @@ function _update60_wave()
 	 end
 	 
 	 if btnp(🅾️) then 
-	 	-- smart bomb - kill all enemies
-	 	if pl.bombs > 0 then
-		 	sfx(6)
-		 	bombing_t = time()
-		 	bombing_c = 7
-		 	bombing_e = bombing_expire
-				for e in all(actors) do
-				 -- note: we kill bullets and mines too
-				 -- note: original doesn't seem to...
-			  if not(e.k == human) then
-						local sx = wxtoc(e.x)
-						if sx >= 0 and sx <= 127 then
-							e.hit = t
-						 kill_actor(e, nil)
-						end
-			  end
-				end	
-	 		pl.bombs -= 1
-		 end
+	 	if btn(⬆️) and btn(⬇️) then
+	 		-- hyperspace
+	 		pl.birth=t
+	 		local hx = rnd(ww)
+	 		cx += hx
+	 		pl.x += hx
+	 		if (rnd()<0.5) pl.facing *= -1
+	 		cdx = 0
+			 canim=80
+			 canim_dx=pl.facing
+				add_explosion(pl, true)  -- reverse i.e. spawn
+	 		-- todo sfx 
+	 	else 
+		 	-- smart bomb - kill all enemies
+		 	if pl.bombs > 0 then
+			 	sfx(6)
+			 	bombing_t = time()
+			 	bombing_c = 7
+			 	bombing_e = bombing_expire
+					for e in all(actors) do
+					 -- note: we kill bullets and mines too
+					 -- note: original doesn't seem to...
+				  if not(e.k == human) then
+							local sx = wxtoc(e.x)
+							if sx >= 0 and sx <= 127 then
+								e.hit = t
+							 kill_actor(e, nil)
+							end
+				  end
+					end	
+		 		pl.bombs -= 1
+			 end
+			end
 	 end
+	 
 	 
 	 pl.dy *= inertia_py
 	 pl.y += pl.dy 
@@ -393,7 +409,9 @@ function _update60_wave()
 		 	pl.target.dy = gravity_speed
 		 	pl.target.dropped_y=pl.y
 		 	-- todo set walking again?
-		 	add_pl_score(pl.target.score)
+				-- todo sfx?
+	 		-- note: x-12 since score formats for 6 places
+				add_pl_score(pl.target.score, pl.x-12, pl.y+4)								 	
 		 	pl.capture = nil
 		 	pl.target = nil
 		 end
@@ -402,7 +420,7 @@ function _update60_wave()
 	 update_wave()
  
 	else
-	 -- player dying 
+	 -- player dying or being born
 	 -- or pausing between waves
 	 -- either way, both fixed via draw_player timeout
 	end
@@ -475,7 +493,6 @@ function update_enemies()
 					-- todo sfx?
 					-- note: x-12 since score formats for 6 places
 					add_pl_score(pl.target.score, pl.x-12, pl.y+4)
-					-- todo here: show more extra_scores...
 				end
 			end			
 			
@@ -1155,6 +1172,12 @@ function draw_player()
  		reset_enemies()  -- hide and respawn enemies after a period...
 			--printh("player rebirth "..age)
 		end
+	elseif pl.birth ~= nil then
+		local age = (t-pl.birth)
+		printh("player being born "..age)
+		if age > player_birth_expire then
+			pl.birth = nil	
+		end	
 	else
 		local x = wxtoc(pl.x)
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
@@ -1320,6 +1343,7 @@ function _draw_title()
 	
 	local o = hudy+60 + 30
 
+	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
 	print("⬅️ REVERSE 🅾️ BOMB", 28, o+12, 15)	
