@@ -807,10 +807,6 @@ function _update60_title()
  
  if timeout or btnp(➡️) then
 	 pal(10, 10)  -- after alt_cycle
-  if pl.score == 0>>16 then
-			add_pl_score(450)  -- why? version?
-		end
-		
   bombing_t = t  -- title explosion done
   particles={}
   pl.hit = t  
@@ -936,15 +932,26 @@ function _update60_instructions()
 				demo.step_next_part += 1
 			-- note: 4 = waiting to kill_actor
 			elseif demo.step_next_part == 5 then
-			 -- todo wait for death explosion - new timer step?
+			 -- wait for death explosion
+	 		local age = t - bombing_t
+				if age > particle_expire then
+					demo.step_next_part += 1
+			 end
+			elseif demo.step_next_part == 6 then
 				l=make_actor(demo.steps[demo.step][1],cx+12+((demo.step-1)%3*36),demo_sy-20+((demo.step-1)\3)*30,t)
 				l.name=names[demo.step]
 				-- note: draw name+score in draw
 				add_explosion(l, true)  -- reverse i.e. spawn
+				bombing_t=t
 				demo.step_next_part += 1
- 			-- todo delay 6..7? wait for reverse explosion before next
+			elseif demo.step_next_part == 7 then
+			 -- wait for reverse explosion
+	 		local age = t - bombing_t
+				if age > particle_expire*1.2 then
+					demo.step_next_part += 1
+			 end
 			end
-			if demo.step_next_part > 5 then
+			if demo.step_next_part > 7 then
 				demo.step += 1
 				demo.step_next_part = 1
 			end
@@ -1354,8 +1361,8 @@ function _draw_title()
 	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
-	print("⬅️ REVERSE 🅾️ BOMB", 28, o+12, 15)	
-	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+18, 15)
+	print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
+	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
 	
 	print("press ❎ to start", 30, o+32, 10)
 end
@@ -1802,11 +1809,11 @@ function kill_actor(e, laser, explode)
 		  make = 4
 		 elseif r < 128 then
 		  make = 5
+			 if (r == 65) make = 1
 		 elseif r < 172 then
 		  make = 6
+			 if (r == 129) make = 2
 		 end
-		 if (r == 65) make = 1
-		 if (r == 129) make = 2
 		 if (r == 173) make = 3
 		 make = min(make, max_swarmers - wave.swarmers_generated)
 		 for sw = 1,make do
@@ -1886,6 +1893,7 @@ function kill_actor(e, laser, explode)
 		end
 	else 
 		-- demo mode
+	 bombing_t=t
 		demo.step_next_part += 1
 	end
 end
