@@ -163,8 +163,8 @@ enemy_die_expire = 1
 
 max_humans = 10
 human_speed = 0.02
-target_x_epsilon = 4
-target_y_epsilon = 6
+target_x_epsilon = 3
+target_y_epsilon = 4
 capture_targetted = 1
 capture_lifted = 2
 gravity_speed = 0.1
@@ -488,8 +488,8 @@ function update_enemies()
 				 --end
 				end
 			else -- human - can we catch it?
-				-- todo refine -4 = -h etc? todo wrap?
-				if pl.target == nil and e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
+				-- note: wrap assumes on screen now
+				if pl.target == nil and e.capture == nil and e.y < 116 and abs(wxtoc(e.x) - wxtoc(pl.x)) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
 			 	--printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
 			 	pl.target = e
 			 	e.dy = 0 --pl.dy
@@ -797,7 +797,7 @@ function _update60_title()
 	local timeout = (age > title_delay)
 	
 	if bombing_t == nil then
-		add_explosion({x=cx+60,y=44,c=8}, true, particle_speed/2, title_particle_expire)
+		add_explosion({x=cx+60,y=40, c=8}, true, particle_speed/2, title_particle_expire)
 		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
 		bombing_t = t
 		bombing_e = bombing_expire -- todo increase here!
@@ -832,6 +832,10 @@ function _update60_highscores()
   pl.hit = t
 
 		-- setup instructions - todo move to routine  
+		demo.step = 1
+		demo.step_next_part = 1
+		demo.t = t -- start demo mode
+		cx=ocx
 		if true then -- when phase 2 ready
 			-- todo move some to demo
 			-- todo add add_human routine - though this isn't same/random
@@ -840,10 +844,6 @@ function _update60_highscores()
 			h.dropped_y=nil
 			--note: avoid (already setup) humans += 1
 		end
-		demo.step = 1
-		demo.step_next_part = 1
-		demo.t = t -- start demo mode
-		cx=ocx
 
 		pl.facing = 1
 		-- todo pl.dy?		
@@ -1351,10 +1351,10 @@ function _draw_title()
 
 	-- never expire! draw_player()  -- needed to expire
 
-	map(0,1, 25,hudy+16, 10,4)
+	map(0,1, 25,hudy+1, 10,4)
 
-	print("by", 59, hudy+54, 7)
-	print("greg gaughan", 39, hudy+60, 7)
+	print("by", 59, hudy+40, 7)
+	print("greg gaughan", 39, hudy+46, 7)
 	
 	local o = hudy+60 + 18
 
@@ -1492,10 +1492,13 @@ function _draw_wave()
  if bombing_t ~= nil then
 		local age = t - bombing_t
 		if age < bombing_e then
-		 if flr(age * 18) % 2 == 0 then
-				cls(bombing_c)
-			else
-				cls(0)
+	  if not epi_friendly then
+			 if flr(age * 18) % 2 == 0 then
+					cls(bombing_c)
+				else
+					cls(0)
+				end
+			-- else todo camera shake instead/as-well?
 			end
 		else
 			bombing_t = nil
@@ -2090,8 +2093,10 @@ function add_enemies(ht)
 			l.target = nil
 			if true then --humans > 0 then
 				for i,a in pairs(actors) do
-					if a.k == human and a.capture==nil then
+					if a.k == human and a.capture==nil and a.dropped_y == nil then
+					 -- todo perhaps skip or move if on/near wrap-line
 		 			-- note: e.capture==nil implies not pl.target, i.e. player not carrying
+		 			--       *but* could be falling so we now check dropped_y==nil too
 		 			-- todo: though might be funny to have lander steal human from player!
 						l.target=a
 						l.target.capture = capture_targetted
