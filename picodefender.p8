@@ -1885,6 +1885,7 @@ function reset_player(full)
 		pl.score=0
 		pl.score_10k=0
 		pl.bombs=3
+		-- note: no birth set
  end
  cdx = 0 -- freeze  
  -- todo reset cx? bombing_t etc.
@@ -1895,6 +1896,7 @@ function reset_player(full)
 	pl.dy=0
 	pl.thrusting=false
 	pl.target = nil
+	pl.birth=nil
 end
 
 function kill_player(e)
