@@ -1011,7 +1011,7 @@ function draw_ground(force_ground)
 		for x = 0,127 do
 			local i = ((ceil(cx+x))%ww) + 1
 			--printh(i)
-			pset(x,127 - w[i], 4)
+			pset(x,w[i], 4)
 		end
 	-- else null space
 	end
@@ -1054,7 +1054,7 @@ function draw_hud(force_ground)
 	if force_ground or humans > 0 then
 		for x = 0,hudw-1 do
 			local i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
-			pset(hc+x,hudy - (sw[i]), 4)
+			pset(hc+x,sw[i], 4)
 		end
 	-- else null space
 	end
@@ -1515,7 +1515,7 @@ function build_world()
 			if ld == d then
 		  -- insert gap
 				l = l+(dy*-1)
-				w[wi] = l	
+				w[wi] = 127-l	
 				wi+=1  
 			end
 			for j=1,n do
@@ -1528,7 +1528,7 @@ function build_world()
 				end
 				-- note: no error checking (lmin/lmax)
 				l = l+dy
-				w[wi] = l	
+				w[wi] = 127-l	
 			
 				wi+=1	
 			end
@@ -1538,7 +1538,7 @@ function build_world()
 	-- pre-calc for scanner				
 	for wi=1,ww do	
 	 if wi % hwr == 0 then
-		 l = w[wi]
+		 l = 127-w[wi]
 		 -- todo hardcode any holes?
    ls = ll
    ll = ceil(l/hhr)  
@@ -1546,7 +1546,7 @@ function build_world()
     -- patch any holes
     ll = ll + sgn(ll-ls)*-1
    end
-	 	sw[wi \ hwr] = ll
+	 	sw[wi \ hwr] = hudy-ll
 	 end
 	end	
 end
@@ -1796,7 +1796,7 @@ function kill_actor(e, laser, explode)
 		  local d={rnd()-0.5,-1}
 				for sx=-64,192 do
 					local i = ((ceil(cx+sx))%ww) + 1
-			  local x,y=cx+sx,127-w[i]  
+			  local x,y=cx+sx,w[i]  
 			  if (rnd()<0.08) d,s={rnd()-0.5,-1},s+rnd()/6
 					add(particles,{
 						x=x,y=y,
