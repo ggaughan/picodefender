@@ -428,32 +428,11 @@ function update_enemies()
 					   or 
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx < (e.x+e.xr+e.dx)) then
 						if y >= e.y+e.dy+e.yt and y <= e.y+e.dy+e.yb then
-							printh("laser hit "..e.x.." from "..x.." "..tx)
+							--printh("laser hit "..e.x.." from "..x.." "..tx)
 				 		e.hit = t
 						 kill_actor(e, laser)
 						end
-					--else
-					--	printh("laser miss "..e.x.." from "..x.." "..tx.." "..tl.." "..x+(laser[3]*tl).." "..laser[3])
 					end
-					
-					
---				 -- todo include dx
---					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w)/2 + e.dx)-(x)) then  -- removed +x from x: laser!
---					 -- todo precalc half widths			
---					 -- todo include wrap at end
---					 -- todo maybe cut off at screen/camera
---						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-((8-e.h)/2)) then
---							-- note: quick check against max and assume width == 8 (and player can't be on enemy)
---							-- todo maybe min instead of max since we already checked age/reach
---							if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
---								-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
---								--printh("laser hit "..e.x)
---					 		e.hit = t
---							 kill_actor(e, laser)
---							end			
---						end 	
---					-- else just fired - give it chance to be seen
---					end
 			 end		
 			end
 		end
@@ -488,7 +467,7 @@ function update_enemies()
 			else -- human - can we catch it?
 				-- todo refine -4 = -h etc? todo wrap?
 				if pl.target == nil and e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
-			 	printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
+			 	--printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
 			 	pl.target = e
 			 	e.dy = 0 --pl.dy
 			 	e.dx = 0 --pl.dx = cdx * pl.facing
@@ -515,7 +494,7 @@ function update_enemies()
 						 	e.target.y = e.y + 7
 						 	-- todo dx/dy?
 						 	if e.y < hudy+1 then
-						 		printh("convert to mutant"..e.x)
+						 		--printh("convert to mutant"..e.x)
 						 		kill_actor(e.target,nil,false)  -- kill human silently
 						 		-- possibly now nullspace
 						 		--no need: already decremented and reset_enemies will notice: wave.landers -= 1  -- spawn 1 less
@@ -739,12 +718,12 @@ function update_wave()
 		if	add_humans_needed then
 		 -- first call, add humans
 			-- note: do even if humans==0 to reset the flag: if humans > 0 then
-		 printh("add_humans call at "..t)
+		 --printh("add_humans call at "..t)
 			add_humans()
 		end
 
 		if wave.landers > 0 or wave.mutants > 0 or age > wave_old then	 
-		 printh("add_enemies call at "..t)
+		 --printh("add_enemies call at "..t)
 			add_enemies()
 		end
 	end
@@ -1336,8 +1315,15 @@ function _draw_title()
 
 	map(0,1, 25,hudy+16, 10,4)
 
-	print("by", 59, hudy+54, 5)
-	print("greg gaughan", 39, hudy+60, 5)
+	print("by", 59, hudy+54, 7)
+	print("greg gaughan", 39, hudy+60, 7)
+	
+	local o = hudy+60 + 30
+
+	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
+	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
+	print("⬅️ REVERSE 🅾️ BOMB", 28, o+12, 15)	
+	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+18, 15)
 end
 
 function _draw_highscores()
@@ -1562,7 +1548,7 @@ function build_world()
 			end
 		end
 	end
-	printh("end w:"..wi.." at level "..l.." took "..time()-t)
+	--printh("end w:"..wi.." at level "..l.." took "..time()-t)
 	-- pre-calc for scanner				
 	for wi=1,ww do	
 	 if wi % hwr == 0 then
@@ -1738,7 +1724,7 @@ function kill_actor(e, laser, explode)
 	add_pl_score(e.score)
 
 	del(actors, e)
-	printh(e.k.." dead "..e.x)			 	
+	--printh(e.k.." dead "..e.x)			 	
 	
 	if demo.t == 0 then
 		if e.k == lander then
@@ -1748,7 +1734,7 @@ function kill_actor(e, laser, explode)
 		 if e.target ~= nil then
 			 if e.target.capture == capture_lifted then
 			 	-- todo set drop time / score depending on height/landing
-			 	printh("drop human!")
+			 	--printh("drop human!")
 			 	e.target.dy = gravity_speed
 					e.target.dropped_y = e.y
 			 	e.target.capture = nil
@@ -1759,7 +1745,7 @@ function kill_actor(e, laser, explode)
 		 -- note: could have just added a batch! todo fifo?
 		 if wave.landers_hit % 5 == 0 then
 				if wave.landers > 0 then	 
-				 printh("more at #"..wave.landers_hit)
+				 --printh("more at #"..wave.landers_hit)
 					add_enemies()
 				end
 			end
@@ -1804,25 +1790,25 @@ function kill_actor(e, laser, explode)
 		 wave.swarmers_generated -= 1  -- i.e.so max_swarmers => max active swarmers
 			-- todo count swarmers_hit - why not
 		elseif e.k == human then
-			printh("dead human "..e.x)
+			--printh("dead human "..e.x)
 		 -- todo wrap in kill_human routine?
 			if e.capture ~= nil then
-		  printh("dead human had been captured "..e.x.." "..e.capture)
+		  --printh("dead human had been captured "..e.x.." "..e.capture)
 		  -- reset any lander that had this as a target (else picks up a phantom)
 		 	for a in all(actors) do
 		 		if a.k==lander and a.target==e then
-		 			printh("unlinking target after human dead "..a.target.x.." "..a.x)
+		 			--printh("unlinking target after human dead "..a.target.x.." "..a.x)
 		 			a.target = nil
 		 			-- todo find a new one! (not pl.target)
 		 		end
 		 	end
 	 		if pl.target==e then
-	 			printh("unlinking player target after human dead "..pl.target.x.." "..pl.x)
+	 			--printh("unlinking player target after human dead "..pl.target.x.." "..pl.x)
 	 			pl.target = nil
 	 		end
 			end
 		 humans -= 1
-			printh(" humans left "..humans)
+			--printh(" humans left "..humans)
 		 if humans <= 0 then
 		 	-- null space
 		 	-- todo camera shake?
@@ -1843,7 +1829,7 @@ function kill_actor(e, laser, explode)
 		 	-- convert any existing landers to mutants
 		 	for a in all(actors) do
 		 		if a.k==lander then
-		 			printh("converting lander to mutant after null space (all humans dead) "..a.x)
+		 			--printh("converting lander to mutant after null space (all humans dead) "..a.x)
 		 			a.k = mutant
 			 		a.lazy = 0  -- todo or remove altogether?
 						a.dy = mutant_speed*lander_speed_y_factor
@@ -1906,10 +1892,10 @@ function kill_player(e)
 	
 	-- todo maybe reset_player() here (if so lose cdx = 0 above)
 	
-	printh("player killed by "..e.x)
+	--printh("player killed by "..e.x)
 	kill_actor(e, nil, false)  -- no explosion
 	if pl.target != nil then
-		printh("player was carrying human - also killed "..pl.target.x)
+		--printh("player was carrying human - also killed "..pl.target.x)
 		kill_actor(pl.target, nil)
 		-- assume shot - not technically killed by falling from a height?
 	end
@@ -1931,7 +1917,7 @@ function add_humans()
 			if (e.k == human) hc+=1
 		end
 		if hc~=0 then
-			printh(humans.." "..wave.t)
+			--printh(humans.." "..wave.t)
 			assert(hc~=0)
 		end
 	end
@@ -1946,7 +1932,7 @@ function add_humans()
 		h.capture=nil
 		h.dropped_y=nil
 	end
-	printh("added "..humans.." humans") -- replenish on 1st wave update
+	--printh("added "..humans.." humans") -- replenish on 1st wave update
 	add_humans_needed = false
 end
 
@@ -1978,8 +1964,8 @@ function is_wave_complete()
 	-- note: baiters not counted towards completion
 	-- note: mutants don't spawn initially but they accrue during play
 	r += wave.mutants  
-	printh("r="..r)
-	printh(wave.landers_hit)
+	--printh("r="..r)
+	--printh(wave.landers_hit)
 	return r == 0  -- i.e. no more left
 end
 
@@ -2015,7 +2001,7 @@ function load_wave()
 		humans += wave.humans_added
 		-- todo: use humans_added to avoid re-adding (update: we now do this via add_humans_needed)
 		assert(humans<=max_humans)  --todo remove
-		printh("adding humans "..wave.humans_added.."="..humans)
+		--printh("adding humans "..wave.humans_added.."="..humans)
 	end
 	
  if humans <= 0 then
@@ -2064,7 +2050,7 @@ function add_enemies(ht)
 		 			-- todo: though might be funny to have lander steal human from player!
 						l.target=a
 						l.target.capture = capture_targetted
-						printh(l.x.." targetting "..i.." = "..a.x)
+						--printh(l.x.." targetting "..i.." = "..a.x)
 						break
 					end
 				end
@@ -2141,7 +2127,7 @@ function add_enemies(ht)
 					 if ae < 4 then
 							-- prime next one sooner
 							wave.t_chunk = t - wave_progression + baiter_next*ae
-							printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
+							--printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
 						end			 
 						for e = 1,make do
 						 local x=rnd(ww)
@@ -2152,7 +2138,7 @@ function add_enemies(ht)
 							l.lazy = -256  -- higher = less likely to chase
 							add_explosion(l, true)  -- reverse i.e. spawn
 							if (sound) sfx(2)  -- todo: if on screen
-							printh("new baiter "..l.x)
+							--printh("new baiter "..l.x)
 						end
 						-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
 						wave.baiters_generated += make
@@ -2242,7 +2228,7 @@ function load_highscores()
 			-- todo assert c4==0
 			if c1 ~= 0 or c2 ~= 0 or c3 ~= 0 then
 				name = chr(c1)..chr(c2)..chr(c3)
-				printh("!"..name.." "..c1..c2..c3)
+				--printh("!"..name.." "..c1..c2..c3)
 			-- else ?assert score==0
 			end
 			local score = dget(hs*2+1)
@@ -2303,7 +2289,7 @@ function add_highscore(score, name, new)
         poke(0x5e00 + (hs*2)*4+1, ord(sub(hs_name,2,2)))
 								poke(0x5e00 + (hs*2)*4+2, ord(sub(hs_name,3,3)))
 								poke(0x5e00 + (hs*2)*4+3, ord(chr(0)))
-								printh("!"..hs_name.." "..name_bytes)
+								--printh("!"..hs_name.." "..name_bytes)
 							end
 							dset(hs*2+1, highscores[hst][hs][2])
 						end 			 
