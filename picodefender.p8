@@ -292,8 +292,7 @@ function _update60_wave()
 	 	if t-laser[4] > laser_expire then
 	 		del(lasers,laser)
 	 	end
-	 	-- todo wrap?
-	 	laser[1] += laser[5]*laser[3] * laser_speed
+	 	laser[1] = (laser[1] + laser[5]*laser[3] * laser_speed) % ww
 	 	laser[5] *= laser_inertia
 	 end
 	 
@@ -418,9 +417,8 @@ function update_enemies()
 		  if not e.hit then
 					local age = (t-laser[4])/laser_expire
 					local x,y = laser[1], laser[2]
-				 -- todo include wrap at end
-				 --      or cut short draw!
-					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w/2))-(x+4)) then
+				 -- todo include dx
+					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w)/2 + e.dx)-(x)) then  -- removed +x from x: laser!
 					 -- todo precalc half widths			
 					 -- todo include wrap at end
 					 -- todo maybe cut off at screen/camera
@@ -1464,19 +1462,19 @@ function _draw_wave()
 	draw_player()
 
 --todo reinstate		
---	if debug then
+	if debug then
 --		print(cx,1,120,1)
 --		print(pl.x,48,120)
 --		--print(cdx,1,6)
---		if cx + 128 > ww then
---			print("★",1,13)
---		end
+		if cx + 128 > ww then
+			print("★",1,13)
+		end
 --		print(#actors,100,0)
 --		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
---	end
+	end
 
 end
 
@@ -1587,7 +1585,7 @@ end
 
 function add_bullet(x, y, from, track)
  -- note: also creates mines
- t=time()
+ local t=time()
 	b=make_actor(bullet,x,y)
 	local bv = bullet_speed
 	if (from and from.k == baiter) bv *= 1.6
@@ -2095,7 +2093,7 @@ function add_enemies(ht)
 	-- based on wave.t? and/or remaining
  -- baiters, if near end of wave
  if wave.baiters_generated < max_baiters then  -- todo adjust for iwave?
-		local t=time()
+		--local t=time()
 		local age = t-wave.t
 		if age > wave_old*2 or (wave.landers == 0 and wave.bombers == 0 and wave.pods == 0) then
 			if age > wave_old*2 or (wave.mutants == 0) then -- todo: include here? active xor this i think?
