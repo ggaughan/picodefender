@@ -160,8 +160,8 @@ enemy_die_expire = 1
 
 max_humans = 10
 human_speed = 0.02
-target_x_epsilon = 1
-target_y_epsilon = 3
+target_x_epsilon = 4
+target_y_epsilon = 6
 capture_targetted = 1
 capture_lifted = 2
 gravity_speed = 0.1
@@ -416,16 +416,18 @@ function update_enemies()
 		 for laser in all(lasers) do 	
 		  -- maybe ignore overlaps? index lasers by y?
 		  if not e.hit then
+		   -- note: if multiple hit: 1st in actors is hit: todo sort?
+		   -- test y first = faster? less filtery though?
 					local age = (t-laser[4])/laser_expire
-					local x,y = laser[1], laser[2]
-					
+					-- todo add min age check so we know we've been drawn
+					local x,y = laser[1], laser[2]			
 					local tl=age * laser_size * laser_rate
 					local tx=x+(laser[3]*tl) -- no wrap, could be -ve
 					-- no wrap e.x, to match tx (side handles wrap)
-					if (laser[3]>0 and side(x,e.x,laser[3]) and tx > (e.x+(8-e.w)/2 + e.dx) 
+					if (laser[3]>0 and side(x,e.x,laser[3]) and tx > (e.x+e.xl+e.dx) 
 					   or 
-					   laser[3]<0 and side(x,e.x,laser[3]) and tx < (e.x+(8-e.w)/2 + e.w/2 + e.dx)) then
-						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-((8-e.h)/2)) then
+					   laser[3]<0 and side(x,e.x,laser[3]) and tx < (e.x+e.xr+e.dx)) then
+						if y >= e.y+e.dy+e.yt and y <= e.y+e.dy+e.yb then
 							printh("laser hit "..e.x.." from "..x.." "..tx)
 				 		e.hit = t
 						 kill_actor(e, laser)
@@ -463,13 +465,13 @@ function update_enemies()
 			local x=(e.x+4+e.dx) - (pl.x+4)
 			local y=(e.y+4+e.dy) - (pl.y+4)  
 			if e.k ~= human then
-				if (abs((x)*2) < (e.w+pl.w) and
-						 (abs((y))*2) < (e.h+pl.h))
+				if abs(x)*2 < (e.w+pl.w) and
+						 abs(y)*2 < (e.h+pl.h)
 				then
 --					if debug_kill then
 --						pl.dy = 0
---					 debug_data = {(e.x+(8-e.w)/2+e.w/2+e.dx),
---					 														(e.y+(8-e.h)/2+e.h/2+e.dy), 
+--					 debug_data = {(e.x+e.xr+e.dx),
+--					 														(e.y+e.yb+e.dy), 
 --					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
 --					 														(pl.y+(8-pl.h)/2)+pl.h/2,
 --					 												  (e.w+pl.w),(e.h+pl.h)}
@@ -1227,8 +1229,8 @@ function draw_enemies()
  		end
 
 --			if debug_kill then		 
---		 	 rect(x+e.dx+(8-e.w)/2, e.y+e.dy+(8-e.h)/2,
---		 	 					x+e.dx+8-(e.w/2), e.y+e.dy+8-(e.h/2), 15) 
+--		 	 rect(x+e.dx+e.xl, e.y+e.dy+e.yt,
+--		 	 					x+e.dx+e.xr, e.y+e.dy+e.bt, 15) 
 --	 	end
 
 		end
@@ -1606,6 +1608,13 @@ function make_actor(k, x, y, hit)
   hit=hit,
   score=attrs[k][1],
  }
+ -- todo perhaps skip if bullety
+ -- note flr top and right - see sprite placements
+ a.yt=flr((8-a.h)/2)
+ a.yb=8-a.yt 
+ a.xl=ceil((8-a.w)/2)
+ a.xr=8-a.xl
+ 
 	-- todo if hit player - move
  add(actors,a)
 	return a
@@ -1739,7 +1748,7 @@ function kill_actor(e, laser, explode)
 		 if e.target ~= nil then
 			 if e.target.capture == capture_lifted then
 			 	-- todo set drop time / score depending on height/landing
-			 	printh("todo drop human!")
+			 	printh("drop human!")
 			 	e.target.dy = gravity_speed
 					e.target.dropped_y = e.y
 			 	e.target.capture = nil
@@ -2360,10 +2369,10 @@ __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000050500000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000050500000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
