@@ -9,6 +9,8 @@ debug = true
 debug_test = not debug  
 debug_kill = not debug
 
+epi_friendly = false
+
 today = 1
 alltime = 2
 e_hs = {nil,0}
@@ -192,6 +194,9 @@ end
 
 function _init()
 	cart_exists = cartdata("ggaughan_picodefender_1")
+
+	-- todo save on cart?
+	menuitem(1, "toggle flashing", function() epi_friendly,cc=not epi_friendly,10 end)
 
 	w = {}  -- ground level
 	sw = {} -- scanner ground summary
@@ -888,9 +893,10 @@ function _update60_new_highscore()
 	 	_draw = _draw_highscores
 		end
 	elseif btnp(🅾️) then
-		-- todo stop if empty?
-		hs_chr = sub(hs_name, #hs_name, #hs_name)
-	 hs_name = sub(hs_name, 1, #hs_name-1)
+		if #hs_name > 0 then
+			hs_chr = sub(hs_name, #hs_name, #hs_name)
+		 hs_name = sub(hs_name, 1, #hs_name-1)
+		end
 		pl.hit = t  -- reset timeout
  end
 
@@ -1246,7 +1252,9 @@ function draw_particles(alt_cycle)
 	if (alt_cycle) occ, cc_freq = 10, 0.05
 	-- palette cycle - as good a place as any
  if t-pt > cc_freq then
-  cc = (cc%15) + 1
+  if not epi_friendly then
+	  cc = (cc%15) + 1
+		end
 	 pal(occ, cc) -- todo true?
 	 pt = t
  end
@@ -1341,13 +1349,15 @@ function _draw_title()
 	print("by", 59, hudy+54, 7)
 	print("greg gaughan", 39, hudy+60, 7)
 	
-	local o = hudy+60 + 30
+	local o = hudy+60 + 18
 
 	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
 	print("⬅️ REVERSE 🅾️ BOMB", 28, o+12, 15)	
 	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+18, 15)
+	
+	print("press ❎ to start", 30, o+32, 10)
 end
 
 function _draw_highscores()
@@ -1745,12 +1755,13 @@ function kill_actor(e, laser, explode)
 	 	end
 	 end
 	end
-	add_pl_score(e.score)
 
 	del(actors, e)
 	--printh(e.k.." dead "..e.x)			 	
 	
 	if demo.t == 0 then
+		add_pl_score(e.score)
+		
 		if e.k == lander then
 		 sfx(1)
 		 wave.landers_hit += 1
@@ -2592,6 +2603,10 @@ __sfx__
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000413006130071300713005130031200212001120011200112003120041300213000130001300013000120011200312004120031200112000130001300013001130031300412003120021200112000130
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000900001d4502145024450274502a4502b4502c450274501e45017450134501345015450194501e4502145026450244501f4501945016450104500c4500b4500c4500e4500f450124500f4500d4500e45000400
+001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0110000000270002700027000270002700027000270002700727007270072000727007270072000727007270122701b2301d2701f2701f2701f2501e25018250172501425012250102500e2500b2500825007250
 __music__
 00 41424344
 00 41424344
