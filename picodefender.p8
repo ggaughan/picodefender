@@ -65,7 +65,7 @@ attrs={
 	[pod]={1000,8,5,7,4},
 	[swarmer]={150,9,4,5,1},
 	
-	[human]={500,6,6,2,2},
+	[human]={500,6,6,3,2},
 	
 	[bullet]={0,6,1,1,1},
 }
@@ -177,7 +177,7 @@ delay_first_enemies = 0.5 -- give time for initial music to finish
 
 extra_score_expire = 1
 bombing_expire = 0.3
-ground_destroy_expire = 1
+ground_destroy_expire = 2
 
 title_delay = 8
 title_particle_expire = 1.4
@@ -186,7 +186,7 @@ new_highscore_delay = 60  -- timeout if no initials in this time
 hs_chr = "a"
 
 if debug_test then
-	max_humans = 3
+	max_humans = 1
 end
 
 function _init()
@@ -972,7 +972,7 @@ function start_game(full)
 		lasers = {}
 		iwave = 0  -- todo leave out?
 		if	debug_test then
-			iwave=1
+			--iwave=1
 		end
 		humans=0  -- topped up by load_wave
 		add_humans_needed = true
@@ -990,14 +990,14 @@ end
 --draw
 
 function wtos(wx,wy)
-	x=hc + ((ocx + wx - cx)\hwr) % hudw
-	y=wy\hhr
+	local x=hc + ((ocx + wx - cx)\hwr) % hudw
+	local y=wy\hhr
 	return x,y
 end
 
 function wxtoc(wx)
  -- note: we wrap here 
-	x = wx - cx
+	local x = wx - cx
 	if cx + 128 > ww then
 		if wx < (128 - (ww-cx)) then
 			x = (wx + ww) - cx
@@ -1009,7 +1009,7 @@ end
 function draw_ground(force_ground)
 	if force_ground or humans > 0 then
 		for x = 0,127 do
-			i = ((ceil(cx+x))%ww) + 1
+			local i = ((ceil(cx+x))%ww) + 1
 			--printh(i)
 			pset(x,127 - w[i], 4)
 		end
@@ -1053,7 +1053,7 @@ function draw_hud(force_ground)
  -- ground
 	if force_ground or humans > 0 then
 		for x = 0,hudw-1 do
-			i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
+			local i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
 			pset(hc+x,hudy - (sw[i]), 4)
 		end
 	-- else null space
@@ -1688,6 +1688,7 @@ function add_explosion(e, reverse, speed, expire)
 end
 
 function kill_actor(e, laser, explode)
+ local t=time()
 	if (explode == nil) explode = true
 	--print("explode "..tostr(explode))
  if explode then
@@ -1789,7 +1790,20 @@ function kill_actor(e, laser, explode)
 			printh(" humans left "..humans)
 		 if humans <= 0 then
 		 	-- null space
-		 	-- todo explode planet! flash/camera shake?
+		 	-- todo camera shake?
+				--	explode planet!
+		  local s=particle_speed/1.5
+		  local d={rnd()-0.5,-1}
+				for sx=-64,192 do
+					local i = ((ceil(cx+sx))%ww) + 1
+			  local x,y=cx+sx,127-w[i]  
+			  if (rnd()<0.08) d,s={rnd()-0.5,-1},s+rnd()/6
+					add(particles,{
+						x=x,y=y,
+						dx=d[1]+(abs(sx)/256)*s,dy=d[2]*s,
+						c=4, t=t, expire=ground_destroy_expire,
+					})				
+				end
 		 	music(8,0,8)  -- review last 8 = channel 3 reserve
 		 	-- convert any existing landers to mutants
 		 	for a in all(actors) do
@@ -1978,7 +1992,7 @@ function load_wave()
 	if	debug_test then
 		--wave_old = 1
 		--wave_progression=1
-		wave.landers=2 --1
+		wave.landers=2 --1 --breaks null space
 		wave.mutants=0
 		--wave.bombers=min(1,wave.bombers)
 		--wave.pods=min(1,wave.pods)
