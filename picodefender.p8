@@ -414,26 +414,44 @@ function update_enemies()
  	if e.k ~= mine then
 			-- check if hit by laser
 		 for laser in all(lasers) do 	
+		  -- maybe ignore overlaps? index lasers by y?
 		  if not e.hit then
 					local age = (t-laser[4])/laser_expire
 					local x,y = laser[1], laser[2]
-				 -- todo include dx
-					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w)/2 + e.dx)-(x)) then  -- removed +x from x: laser!
-					 -- todo precalc half widths			
-					 -- todo include wrap at end
-					 -- todo maybe cut off at screen/camera
+					
+					local tl=age * laser_size * laser_rate
+					local tx=x+(laser[3]*tl) -- no wrap, could be -ve
+					-- no wrap e.x, to match tx (side handles wrap)
+					if (laser[3]>0 and side(x,e.x,laser[3]) and tx > (e.x+(8-e.w)/2 + e.dx) 
+					   or 
+					   laser[3]<0 and side(x,e.x,laser[3]) and tx < (e.x+(8-e.w)/2 + e.w/2 + e.dx)) then
 						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-((8-e.h)/2)) then
-							-- note: quick check against max and assume width == 8 (and player can't be on enemy)
-							-- todo maybe min instead of max since we already checked age/reach
-							if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
-								-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
-								--printh("laser hit "..e.x)
-					 		e.hit = t
-							 kill_actor(e, laser)
-							end			
-						end 	
-					-- else just fired - give it chance to be seen
+							printh("laser hit "..e.x.." from "..x.." "..tx)
+				 		e.hit = t
+						 kill_actor(e, laser)
+						end
+					--else
+					--	printh("laser miss "..e.x.." from "..x.." "..tx.." "..tl.." "..x+(laser[3]*tl).." "..laser[3])
 					end
+					
+					
+--				 -- todo include dx
+--					if (age * laser_size * laser_rate) >= abs((e.x+(8-e.w)/2 + e.dx)-(x)) then  -- removed +x from x: laser!
+--					 -- todo precalc half widths			
+--					 -- todo include wrap at end
+--					 -- todo maybe cut off at screen/camera
+--						if y >= (e.y+e.dy+(8-e.h)/2) and y <= (e.y+e.dy+8-((8-e.h)/2)) then
+--							-- note: quick check against max and assume width == 8 (and player can't be on enemy)
+--							-- todo maybe min instead of max since we already checked age/reach
+--							if (laser[3] > 0 and x < e.x and x+laser_max_length > e.x) or (laser[3] < 0 and x > e.x and x-laser_max_length < e.x) then
+--								-- todo refine based on laser age and actual width and e.dx? - no need, light speed!
+--								--printh("laser hit "..e.x)
+--					 		e.hit = t
+--							 kill_actor(e, laser)
+--							end			
+--						end 	
+--					-- else just fired - give it chance to be seen
+--					end
 			 end		
 			end
 		end
@@ -1002,6 +1020,16 @@ function wxtoc(wx)
 		end
 	end
 	return x
+end
+
+function side(l,e,cmp)
+ -- cmp +1: is l to left of e?
+ -- cmp -1: is e to left of l?
+ if (e<128 and l>ww-128 and cmp==1) return true
+ if (l<128 and e>ww-128 and cmp==-1) return true
+	if (e>=l and cmp==1) return true
+	if (e<=l and cmp==-1) return true
+	return false
 end
 
 function draw_ground(force_ground)
