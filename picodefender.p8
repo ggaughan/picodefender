@@ -263,171 +263,145 @@ function _update60_wave()
 	if pl.hit==nil and pl.birth==nil then
 	 if btnp(⬅️) then
 	  -- todo avoid repeat with re-press
-		 pl.facing = -1*pl.facing
+		 pl.facing*=-1
 		 -- start reverse animation
 		 canim=80
 		 canim_dx=pl.facing
-	  cdx = cdx * 0.5
+	  cdx*=0.5
 		end
 	 if btn(➡️) then
-	  cdx = min(cdx+thrust,max_speed)
+	  cdx=min(cdx+thrust,max_speed)
 	 end
 	 if btn(⬆️) then
-	  pl.dy = pl.dy-vert_accel
-	  if (pl.dy < -max_vert_speed) pl.dy=-max_vert_speed
+	  pl.dy-=vert_accel
+	  if (pl.dy<-max_vert_speed) pl.dy=-max_vert_speed
 	 end
 	 if btn(⬇️) then
-	  pl.dy = pl.dy+vert_accel
-	  if (pl.dy > max_vert_speed) pl.dy=max_vert_speed
+	  pl.dy+=vert_accel
+	  if (pl.dy>max_vert_speed) pl.dy=max_vert_speed
 	 end
-	 
 	
 	 if btnp(❎) then
-			-- fire laser
-			-- todo limit 
-	  local x = pl.x
-	 	if pl.facing > 0 then
-	 		x = x+8 + 3
-	 	end
-	 	add(lasers, {x - 2,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})
+			-- fire laser - todo limit 
+	  local x=pl.x
+	 	if (pl.facing>0)	x+=11
+	 	add(lasers, {x-2,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})
 	 	sfx(0)
 	 end
 	 -- update any existing lasers
-	 -- todo move to update_lasers()
 	 for laser in all(lasers) do
-	 	if t-laser[4] > laser_expire then
-	 		del(lasers,laser)
-	 	end
-	 	laser[1] = (laser[1] + laser[5]*laser[3] * laser_speed) % ww
-	 	laser[5] *= laser_inertia
+	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
+	 	laser[5]*=laser_inertia
+	 	if (t-laser[4]>laser_expire) del(lasers,laser)
 	 end
 	 
 	 if btnp(🅾️) then 
 	 	if btn(⬆️) and btn(⬇️) then
 	 		-- hyperspace
 	 		pl.birth=t
-	 		local hx = rnd(ww)
-	 		cx += hx
-	 		pl.x += hx
-	 		if (rnd()<0.5) pl.facing *= -1
-	 		cdx = 0
+	 		local hx=rnd(ww)
+	 		cx+=hx
+	 		pl.x+=hx
+	 		if (rnd()<0.5) pl.facing*=-1
+	 		cdx=0
 			 canim=80
 			 canim_dx=pl.facing
-				add_explosion(pl, true)  -- reverse i.e. spawn
+				add_explosion(pl, true)
 	 		-- todo sfx 
 	 	else 
 		 	-- smart bomb - kill all enemies
-		 	if pl.bombs > 0 then
+		 	if pl.bombs>0 then
 			 	sfx(6)
-			 	bombing_t = time()
-			 	bombing_c = 7
-			 	bombing_e = bombing_expire
+			 	bombing_t,bombing_c=t,7
+			 	bombing_e=bombing_expire
 					for e in all(actors) do
 					 -- note: we kill bullets and mines too
 					 -- note: original doesn't seem to...
-				  if not(e.k == human) then
-							local sx = wxtoc(e.x)
-							if sx >= 0 and sx <= 127 then
-								e.hit = t
+				  if not(e.k==human) then
+							local sx=wxtoc(e.x)
+							if sx>=0 and sx<=127 then
+								e.hit=t
 							 kill_actor(e, nil)
 							end
 				  end
 					end	
-		 		pl.bombs -= 1
+		 		pl.bombs-=1
 			 end
 			end
 	 end
 	 
+	 pl.dy*=inertia_py
+	 pl.y+=pl.dy 
 	 
-	 pl.dy *= inertia_py
-	 pl.y += pl.dy 
-	 
-	 cdx *= inertia_cx
-	 cx = (cx + cdx * pl.facing) % ww
-	 pl.x += cdx * pl.facing  -- note: this is effectively pl.dy
+	 cdx*=inertia_cx
+	 cx=(cx + cdx * pl.facing)%ww
+	 pl.x+=cdx * pl.facing  -- note: effectively pl.dx
 	
 		-- player thrust/decay
 		-- in screen space to handle any wrapping
-		local x = wxtoc(pl.x)
-	 if pl.facing == 1 then
-	 	if x < 40 then
-			 if btn(➡️) then
-		 		pl.x += cdx * max_h_speed_factor
-		 	end
-	 	end
-	 	if x > 20 then
-			 if not btn(➡️) then
-			  -- fall back
-			 	pl.x -= thrust/2
-			 end
-		 end
+		local x=wxtoc(pl.x)
+	 if pl.facing==1 then
+	 	if (x<40 and btn(➡️)) pl.x+=cdx * max_h_speed_factor
+	 	if (x>20 and not btn(➡️)) pl.x-=thrust/2  -- fall back
 	 else
-	 	if x > 80 then
-			 if btn(➡️) then
-		 		pl.x -= cdx * max_h_speed_factor
-		 	end
-	 	end
-	 	if x < 100 then -- assumes <128, if not we're off camera but will move
-	 		if not btn(➡️) then
-	 			-- fall back
-	 			pl.x += thrust/2
-	 		end
-	 	end
+	 	if (x>80 and btn(➡️)) pl.x-=cdx * max_h_speed_factor
+	 	if (x<100 and not btn(➡️)) pl.x+=thrust/2  -- fall back
+	 	-- assumes <128, if not we're off camera but will move
 	 end
+	 
 		if btn(➡️) then
-			if not pl.thrusting then
-			 pl.thrusting=true
-	 	end
+			pl.thrusting=true
+		 sfx(3)
 		else 
 	 	pl.thrusting=false
 			sfx(3, -2)
 		end
-	 if t-pl.thrusting_t > 0.05 then
-			pl.thrusting_spr = (pl.thrusting_spr+1) % 4
-			pl.thrusting_t = t
+	 if t-pl.thrusting_t>0.05 then
+			pl.thrusting_spr=(pl.thrusting_spr+1)%4
+			pl.thrusting_t=t
 		end
 
-		if (pl.thrusting)	sfx(3)
-	
-	 update_enemies()  -- checks for player hit
-	  
 	 -- player wrap
-	 pl.x = pl.x % ww
+	 pl.x=pl.x%ww
 	 -- todo retain screen offset pos!
 	 
-	 if pl.y < hudy then
-	 	pl.y = hudy
-	 	pl.dy = 0
-	 elseif pl.y > 120 then
-	  pl.y = 120
-	 	pl.dy = 0
+	 if pl.y<hudy then
+	 	pl.y, pl.dy=hudy,0
+	 elseif pl.y>120 then
+	  pl.y,pl.dy=120,0
 	 end
 
-	 if pl.target ~= nil and pl.target.capture == capture_lifted then
-	 	--printh("carrying "..pl.x.." "..pl.target.x)
-	 	pl.target.x = pl.x 
-	 	pl.target.y = pl.y + 6
-	 	-- todo dx/dy?
+	 update_enemies()  -- checks for player hit  
 
-			if pl.target.y > 116 then
-		 	--printh("dropping "..pl.x.." "..pl.target.x)
-		 	pl.target.dy = gravity_speed
-		 	pl.target.dropped_y=pl.y
-		 	-- todo set walking again?
-				-- todo sfx?
-	 		-- note: x-12 since score formats for 6 places
-				add_pl_score(pl.target.score, pl.x-12, pl.y+4)								 	
-		 	pl.capture = nil
-		 	pl.target = nil
-		 end
-		end
+	 -- todo could do every other frame? move to update_enemies/humans?
+	 for plt in all(pl.target) do
+		 if plt.capture==capture_lifted then
+		 	plt.x=pl.x 
+		 	plt.y=pl.y+6 
+		 	-- todo dx/dy?
+
+				if plt.y>116 then
+			 	--printh("dropping "..plt.x)
+ 		 	plt.x+=rnd(8)-4
+ 		 	plt.y+=rnd(8)-4
+			 	plt.dy=gravity_speed
+			 	plt.dropped_y=pl.y
+			 	-- todo set walking again?
+					-- todo sfx?
+		 		-- note: x-12 since score formats for 6 places
+					add_pl_score(plt.score, plt.x-12, plt.y+4)	-- note: only 1 displayed (timer)
+					plt.capture=nil
+			 	del(pl.target,plt)
+			 end
+			end
+	 end
 	 
 	 update_wave()
  
 	else
 	 -- player dying or being born
 	 -- or pausing between waves
-	 -- either way, both fixed via draw_player timeout
+	 -- either way, fixed via draw_player timeout
 	end
 end
 
@@ -483,21 +457,22 @@ function update_enemies()
 --					 printh(debug_data[2].." "..debug_data[4])
 --					 _update60=_update60_debug_stop
 --					else
-	 			e.hit = t
-			 	kill_player(e)
-				 --end
+					if not debug_kill then
+		 			e.hit = t
+				 	kill_player(e)
+				 end
 				end
 			else -- human - can we catch it?
-				-- note: wrap assumes on screen now
-				if pl.target == nil and e.capture == nil and e.y < 116 and abs(wxtoc(e.x) - wxtoc(pl.x)) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
+				-- note: no need to wrap assumes will line up on x at some point - if not we could wrap in wxtoc
+				if e.capture == nil and e.y < 116 and abs(e.x - pl.x) < target_x_epsilon * 2 and abs((e.y-4) - pl.y) < target_y_epsilon*2 then
 			 	--printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
-			 	pl.target = e
+					e.capture = capture_lifted
+			 	add(pl.target,e)
 			 	e.dy = 0 --pl.dy
 			 	e.dx = 0 --pl.dx = cdx * pl.facing
-					e.capture = capture_lifted
 					-- todo sfx?
 					-- note: x-12 since score formats for 6 places
-					add_pl_score(pl.target.score, pl.x-12, pl.y+4)
+					add_pl_score(e.score, pl.x-12, pl.y+4)
 				end
 			end			
 			
@@ -681,27 +656,21 @@ function update_enemies()
 					-- todo perhaps move enemy_attack() here and inside return if bullety or human?
 				
 					-- general bounce to stop y out of bounds
-					if e.y < hudy +1 then
-					 if e.k == bullet then
-				 		del(actors,e)  -- avoid bullet bounce
-				 	else
-							e.y = hudy +1
-							e.dy *= -1
-						end
-					elseif e.y > 120 then
-					 if e.k == bullet then
-				 		del(actors,e)  -- avoid bullet bounce
-				 	else
-							e.y = 120 
-							e.dy *= -1
-						end
+					if e.y<=hudy then
+						e.y=hudy+1
+						e.dy*=-1
+					 if (e.k==bullet) del(actors,e)
+					elseif e.y>120 then
+						e.y=120 
+						e.dy*=-1
+					 if (e.k==bullet) del(actors,e)
 					end 			
 				else
-					-- demo mode: no ai or attacks
-					if e.y < hudy+demo_ty then
- 					e.y = hudy+demo_ty -- once
-						e.dy = 0  -- stop and wait
-						demo.step_next_part += 1	 --proceed
+					-- demo mode
+					if e.y<hudy+demo_ty then
+ 					e.y=hudy+demo_ty -- once
+						e.dy=0  -- stop and wait
+						demo.step_next_part+=1
 					end
 				end			
 			-- else hit and no more
@@ -712,16 +681,16 @@ function update_enemies()
 end
 
 function update_particles()
-	local t = time()
+	local t=time()
 	for e in all(particles) do
  	if t-e.t > e.expire then
  		del(particles,e)
  	else
-	  e.y += e.dy  
-	  if e.y < hudy or e.y > 127 then
+	  e.y+=e.dy  
+	  if e.y<=hudy or e.y>127 then
 	 		del(particles,e)
 	  else
-		  e.x = (e.x + e.dx) % ww
+		  e.x=(e.x+e.dx)%ww
 			 -- todo opt: cull if off-screen - though short-lived
 			end
 	 end
@@ -1187,7 +1156,7 @@ function draw_player()
 		end
 	elseif pl.birth ~= nil then
 		local age = (t-pl.birth)
-		printh("player being born "..age)
+		--printh("player being born "..age)
 		if age > player_birth_expire then
 			pl.birth = nil	
 		end	
@@ -1232,17 +1201,19 @@ function draw_enemies()
 			local fx = (e.k==human and e.dx>0)
 
  		spr(e.k + e.frame, x, y, 1,1, fx)	
- 		e.t += 1
- 		if e.t % 12 == 0 then
- 		 if e.k ~= human or (e.t % 48 == 0 and abs(e.dx) > 0) then
-				 e.frame = (e.frame + 1) % e.frames
-				end
- 		end
- 		if demo.t ~= 0 and e.dy==0 and y~=hudy+demo_ty and e.k ~= human then
-				print(e.name,x-((#e.name/2)*3)+4,y+10, 5)		
-				print(e.score,x-(((#tostr(e.score)+1)/2)*3)+6,y+17, 5)		
- 		end
-
+			if not(e.k == bullet or e.k == mine) then		
+	 		e.t += 1
+	 		if e.t % 12 == 0 then
+	 		 if e.k ~= human or (e.t % 48 == 0 and abs(e.dx) > 0) then
+					 e.frame = (e.frame + 1) % e.frames
+					end
+	 		end
+	 		if demo.t ~= 0 and e.dy==0 and y~=hudy+demo_ty and e.k ~= human then
+					print(e.name,x-((#e.name/2)*3)+4,y+10, 5)		
+					print(e.score,x-(((#tostr(e.score)+1)/2)*3)+6,y+17, 5)		
+	 		end
+			end
+			
 --			if debug_kill then		 
 --		 	 rect(x+e.dx+e.xl, e.y+e.dy+e.yt,
 --		 	 					x+e.dx+e.xr, e.y+e.dy+e.bt, 15) 
@@ -1526,9 +1497,9 @@ function _draw_wave()
 --		print(cx,1,120,1)
 --		print(pl.x,48,120)
 --		--print(cdx,1,6)
-		if cx + 128 > ww then
-			print("★",1,13)
-		end
+		--if cx + 128 > ww then
+		--	print("★",1,13)
+		--end
 		print(#actors,100,0)
 		print(#particles,100,6)
 --		assert(humans<=max_humans)
@@ -1688,13 +1659,12 @@ function add_bullet(x, y, from, track)
 	end
  -- todo here: add miss-factor!
  -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
-	b.dx = ((tx - b.x)) * bv
- b.dy = ((ty - b.y)) * bv
+	b.dx = (tx - b.x) * bv
+ b.dy = (ty - b.y) * bv
 	b.t = t
 	if from and from.k == bomber then
-		b.k = mine
+		b.k, b.c = mine, 5
 		b.dx, b.dy = 0,0	
-		b.c = 5
 	end
 	return b
 end
@@ -1844,13 +1814,15 @@ function kill_actor(e, laser, explode)
 		 		if a.k==lander and a.target==e then
 		 			--printh("unlinking target after human dead "..a.target.x.." "..a.x)
 		 			a.target = nil
-		 			-- todo find a new one! (not pl.target)
+		 			-- todo find a new one! (not in pl.target)
 		 		end
 		 	end
-	 		if pl.target==e then
-	 			--printh("unlinking player target after human dead "..pl.target.x.." "..pl.x)
-	 			pl.target = nil
-	 		end
+			 for plt in all(pl.target) do
+		 		if plt==e then
+		 			--printh("unlinking player target after human dead "..plt.x.." "..pl.x)
+		 			del(pl.target,plt)
+		 		end
+		 	end
 			end
 		 humans -= 1
 			--printh(" humans left "..humans)
@@ -1917,7 +1889,7 @@ function reset_player(full)
 	pl.facing=1  -- todo need camera move?	
 	pl.dy=0
 	pl.thrusting=false
-	pl.target = nil
+	pl.target = {}
 	pl.birth=nil
 end
 
@@ -1942,9 +1914,11 @@ function kill_player(e)
 	
 	--printh("player killed by "..e.x)
 	kill_actor(e, nil, false)  -- no explosion
-	if pl.target != nil then
-		--printh("player was carrying human - also killed "..pl.target.x)
-		kill_actor(pl.target, nil)
+	
+ for plt in all(pl.target) do
+		--printh("player was carrying human - also killed "..plt.x)
+		kill_actor(plt, nil)
+		del(pl.target,plt)
 		-- assume shot - not technically killed by falling from a height?
 	end
 
@@ -2095,7 +2069,7 @@ function add_enemies(ht)
 				for i,a in pairs(actors) do
 					if a.k == human and a.capture==nil and a.dropped_y == nil then
 					 -- todo perhaps skip or move if on/near wrap-line
-		 			-- note: e.capture==nil implies not pl.target, i.e. player not carrying
+		 			-- note: e.capture==nil implies not in pl.target, i.e. player not carrying
 		 			--       *but* could be falling so we now check dropped_y==nil too
 		 			-- todo: though might be funny to have lander steal human from player!
 						l.target=a
