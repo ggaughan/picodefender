@@ -986,18 +986,16 @@ end
 --draw
 
 function wtos(wx,wy)
-	local x=hc + ((ocx + wx - cx)\hwr) % hudw
+	local x=hc+((ocx+wx-cx)\hwr)%hudw
 	local y=wy\hhr
 	return x,y
 end
 
 function wxtoc(wx)
  -- note: we wrap here 
-	local x = wx - cx
-	if cx + 128 > ww then
-		if wx < (128 - (ww-cx)) then
-			x = (wx + ww) - cx
-		end
+	local x=wx-cx
+	if cx+128>ww then
+		if (wx<(128-(ww-cx))) x=(wx+ww)-cx
 	end
 	return x
 end
@@ -1013,10 +1011,9 @@ function side(l,e,cmp)
 end
 
 function draw_ground(force_ground)
-	if force_ground or humans > 0 then
-		for x = 0,127 do
-			local i = ((ceil(cx+x))%ww) + 1
-			--printh(i)
+	if force_ground or humans>0 then
+		for x=0,127 do
+			local i=((ceil(cx+x))%ww)+1
 			pset(x,w[i], 4)
 		end
 	-- else null space
@@ -1027,8 +1024,7 @@ function draw_score(v, x,y, extra)
 	-- if extra, 1st of 3 digits will be yellow
  x=x or 0
  y=y or 6
- local c=5
- local i=6
+ local c,i=5,6
  repeat
   local t=v>>>1
   if (extra and i==4) c=10 -- extra_score leading digit
@@ -1040,64 +1036,63 @@ end
 
 function add_pl_score(v, x, y)
  --assert(v<32767)  
- if x and y then
- 	extra_score = {v>>16, wxtoc(x),y, time()}
- end
-	pl.score += v >> 16
-	pl.score_10k += v >> 16
-	if pl.score_10k >= 10000>>16 then
-		pl.lives += 1
-		pl.bombs += 1
-		pl.score_10k -= 10000>>16
+ if (x and y) extra_score={v>>16, wxtoc(x),y, time()}
+	pl.score+=v>>16
+	pl.score_10k+=v>>16
+	if pl.score_10k>=10000>>16 then
+		pl.lives+=1
+		pl.bombs+=1
+		pl.score_10k-=10000>>16
 		-- todo sfx
 	end
 end
 
 function draw_hud(force_ground)
- local hdc = hudw/9
+ local hdc=hudw/9
  
  -- ground
-	if force_ground or humans > 0 then
-		for x = 0,hudw-1 do
-			local i = (x + (ocx + 128 + cx)\hwr) % hudw + 1
-			pset(hc+x,sw[i], 4)
+	if force_ground or humans>0 then
+		for x=0,hudw-1 do
+			local i=(x+(ocx+128+cx)\hwr)%hudw+1
+			pset(hc+x,sw[i],4)
 		end
 	-- else null space
 	end
 	
 	-- player
- local	sx,sy = wtos(pl.x, pl.y)
-	pset(sx,sy, 7)
+ local	sx,sy=wtos(pl.x,pl.y)
+	pset(sx,sy,7)
 
 	-- enemies
 	for e in all(actors) do
 	 -- todo skip if bullet? though handy!
 	 --if e.k~=bullet then
-		sx,sy = wtos(e.x, e.y)
-		pset(sx,sy, e.c)
+		sx,sy=wtos(e.x,e.y)
+		pset(sx,sy,e.c)
 		--end
 	end
 
 	-- scanner box 
-	local c = 1
+	local c=1
 	if (wave) c=wave.c
-	rect(hc,0, hc+hudw,hudy, c)
+	local sl,sr=hc+hdc*4-1,hc+hdc*5+1
+	rect(hc,0,hc+hudw,hudy, c)
 	line(0,hudy,127,hudy, c)
-	line(hc+hdc*4-1,0, hc+hdc*5+1,0, 7)
-	pset(hc+hdc*4-1,1, 7)
-	pset(hc+hdc*5+1,1, 7)
-	line(hc+hdc*4-1,hudy, hc+hdc*5+1,hudy, 7)
-	pset(hc+hdc*4-1,hudy-1, 7)
- pset(hc+hdc*5+1,hudy-1, 7)
+	line(sl,0,sr,0, 7)
+	pset(sl,1, 7)
+	pset(sr,1, 7)
+	line(sl,hudy,sr,hudy, 7)
+	pset(sl,hudy-1, 7)
+ pset(sr,hudy-1, 7)
  
  draw_score(pl.score)
  if extra_score then
-  local t = time()
- 	local age = t - extra_score[4]
- 	if age < extra_score_expire then
+  local t=time()
+ 	local age=t-extra_score[4]
+ 	if age<extra_score_expire then
 		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
 		else
-		 extra_score = nil
+		 extra_score=nil
 		end 
  end
  
@@ -1113,8 +1108,8 @@ function draw_player()
 	local t=time()
 	-- draw_lasers
 	for laser in all(lasers) do
-		local x,y = wxtoc(laser[1]), laser[2]
-		local age = (t-laser[4]) / laser_expire
+		local x,y=wxtoc(laser[1]), laser[2]
+		local age=(t-laser[4])/laser_expire
 		local mdx,mdy=1/8,0
 		tline(
 		 x,
@@ -1146,28 +1141,27 @@ function draw_player()
 --		end	
 	end
 
-	if pl.hit ~= nil and demo.t==0 then
-		local age = (t-pl.hit)
+	if pl.hit~=nil and demo.t==0 then
+		local age=t-pl.hit
 		--printh("player dying "..age)
-		if age > player_die_expire then
-			pl.hit = nil	
+		if age>player_die_expire then
+			pl.hit=nil	
  		reset_enemies()  -- hide and respawn enemies after a period...
 			--printh("player rebirth "..age)
 		end
-	elseif pl.birth ~= nil then
-		local age = (t-pl.birth)
+	elseif pl.birth~=nil then
+		local age=t-pl.birth
 		--printh("player being born "..age)
-		if age > player_birth_expire then
-			pl.birth = nil	
-		end	
+		if (age>player_birth_expire) pl.birth=nil	
 	else
-		local x = wxtoc(pl.x)
+		local x=wxtoc(pl.x)
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
-		if pl.thrusting then
-			spr(32+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
-		else
-			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
-		end
+		spr(32+(pl.thrusting and 0 or 16)+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+--		if pl.thrusting then
+--			spr(32+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+--		else
+--			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
+--		end
 
 --		if debug_kill then
 --			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
@@ -1187,28 +1181,20 @@ end
 function draw_enemies()
 	local t=time()
 	for e in all(actors) do
-		if e.hit ~= nil then
-			local age = (t-e.hit)
+		if e.hit~=nil then
+			local age=t-e.hit
 			-- todo if dying? cleared elsewhere?
-			if age > enemy_die_expire then
-				e.hit = nil
-				--printh("enemy birthed "..age)
-			else
-				--printh("enemy birthing "..age)	
-			end
+			if (age>enemy_die_expire)	e.hit=nil
 		else
-			local x,y = wxtoc(e.x), e.y
-			local fx = (e.k==human and e.dx>0)
-
- 		spr(e.k + e.frame, x, y, 1,1, fx)	
-			if not(e.k == bullet or e.k == mine) then		
-	 		e.t += 1
-	 		if e.t % 12 == 0 then
-	 		 if e.k ~= human or (e.t % 48 == 0 and abs(e.dx) > 0) then
-					 e.frame = (e.frame + 1) % e.frames
-					end
+			local x,y=wxtoc(e.x),e.y
+			local fx=(e.k==human and e.dx>0)
+ 		spr(e.k+e.frame,x,y, 1,1, fx)
+			if not(e.k==bullet or e.k==mine) then
+	 		e.t+=1
+	 		if e.t%12==0 then
+	 		 if (e.k~=human or (e.t%48==0 and abs(e.dx)>0)) e.frame=(e.frame+1)%e.frames
 	 		end
-	 		if demo.t ~= 0 and e.dy==0 and y~=hudy+demo_ty and e.k ~= human then
+	 		if demo.t~=0 and e.dy==0 and y~=hudy+demo_ty and e.k~=human then
 					print(e.name,x-((#e.name/2)*3)+4,y+10, 5)		
 					print(e.score,x-(((#tostr(e.score)+1)/2)*3)+6,y+17, 5)		
 	 		end
@@ -1225,53 +1211,53 @@ end
 
 function draw_particles(alt_cycle)
 	local t=time()
-
-	local occ, cc_freq = 5, 0.2
-	if (alt_cycle) occ, cc_freq = 10, 0.05
+	local occ,cc_freq = 5,0.2
+	if (alt_cycle) occ,cc_freq = 10,0.05
 	-- palette cycle - as good a place as any
- if t-pt > cc_freq then
+ if t-pt>cc_freq then
   if not epi_friendly then
-	  cc = (cc%15) + 1
+	  cc=(cc%15)+1
 		end
-	 pal(occ, cc) -- todo true?
-	 pt = t
+	 pal(occ,cc) -- todo true?
+	 pt=t
  end
  
 	for e in all(particles) do
-		local x,y = wxtoc(e.x), e.y
-		local c = e.c
-		local age = (t-e.t)
-		if (age > old_particle) c = 9
-		pset(x, y, c)	
+		local x,y=wxtoc(e.x),e.y
+		local c=e.c
+		local age=t-e.t
+		if (age>old_particle) c=9
+		pset(x,y,c)	
 	end
 end
 
 function draw_stars()
 	for star in all(stars) do
-	 if not(humans <= 0) and star[2] > lmax then
+	 if not(humans<=0) and star[2]>lmax then
 	  -- not null space and star behind ground level
 	 else
-			local x = star[1] - (cx/star[3])  -- -cx for screen; /star[3] for move-delay
-			local col = 5
-			if cx + 128 > ww then
-				if star[1]-(cx/star[3]) < (128 - (ww-cx)) then
-	 			x = (star[1]+(ww/star[3])) - (cx/star[3])
-					col = 14  --new or fade depending on dir
+ 	 local cxp=cx/star[3] -- cx for screen; /star[3] for move-delay
+			local x=star[1]-cxp  
+			local col=5
+			if cx+128>ww then
+				if star[1]-cxp<(128-(ww-cx)) then
+	 			x=(star[1]+(ww/star[3]))-cxp
+					col=14  --new or fade depending on dir
 				end
 	
-				if star[1] > ((ww/star[3]) - 128) then
-	 			if col == 14 then
+				if star[1]>((ww/star[3])-128) then
+	 			if col==14 then
 	 				--all! how!? 
 	 				--col = 11  --new+fade?
 	 			else
-						col = 12  --fade or new depending on dir
+						col=12  --fade or new depending on dir
 					end
 	 		end
 			end
 
-			if (col ~= 5) col = 5
+			if (col~=5) col=5
 			
-			pset(x, star[2], col)
+			pset(x,star[2],col)
 		end
 	end
 end
@@ -1279,22 +1265,22 @@ end
 function animate_camera()
  -- e.g. player reversing
 	-- assumes canim>0
-	canim -= 1
-	cx = (cx + canim_dx) % ww
+	canim-=1
+	cx=(cx+canim_dx)%ww
 
 	-- todo remove	
 	--pl.x -= canim_dx
 
 	-- in screen space to handle any wrapping
-	local x = wxtoc(pl.x) 
-	if x < 20 then
+	local x=wxtoc(pl.x) 
+	if x<20 then
 		--printh("!plx<20 "..x)
- 	pl.x = (cx + 20) % ww
- 	canim = 0
-	elseif x > 100 then  -- assumes <128, if not we're off camera and will jump
+ 	pl.x=(cx+20)%ww
+ 	canim=0
+	elseif x>100 then  -- assumes <128, if not we're off camera and will jump
 		--printh("!plx>100 "..x)
-	 pl.x = (cx + 100) % ww
-	 canim = 0
+	 pl.x=(cx+100)%ww
+	 canim=0
 	end
 	-- note: player wrap done via %	
 end
@@ -1311,7 +1297,6 @@ function _draw_game_over()
 	draw_enemies()
 	draw_particles()
 
-	-- todo 3d text?
 	print("game over", 48, hudy+40, 5)
 end
 
@@ -1343,15 +1328,15 @@ function _draw_highscores()
 
 	draw_score(pl.score)
 	-- todo remove: why extra_score here?
- if extra_score then
-  local t = time()
- 	local age = t - extra_score[4]
- 	if age < extra_score_expire then
-		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
-		else
-		 extra_score = nil
-		end 
- end
+-- if extra_score then
+--  local t = time()
+-- 	local age = t - extra_score[4]
+-- 	if age < extra_score_expire then
+--		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
+--		else
+--		 extra_score = nil
+--		end 
+-- end
 
 	draw_particles()
 
@@ -1368,12 +1353,13 @@ function _draw_highscores()
 	-- todo underlines
 
 	for hst=today,alltime do
-	 local co = (hst-1)*76
-		for i, hs in pairs(highscores[hst]) do		
- 		print(i, 1+co, hudy+40+i*6, 5)
-		 if hs[1] ~= nil then
-				print(hs[1], 10+co, hudy+40+i*6, 5)
-				draw_score(hs[2], 24+co, hudy+40+i*6)
+	 local co=(hst-1)*76
+		for i,hs in pairs(highscores[hst]) do
+			local y=hudy+40+i*6
+ 		print(i, 1+co, y, 5)
+		 if hs[1]~=nil then
+				print(hs[1],10+co,y,5)
+				draw_score(hs[2],24+co,y)
 			end
 		end
 	end
@@ -1383,7 +1369,6 @@ function _draw_new_highscore()
  cls()
 
 	draw_score(pl.score)
-	-- todo removed if extra_score: why extra_score here?
  
 	draw_particles()
 
@@ -1402,7 +1387,7 @@ function _draw_new_highscore()
 	for ci=1,#hs_name do
  	print(sub(hs_name,ci,ci), 54+ci*10, 80, 2)
  end
- local ci = #hs_name+1
+ local ci=#hs_name+1
 	print(hs_chr, 54+ci*10, 80, 2)
 	-- underlines
 	for ci = #hs_name+2,3 do
@@ -1434,7 +1419,6 @@ function _draw_end_wave()
 	draw_hud()
 	draw_player()  -- needed to expire
 
-	-- todo 3d text?
 	rectfill(0, hudy+1,127,127, 0)
 	print("attack wave "..(iwave+1), 40, hudy+20, 5)
 	print("completed", 46, hudy+28, 5)
@@ -1443,15 +1427,15 @@ function _draw_end_wave()
 		spr(human,33+h*5, hudy+56)
 	end
 
-	if pl.hit == nil then
+	if pl.hit==nil then
 		-- note: already increased score
 		reset_player()
 	 
-		iwave += 1
+		iwave+=1
 		load_wave()
 		-- prime the spawning
 		local t=time()
-		wave.t_chunk = t - wave_progression + wave_reset  -- reset
+		wave.t_chunk=t-wave_progression+wave_reset  -- reset
 
 		_draw = _draw_wave
 	end
@@ -1460,11 +1444,11 @@ end
 function _draw_wave()
  local t=time()
 
- if bombing_t ~= nil then
-		local age = t - bombing_t
-		if age < bombing_e then
+ if bombing_t~=nil then
+		local age=t-bombing_t
+		if age<bombing_e then
 	  if not epi_friendly then
-			 if flr(age * 18) % 2 == 0 then
+			 if flr(age*18)%2==0 then
 					cls(bombing_c)
 				else
 					cls(0)
@@ -1472,14 +1456,14 @@ function _draw_wave()
 			-- else todo camera shake instead/as-well?
 			end
 		else
-			bombing_t = nil
-			bombing_e = bombing_expire  -- reset to default
+			bombing_t=nil
+			bombing_e=bombing_expire  -- reset to default
 		end
 	else
 		cls()
 	end
 
- if (canim > 0) animate_camera()
+ if (canim>0) animate_camera()
 
 	draw_stars()
 
@@ -1506,9 +1490,7 @@ function _draw_wave()
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
 	end
-
 end
-
 
 -->8
 --build world
