@@ -913,7 +913,7 @@ function _update60_instructions()
 	  timeout=false  -- hold
 	  if demo.step==0 then
 				if demo.step_next_part==1 then
-					l=make_actor(lander,cx+demo_sx,hudy+demo_ty,t)
+					l=make_actor(lander,cx+demo_sx,hudy+demo_ty+16,t)
 					l.target=h
 					l.dy=lander_speed*4
 					add_explosion(l,true)  
