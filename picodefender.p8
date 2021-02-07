@@ -1529,8 +1529,8 @@ function _draw_wave()
 		if cx + 128 > ww then
 			print("★",1,13)
 		end
---		print(#actors,100,0)
---		print(#particles,100,6)
+		print(#actors,100,0)
+		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
