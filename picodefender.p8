@@ -831,7 +831,7 @@ function _update60_highscores()
 		if true then -- when phase 2 ready
 			-- todo move some to demo
 			-- todo add add_human routine - though this isn't same/random
-			h=make_actor(human,cx+demo_sx,120,time())
+			h=make_actor(human,cx+demo_sx,116,time())
 			h.capture=nil
 			h.dropped_y=nil
 			h.capture=capture_targetted
@@ -915,7 +915,7 @@ function _update60_instructions()
 				if demo.step_next_part==1 then
 					l=make_actor(lander,cx+demo_sx,hudy+demo_ty,t)
 					l.target=h
-					l.dy=lander_speed*3
+					l.dy=lander_speed*4
 					add_explosion(l,true)  
 					demo.step_next_part+=1
 				-- note: 2 = waiting to hit bottom/capture hit top
@@ -958,7 +958,7 @@ function _update60_instructions()
 	  else
 				if demo.step_next_part==1 then
 					l=make_actor(demo.steps[demo.step][1],cx+demo_sx,demo_sy,t)
-					l.dy=-lander_speed*2
+					l.dy=-lander_speed*3
 					add_explosion(l,true)  -- reverse i.e. spawn
 					demo.step_next_part+=1
 				-- note: 2 = waiting to hit top
