@@ -11,6 +11,8 @@ debug_kill=not debug
 
 epi_friendly=false
 
+t=nil -- time
+
 today,alltime=1,2
 e_hs={nil,0}
 highscores = {
@@ -252,7 +254,7 @@ end
 --update
 
 function _update60_wave()
- local t=time()
+ t=time()
 
  update_particles()  -- could include player dying
 
@@ -303,6 +305,10 @@ function _update60_wave()
 	 		-- todo sfx 
 	 	else 
 		 	-- smart bomb - kill all enemies
+--		 	if debug_kill then
+--  				local b=add_bullet(cx+pl.x, pl.y)
+--				 	kill_player(b)
+--		 	else
 		 	if pl.bombs>0 then
 			 	sfx(6)
 			 	bombing_t,bombing_c=t,7
@@ -389,6 +395,7 @@ function _update60_wave()
 			end
 	 end
 	 
+	 -- todo perhaps call less freq?
 	 update_wave()
  
 	else
@@ -704,7 +711,7 @@ function update_enemies()
 end
 
 function update_particles()
-	local t=time()
+	t=time()
 	for e in all(particles) do
  	if t-e.t > e.expire then
  		del(particles,e)
@@ -724,7 +731,7 @@ end
 function update_wave()
 	-- called regularly to top-up things
 	-- note: wave_progression hacked to call on wave re-start e.g. after player death
-	local t=time()
+	--t=time()
 	local age = t-wave.t_chunk  -- since last update
 	if age > wave_progression then
   wave.t_chunk = t  -- reset
@@ -744,7 +751,7 @@ function update_wave()
 end
 
 function _update60_game_over()
-	local t=time()
+	t=time()
 	local age=t-pl.hit
 	local timeout=age > game_over_delay
 	local some_timeout=age > 1  -- make sure we see the message
@@ -784,7 +791,7 @@ function _update60_game_over()
 end
 
 function _update60_title()
-	local t=time()
+	t=time()
 	--local age = t-pl.hit
 	local timeout=(t-pl.hit) > title_delay
 	
@@ -814,7 +821,7 @@ function _update60_title()
 end
 
 function _update60_highscores()
-	local t=time()
+	t=time()
 	--local age=t-pl.hit
 	local timeout=(t-pl.hit) > title_delay
 
@@ -857,7 +864,7 @@ function _update60_highscores()
 end
 
 function _update60_new_highscore()
-	local t=time()
+	t=time()
 	--local age=t-pl.hit
 	local timeout=(t-pl.hit) > new_highscore_delay
 
@@ -901,7 +908,7 @@ end
 
 function _update60_instructions()
  -- note: uses actors and player logic to demo things
-	local t=time()
+	t=time()
 	--local age=t-pl.hit
 	local timeout=t-pl.hit>title_delay
 
@@ -1153,7 +1160,7 @@ function draw_hud(force_ground)
  
  draw_score(pl.score)
  if extra_score then
-  local t=time()
+  --local t=time()
  	--local age=t-extra_score[4]
  	if t-extra_score[4]<extra_score_expire then
 		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
@@ -1171,7 +1178,7 @@ function draw_hud(force_ground)
 end
 
 function draw_player()
-	local t=time()
+	--local t=time()
 	-- draw_lasers
 	for laser in all(lasers) do
 		local x,y=wxtoc(laser[1]), laser[2]
@@ -1245,7 +1252,7 @@ function draw_player()
 end
 
 function draw_enemies()
-	local t=time()
+	--local t=time()
 	for e in all(actors) do
 		if e.hit~=nil then
 			--local age=t-e.hit
@@ -1276,7 +1283,7 @@ function draw_enemies()
 end
 
 function draw_particles(alt_cycle)
-	local t=time()
+	--local t=time()
 	local occ,cc_freq = 5,0.2
 	if (alt_cycle) occ,cc_freq = 10,0.05
 	-- palette cycle - as good a place as any
@@ -1500,7 +1507,7 @@ function _draw_end_wave()
 		iwave+=1
 		load_wave()
 		-- prime the spawning
-		local t=time()
+		--local t=time()
 		wave.t_chunk=t-wave_progression+wave_reset  -- reset
 
 		_draw = _draw_wave
@@ -1508,7 +1515,7 @@ function _draw_end_wave()
 end
 
 function _draw_wave()
- local t=time()
+ --local t=time()
 
  if bombing_t~=nil then
 		local age=t-bombing_t
@@ -1551,8 +1558,8 @@ function _draw_wave()
 		--	print("★",1,13)
 		--end
 		print(#actors,100,0)
+		print(wave.swarmers_loosed,118,0)
 		print(#particles,100,6)
-		print(wave.swarmers_loosed,80,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
@@ -1563,7 +1570,7 @@ end
 --build world
 
 function build_world()
- local t=time()
+ --local t=time()
  -- note: 3+4+ -> 3+1-4+ etc.
 	local wd=[[
 	 5+3+2-2+2=4+2=2+2-2=4+2-2+3+2-2+3+2+4+5+2=2-2-2+3-2=3+4=2+3-7+7+2=
@@ -1672,7 +1679,7 @@ end
 
 function add_bullet(x, y, from, track)
  -- note: also creates mines
- local t=time()
+ --local t=time()
 	b=make_actor(bullet,x,y)
 	local bv = bullet_speed
 	if (from and from.k==baiter) bv *= 1.6
@@ -1747,7 +1754,7 @@ function add_explosion(e, reverse, speed, expire)
 	reverse=reverse or false
 	speed=speed or particle_speed
 	expire=expire or particle_expire
-	local t=time()
+	--local t=time()
 	local f=0
  for i=1,16 do
   -- todo make some faster
@@ -1772,7 +1779,7 @@ function add_explosion(e, reverse, speed, expire)
 end
 
 function kill_actor(e, laser, explode)
- local t=time()
+ --local t=time()
 	if (explode==nil) explode=true
 	--print("explode "..tostr(explode))
  if explode then
@@ -1896,12 +1903,12 @@ function kill_actor(e, laser, explode)
 		 	-- also any further landers will be mutants - even on later levels until humans are replenished
 		 	bombing_c=5
 		 	bombing_e=ground_destroy_expire
-		 	bombing_t=time()
+		 	bombing_t=t --time()
 			end
 		 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters? - no need since is_wave_complete will be true
 		end
 		if is_wave_complete() then
-		 pl.hit=time()  -- pause
+		 pl.hit=t --time()  -- pause
 		 add_pl_score(humans*100*min(iwave+1,5))
 			_draw=_draw_end_wave
 		end
@@ -1933,7 +1940,7 @@ function reset_player(full)
 end
 
 function kill_player(e)
- pl.hit=time()
+ pl.hit=t --time()
 	sfx(3,-2)
 	sfx(4)
 	wave.t_chunk-=player_die_expire  -- don't include dying time
@@ -1962,7 +1969,7 @@ function kill_player(e)
 	end
 
 	if pl.lives<0 then
-	 pl.hit=time()  -- pause
+	 pl.hit=t --time()  -- pause
 		_draw=_draw_game_over
 		_update60=_update60_game_over
 	end
@@ -2030,7 +2037,7 @@ function is_wave_complete()
 end
 
 function load_wave()
-	local t=time()
+	--local t=time()
 	local sw=waves[iwave%7+1]
 	-- copy
 	wave={
@@ -2053,7 +2060,7 @@ function load_wave()
  		humans_added=nil,
 	}
 	wave.baiters_generated=0
-	wave.swarmers_loosed=0
+	wave.swarmers_loosed=0 -- temp during reset
 
 	if iwave==0 or ((iwave+1)%5==0) then
   -- replenish
@@ -2083,7 +2090,7 @@ end
 function add_enemies(ht)
  -- note: pass in ht to override make_actor hit time
  if (ht==nil) ht = time()
- local t=time()
+ --local t=time()
  local sound=not(ht>t) -- if ht>t we don't fire sfx - i.e. assume game starting music is playing
  -- see reset_enemies for undo
  local make
@@ -2226,7 +2233,7 @@ end
 function	reset_enemies()
 	-- undo add_enemies/add_humans
 	-- push active enemies back on wave and setup re-spawn
-	t=time()
+	--t=time()
 	for e in all(actors) do
 		-- todo check not just hit?
 		if e.k==lander then
@@ -2253,7 +2260,7 @@ function	reset_enemies()
 		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
 	wave.baiters_generated=0
-	wave.swarmers_loosed=0
+	--wave.swarmers_loosed=0
 	add_humans_needed=true
 	-- prime the respawning
 	wave.t_chunk=t-wave_progression+wave_reset  -- reset
@@ -2326,6 +2333,9 @@ function load_highscores()
 --	end
 end
 
+--function add_highscore(score, name, new)
+--end
+
 function add_highscore(score, name, new)
 	-- assumes caller already knows we have a highscore (e.g. checked against [8])
 	-- pass new=false if loading from cdata, i.e. don't try to store = cycle!
@@ -2335,19 +2345,20 @@ function add_highscore(score, name, new)
  -- find position 
  for hst=start_board,alltime do
  	-- todo short-circuit if not possibly in alltime, based on today pos
-	 local pos=#highscores[hst]  -- i.e. 8
-	 while pos>0 and score>highscores[hst][pos][2] do
+ 	local hste=highscores[hst]
+	 local pos=8  -- i.e. #highscores[hst]
+	 while pos>0 and score>hste[pos][2] do
 		 pos-=1
 	 end
-	 if pos~=#highscores[hst] then
+	 if pos~=8 then -- #highscores[hst]
 		 if pos>=0 then
 		 	-- push others down
-		 	for hs=#highscores[hst],pos+2,-1 do
-			 	highscores[hst][hs]=highscores[hst][hs-1]  -- copies name+score
+		 	for hs=8,pos+2,-1 do  -- #highscores[hst]
+			 	hste[hs]=hste[hs-1]  -- copies name+score
 		 	end
 		 	-- insert
  		 -- todo >>16 here? or caller?
-		 	highscores[hst][pos+1]={name, score}
+		 	hste[pos+1]={name, score}
 		 	
 		 	if hst==alltime and new then
 					--printh("writing alltime highscore to cart "..name..":"..score.." at "..pos+1)
@@ -2356,7 +2367,7 @@ function add_highscore(score, name, new)
 						-- note: bytes 0+1 for future use
 						for hs=1,8 do
 							local hso=0x5e00+(hs*2*4)
-						 local hs_name=highscores[hst][hs][1]
+						 local hs_name=hste[hs][1]
 						 local name_bytes=0  -- i.e. nil = not set
 						 if hs_name ~= nil then
 							 poke(hso+0, ord(sub(hs_name,1,1))) 
@@ -2365,7 +2376,7 @@ function add_highscore(score, name, new)
 								poke(hso+3, ord(chr(0)))
 								--printh("!"..hs_name.." "..name_bytes)
 							end
-							dset(hs*2+1, highscores[hst][hs][2])
+							dset(hs*2+1, hste[hs][2])
 						end 			 
 					else
 						--printh("failed dset: not cart_exists")
