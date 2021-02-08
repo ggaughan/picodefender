@@ -2029,7 +2029,7 @@ end
 
 function load_wave()
 	local t=time()
-	local sw=waves[iwave%8+1]
+	local sw=waves[iwave%7+1]
 	-- copy
 	wave={
  	 c=sw.c,
