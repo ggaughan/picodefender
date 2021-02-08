@@ -11,7 +11,7 @@ debug_kill=not debug
 
 epi_friendly=false
 
-t=nil -- time
+t=time()
 
 today,alltime=1,2
 e_hs={nil,0}
@@ -20,15 +20,15 @@ highscores = {
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
 
-ww = 128 * 9  --1152
-cx = 128 * 4
-ocx = cx
+ww=128*9  --1152
+cx=128*4
+ocx=cx
 
-hc = 128/4
+hc=128/4
 hudy,hudw=12,hc*2
-hwr = ww/hudw
-hhr = (128-4 - hudy)/hudy + 1
-lmax = 82
+hwr=ww/hudw
+hhr=(128-4-hudy)/hudy+1
+lmax=82
 
 human=7
 lander=9
@@ -75,7 +75,7 @@ attrs={
 
 max_stars=100
 
-waves = {
+waves={
  {--1
 	 c=1, 
 		landers=15,
@@ -120,88 +120,88 @@ waves = {
 	}
 }
 
-inertia_py = 0.95
-inertia_cx = 0.98
+inertia_py=0.95
+inertia_cx=0.98
 
-max_speed = 2
-thrust = 0.4
-vert_accel = 0.6
-max_vert_speed = max_speed/2
-max_h_speed_factor = max_speed/48
+max_speed=2
+thrust=0.4
+vert_accel=0.6
+max_vert_speed=max_speed/2
+max_h_speed_factor=max_speed/48
 
-laser_expire = 0.5
-laser_size = 22  -- see rate
+laser_expire=0.5
+laser_size=22  -- see rate
 laser_rate=4
-laser_max_length = 100  -- cap
-laser_min_length = 8  -- show something immediately
-min_laser_speed = 0.2 -- e.g. static ship, move away still
-laser_speed = 2.0
-laser_min_effective_age = 0.03  -- delay so it can be seen before being effective
-laser_inertia = 0.999
+laser_max_length=100  -- cap
+laser_min_length=8  -- show something immediately
+min_laser_speed=0.2 -- e.g. static ship, move away still
+laser_speed=2.0
+laser_min_effective_age=0.03  -- delay so it can be seen before being effective
+laser_inertia=0.999
 
-lander_speed = 0.15
-lander_speed_y_factor = 2
-mutant_speed = 0.3
-baiter_speed = 2.2  -- faster than player  -- todo set to max_speed*factor?
-bomber_speed = 0.3
-pod_speed = 0.2
-swarmer_speed = 0.7
-swarmer_inertia = 1 --0.99
-bullet_expire = 1.4  -- todo depend on actual bullet_speed?
-bullet_speed = 0.02
-mine_expire = 6
+lander_speed=0.15
+lander_speed_y_factor=2
+mutant_speed=0.3
+baiter_speed=2.2  -- faster than player  -- todo set to max_speed*factor?
+bomber_speed=0.3
+pod_speed=0.2
+swarmer_speed=0.7
+swarmer_inertia=1 --0.99
+bullet_expire=1.4  -- todo depend on actual bullet_speed?
+bullet_speed=0.02
+mine_expire=6
 
-particle_expire = 0.8
-particle_speed = 0.6
+particle_expire=0.8
+particle_speed=0.6
 --enemy_explode_size = 32
 
-player_birth_expire = 1
-player_die_expire = 3
-old_particle = 1
-enemy_die_expire = 1
+player_birth_expire=1
+player_die_expire=3
+old_particle=1
+enemy_die_expire=1
 
-max_humans = 10
-human_speed = 0.02
-target_x_epsilon = 3
-target_y_epsilon = 4
-capture_targetted = 1
-capture_lifted = 2
-gravity_speed = 0.1
-safe_height = 80
+max_humans=10
+human_speed=0.02
+target_x_epsilon=3
+target_y_epsilon=4
+capture_targetted=1
+capture_lifted=2
+gravity_speed=0.1
+safe_height=80
 
-wave_progression = 15  -- seconds
-wave_old = 60  -- min before baiters
-baiter_next = wave_progression / 3  -- delay baiter re-spawn based on last 3 enemies
-max_baiters = 4
-max_swarmers = 20
-wave_reset = 2  -- seconds
-delay_first_enemies = 0.5 -- give time for initial music to finish
+wave_progression=15  -- seconds
+wave_old=60  -- min before baiters
+baiter_next=wave_progression/3  -- delay baiter re-spawn based on last 3 enemies
+max_baiters=4
+max_swarmers=20
+wave_reset=2  -- seconds
+delay_first_enemies=0.5 -- give time for initial music to finish
 
-extra_score_expire = 1
-bombing_expire = 0.3
-ground_destroy_expire = 2
+extra_score_expire=1
+bombing_expire=0.3
+ground_destroy_expire=2
 
-title_delay = 8
-title_particle_expire = 1.4
-game_over_delay = 4
-new_highscore_delay = 60  -- timeout if no initials in this time
-hs_chr = "a"
+title_delay=8
+title_particle_expire=1.4
+game_over_delay=4
+new_highscore_delay=60  -- timeout if no initials in this time
+hs_chr="a"
 
 --if debug_test then
 --	max_humans = 1
 --end
 
 function _init()
-	cart_exists = cartdata("ggaughan_picodefender_1")
+	cart_exists=cartdata("ggaughan_picodefender_1")
 
 	-- todo save on cart?
-	menuitem(1, "toggle flashing", function() epi_friendly,cc=not epi_friendly,10 end)
+	menuitem(1,"toggle flashing", function() epi_friendly,cc=not epi_friendly,10 end)
 
-	w = {}  -- ground level
-	sw = {} -- scanner ground summary
-	stars = {}
-	cx = 128 * 4
- cdx = 0
+	w={}  -- ground level
+	sw={} -- scanner ground summary
+	stars={}
+	cx=128*4
+ cdx=0
  canim,canim_dx=0,0
 
 	build_world()  -- if this takes any time, move to update60_title, i.e. draw something first
@@ -209,7 +209,7 @@ function _init()
 	
 	load_highscores()
 	
-	pl = {
+	pl={
 		w=6,
 		h=3,
 
@@ -220,35 +220,33 @@ function _init()
 	 hit=nil,  -- also used for timeouts/delays	
 	}
 
-	actors = {}
-	particles = {}
+	actors={}
+	particles={}
 	
 	reset_player(true)  -- todo remove? will be called via start_game()
 	-- todo move to reset_game(true) - include call to reset_player(true) above
-	lasers = {}
+	lasers={}
 	iwave=0
 	humans=0  -- topped up by load_wave
-	add_humans_needed = true
+	add_humans_needed=true
 	-- todo remove: start_game does this: can't do more than once:
  load_wave() -- added back for demo
 	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
 	--      then actually wrap at 255 with special wave 0
 	
 	-- palette rotate	
-	pt = time()
-	cc = 1
+	pt=t --time()
+	cc=1
 	
-	extra_score = nil
-	bombing_t = nil  -- also used for title animation and null space ground explode
-	bombing_e = bombing_expire  -- todo rename bombing_e -> flash_e
+	extra_score=nil
+	bombing_t=nil  -- also used for title animation and null space ground explode
+	bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
 	
 	-- todo pl.hit still needed here?
- pl.hit = time()  -- delay
-	_draw = _draw_title
-	_update60 = _update60_title
+ pl.hit=t --time()  -- delay
+	_draw=_draw_title
+	_update60=_update60_title
 end
-
-
 
 -->8
 --update
@@ -406,7 +404,7 @@ function _update60_wave()
 end
 
 function update_enemies()
-	local t = time()
+	--local t = time()
 	for e in all(actors) do
  	if e.k ~= mine then
 			-- check if hit by laser
@@ -711,7 +709,7 @@ function update_enemies()
 end
 
 function update_particles()
-	t=time()
+	--t=time()
 	for e in all(particles) do
  	if t-e.t > e.expire then
  		del(particles,e)
@@ -838,7 +836,7 @@ function _update60_highscores()
 		if true then -- when phase 2 ready
 			-- todo move some to demo
 			-- todo add add_human routine - though this isn't same/random
-			h=make_actor(human,cx+demo_sx,116,time())
+			h=make_actor(human,cx+demo_sx,116,t) --ime())
 			h.capture=nil
 			h.dropped_y=nil
 			h.capture=capture_targetted
@@ -927,7 +925,7 @@ function _update60_instructions()
 					demo.step_next_part+=1
 				-- note: 2 = waiting to hit bottom/capture hit top
 				elseif demo.step_next_part==3 then
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})  --time()
 					demo.step_next_part+=1
 				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
@@ -975,7 +973,7 @@ function _update60_instructions()
 				-- note: 2 = waiting to hit top
 				elseif demo.step_next_part==3 then
 					-- actor hit the top, shoot to kill
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,time(),max(cdx, min_laser_speed)})			
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})	 -- time()
 					demo.step_next_part+=1
 				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
@@ -1027,9 +1025,9 @@ function _update60_instructions()
 end
 
 -- todo remove: debug only
-function _update60_debug_stop()
- --update_particles()  -- could include special effects
-end
+--function _update60_debug_stop()
+-- --update_particles()  -- could include special effects
+--end
 
 -- todo move to tab3?
 function start_game(full)
@@ -1052,7 +1050,7 @@ function start_game(full)
  bombing_e=bombing_expire
  particles={}
  add_humans()  -- initial 
- add_enemies(time()+delay_first_enemies) -- initial 
+ add_enemies(t+delay_first_enemies) -- initial  -- time()
 end
 
 -->8
@@ -1109,7 +1107,7 @@ end
 
 function add_pl_score(v, x, y)
  --assert(v<32767)  
- if (x and y) extra_score={v>>16, wxtoc(x),y, time()}
+ if (x and y) extra_score={v>>16, wxtoc(x),y, t}  --time()
 	pl.score+=v>>16
 	pl.score_10k+=v>>16
 	if pl.score_10k>=10000>>16 then
@@ -1979,14 +1977,14 @@ end
 
 function add_humans()
  -- todo pass in t?
- if debug then
-	 local hc=0
-		for e in all(actors) do
-			if (e.k==human) hc+=1
-		end
-		if (hc~=0) assert(hc~=0)
-			--printh(humans.." "..wave.t)
-	end
+-- if debug then
+--	 local hc=0
+--		for e in all(actors) do
+--			if (e.k==human) hc+=1
+--		end
+--		if (hc~=0) assert(hc~=0)
+--			--printh(humans.." "..wave.t)
+--	end
 
 	for h=1,humans do
 	 local x=rnd(ww)  -- todo groups?
@@ -2089,7 +2087,7 @@ end
 
 function add_enemies(ht)
  -- note: pass in ht to override make_actor hit time
- if (ht==nil) ht = time()
+ if (ht==nil) ht=t -- time()
  --local t=time()
  local sound=not(ht>t) -- if ht>t we don't fire sfx - i.e. assume game starting music is playing
  -- see reset_enemies for undo
