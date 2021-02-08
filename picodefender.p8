@@ -933,13 +933,17 @@ function _update60_instructions()
 				elseif demo.step_next_part==7 then
 					pl.x+=1.2
 					pl.y+=0.5				
-					if (pl.x>=cx+demo_sx) demo.step_next_part+=1
+					if pl.x>=cx+demo_sx then
+						add_pl_score(-h.score) -- undo
+					 demo.step_next_part+=1
+					end
 				elseif demo.step_next_part==8 then
 					pl.y+=0.5				
 			 	h.y=pl.y+6 
 					if h.y>116 then
 				 	h.dropped_y=pl.y
-						add_pl_score(h.score, h.x-12, h.y+4)	
+						--add_pl_score(h.score, h.x-12, h.y+4)	
+					 extra_score={h.score>>16, wxtoc(h.x-12),h.y, t}  --todo reinstate: h.y+4
 						demo.step_next_part+=1
 					end
 				elseif demo.step_next_part==9 then
