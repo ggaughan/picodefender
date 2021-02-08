@@ -941,9 +941,9 @@ function _update60_instructions()
 					pl.y+=0.5				
 			 	h.y=pl.y+6 
 					if h.y>116 then
-				 	h.dropped_y=pl.y
+				 	--h.dropped_y=pl.y
 						--add_pl_score(h.score, h.x-12, h.y+4)	
-					 extra_score={h.score>>16, wxtoc(h.x-12),h.y, t}  --todo reinstate: h.y+4
+					 extra_score={h.score>>16, wxtoc(h.x-8),h.y+4, t}
 						demo.step_next_part+=1
 					end
 				elseif demo.step_next_part==9 then
@@ -1378,7 +1378,7 @@ function _draw_title()
 	print("by", 59, hudy+40, 7)
 	print("greg gaughan", 39, hudy+46, 7)
 	
-	local o = hudy+60 + 18
+	local o = hudy+78
 
 	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
