@@ -1552,6 +1552,7 @@ function _draw_wave()
 		--end
 		print(#actors,100,0)
 		print(#particles,100,6)
+		print(wave.swarmers_loosed,80,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
@@ -1813,10 +1814,10 @@ function kill_actor(e, laser, explode)
 		elseif e.k==baiter then
 		 wave.baiters_generated-=1  -- i.e.so max_baiters => max active batiers
 			-- todo count baiters_hit - why not
-		elseif e.k==bomber then
-		 wave.bombers_hit+=1
+		--todo remove elseif e.k==bomber then
+		 --todo remove wave.bombers_hit+=1
 		elseif e.k==pod then
-		 wave.pods_hit+=1
+		 --todo remove wave.pods_hit+=1
 		 -- todo sfx(?)
 		 -- spawn swarmers
 		 local r=flr(rnd(256))
@@ -1831,7 +1832,7 @@ function kill_actor(e, laser, explode)
 			 if (r==129) make=2
 		 end
 		 if (r==173) make=3
-		 make=min(make, max_swarmers-wave.swarmers_generated)
+		 make=min(make, max_swarmers-active_enemies(swarmer))
 		 for sw=1,make do
 			 local x,y=e.x+rnd(3),e.y+rnd(6)
 				l=make_actor(swarmer,x,y)  -- no time = show immediately
@@ -1842,10 +1843,10 @@ function kill_actor(e, laser, explode)
 				l.lazy=rnd(64)  -- higher = less likely to chase
 				-- todo sfx(?)  -- todo: if on screen
 			end
-			wave.swarmers_generated+=make
-		elseif e.k==swarmer then
-		 wave.swarmers_generated-=1  -- i.e.so max_swarmers => max active swarmers
-			-- todo count swarmers_hit - why not
+			--todo remove: wave.swarmers_generated+=make
+--		elseif e.k==swarmer then
+--		 wave.swarmers_generated-=1  -- i.e.so max_swarmers => max active swarmers
+--			-- todo count swarmers_hit - why not
 		elseif e.k==human then
 			--printh("dead human "..e.x)
 		 -- todo wrap in kill_human routine?
@@ -1998,7 +1999,7 @@ end
 function active_enemies(include_only)
  -- don't count baiters (and include_only, if given)
  -- don't count bullet,mine,human
- -- does count swarmers (wave.swarmers_generated) - though level restart not required if only swarmers remain - todo:ok?
+ -- todo remove: -- does count swarmers (wave.swarmers_generated) - though level restart not required if only swarmers remain - todo:ok?
  local r=0
 	for e in all(actors) do
 	 if (include_only and e.k~=include_only) then
@@ -2018,9 +2019,10 @@ function is_wave_complete()
 	r+=wave.landers
 	r+=wave.bombers
 	r+=wave.pods
-	-- todo? swarmers	
+	-- todo remove: ? swarmers	
 	-- note: baiters not counted towards completion
 	-- note: mutants don't spawn initially but they accrue during play
+	-- note: loosed swarmers re-spawn as actors on each reset
 	r+=wave.mutants  
 	--printh("r="..r)
 	--printh(wave.landers_hit)
@@ -2043,15 +2045,15 @@ function load_wave()
  		t_chunk=t,
  		
  		landers_hit=0,  -- include mutants
- 		bombers_hit=0,
- 		pods_hit=0,
+ 		--todo remove bombers_hit=0,
+ 		--todo remove pods_hit=0,
  		-- todo baiters_hit
- 		-- todo swarmers_hit
+ 		-- todo remove swarmers_hit
  		
  		humans_added=nil,
 	}
 	wave.baiters_generated=0
-	wave.swarmers_generated=0
+	wave.swarmers_loosed=0
 
 	if iwave==0 or ((iwave+1)%5==0) then
   -- replenish
@@ -2090,7 +2092,6 @@ function add_enemies(ht)
 		for e=1,make do
 		 local x=rnd(ww)
 		 local y=hudy+2
-		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(lander,x,y,ht)
 			l.dy=lander_speed*lander_speed_y_factor
@@ -2124,7 +2125,6 @@ function add_enemies(ht)
 	 make=wave.mutants
 		for e=1,make do
 		 local x,y=rnd(ww),hudy+2
-		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(mutant,x,y,ht)
 			l.dy=mutant_speed*lander_speed_y_factor
@@ -2146,7 +2146,6 @@ function add_enemies(ht)
 		for e=1,make do
 		 local x=groupx+rnd(ww/20)
 		 local y=hudy+2+rnd(80)
-		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,x,y,ht)
 			l.dy=bomber_speed
@@ -2161,7 +2160,6 @@ function add_enemies(ht)
 	 make=min(wave.pods,4) -- ok?
 		for e=1,make do
 		 local x,y=rnd(ww), hudy+2+rnd(30)
-		 -- todo if hit player - move
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,x,y,ht)
 			l.dy=pod_speed
@@ -2171,6 +2169,24 @@ function add_enemies(ht)
 		end
 		wave.pods-=make
 	end
+ if wave.swarmers_loosed>0 then
+	 make=wave.swarmers_loosed
+	 --refactor:share pod kill logic
+		for e=1,make do
+		 local x,y=rnd(ww), hudy+2+rnd(30)
+			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
+			l=make_actor(swarmer,x,y,ht)
+			l.dy=swarmer_speed/2
+			if (rnd()<0.5) l.dy*=-1  
+			-- don't go towards player at first: l.dx = swarmer_speed
+			-- if (rnd()<0.5) l.dx *= -1
+			l.lazy=rnd(64)  -- higher = less likely to chase
+			--todo?? respawn? add_explosion(l,true)  -- reverse i.e. spawn
+			--todo?? respawn? sfx(2)  -- todo: if on screen -- can't be start game so no sound check needed
+		end
+		wave.swarmers_loosed-=make
+	end
+	
 	-- based on wave.t? and/or remaining
  -- baiters, if near end of wave
  if wave.baiters_generated<max_baiters then  -- todo adjust for iwave?
@@ -2226,8 +2242,9 @@ function	reset_enemies()
 		--	-- accounted for by humans var
 		--elseif e.k == baiter then
 		--	-- not counted: re-generate as needed
-		--elseif e.k == swarmer then
-		--	-- not counted: re-generate as needed
+		elseif e.k == swarmer then
+			wave.swarmers_loosed+=1
+		--todo remove:	-- not counted: re-generate as needed
 		--elseif e.k == bullet then
 		--elseif e.k == mine then
 		--else -- todo remove
@@ -2236,7 +2253,7 @@ function	reset_enemies()
 		del(actors, e)  -- note: we don't retain the positions on respawn!
 	end
 	wave.baiters_generated=0
-	wave.swarmers_generated=0
+	wave.swarmers_loosed=0
 	add_humans_needed=true
 	-- prime the respawning
 	wave.t_chunk=t-wave_progression+wave_reset  -- reset
