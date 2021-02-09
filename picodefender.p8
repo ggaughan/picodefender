@@ -240,7 +240,7 @@ function _init()
 	
 	extra_score=nil
 	bombing_t=nil  -- also used for title animation and null space ground explode
-	bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
+	--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
 	
 	-- todo pl.hit still needed here?
  pl.hit=t --time()  -- delay
@@ -785,10 +785,16 @@ function _update60_title()
 	local timeout=(t-pl.hit)>title_delay
 	
 	if bombing_t==nil then
-		add_explosion({x=cx+60,y=40, c=8}, true, particle_speed/2, title_particle_expire)
+--	 for i=1,8 do
+--		 for j=-1,1 do
+--				--add_explosion({x=cx+60+sp[i][1]*6-j*6,y=48+sp[i][2]*3, c=8}, true, particle_speed/3, title_particle_expire*2, 36)
+--				add_explosion({x=cx+60+sp[i][1]*2-j*4,y=32+sp[i][2]*1, c=8}, true, particle_speed/3, bombing_expire*2, 24)
+--			end
+--		end
 		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
+		--add_explosion({x=cx+60,y=32, c=8}, true, particle_speed/1, bombing_expire*2, 24)
 		bombing_t=t
-		bombing_e=bombing_expire -- todo increase here!
+		bombing_e=bombing_expire*3 -- todo increase here!
 	end
 
  update_particles()  -- could include special effects
@@ -997,9 +1003,11 @@ function _update60_instructions()
 
  if timeout or btnp(➡️) then
   actors={}
+  particles={}
   demo.t=0 -- stop demo
   pl.hit=t  
   bombing_t=nil  -- title explosion reset
+		--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
  	_update60=_update60_title
  	_draw=_draw_title
 	elseif btnp(🅾️) or btnp(❎) then
@@ -1097,6 +1105,7 @@ function add_pl_score(v, x, y)
  --assert(v<32767)  
  if (x and y) extra_score={v>>16, wxtoc(x),y, t}  --time()
 	pl.score+=v>>16
+	-- todo opt: precalc next_10k once
 	pl.score_10k+=v>>16
 	if pl.score_10k>=10000>>16 then
 		pl.lives+=1
@@ -1361,15 +1370,24 @@ end
 
 function _draw_title()
  cls()
+ --print(#particles)
  
 	draw_particles(true)
 
 	-- never expire! draw_player()  -- needed to expire
 
-	map(0,1, 25,hudy+1, 10,4)
-
-	print("by", 59, hudy+40, 7)
-	print("greg gaughan", 39, hudy+46, 7)
+	if bombing_t==nil or t-bombing_t>bombing_e then
+		map(0,1, 25,hudy+1, 10,4)
+		print("by", 59, hudy+40, 7)
+		print("greg gaughan", 39, hudy+46, 7)
+	else
+		for i=1,32 do
+		 if i~=16 then
+				local o=(i-16)*easeinoutquad(1-(t-bombing_t)/bombing_e)*2
+				tline(25,hudy+1+i+o,25+80,hudy+1+i+o, 0,i/8+1, 1/8,0)
+			end
+		end
+	end
 	
 	local o = hudy+78
 
@@ -1543,8 +1561,8 @@ function _draw_wave()
 		--if cx + 128 > ww then
 		--	print("★",1,13)
 		--end
-		print(#actors,100,0)
-		print(wave.swarmers_loosed,118,0)
+--		print(#actors,100,0)
+--		print(wave.swarmers_loosed,118,0)
 		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
@@ -1736,10 +1754,11 @@ sp = {
  {-1,   0}, 
  {-1,   0}, 
 }
-function add_explosion(e, reverse, speed, expire)
+function add_explosion(e, reverse, speed, expire, size)
 	reverse=reverse or false
 	speed=speed or particle_speed
 	expire=expire or particle_expire
+	size=size or 30 -- todo merge with reverse
 	--local t=time()
 	local f=0
  for i=1,16 do
@@ -1752,8 +1771,8 @@ function add_explosion(e, reverse, speed, expire)
   	f=1-f  --prevent for next one
   end
   if reverse then
-  	x+=d[1]*30
-  	y+=d[2]*30 
+  	x+=d[1]*size
+  	y+=d[2]*size
   	d[1],d[2]=-1*d[1],-1*d[2]
   end
 		add(particles,{
@@ -2053,7 +2072,7 @@ function load_wave()
 		wave.humans_added=max_humans-humans
 		humans+=wave.humans_added
 		-- todo: use humans_added to avoid re-adding (update: we now do this via add_humans_needed)
-		assert(humans<=max_humans)  --todo remove
+		--assert(humans<=max_humans)  --todo remove
 		--printh("adding humans "..wave.humans_added.."="..humans)
 	end
 	
@@ -2375,6 +2394,12 @@ function add_highscore(score, name, new)
 	end
 end
 
+
+function easeinoutquad(et)
+ if (et<.5) return et*et*2
+ et-=1
+ return 1-et*et*2
+end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000bb000000bb00000099b00000b9900000bbb0000000000000000000000000000000000
