@@ -48,12 +48,12 @@ demo={
 	step=0,
 	step_next_part=1,
 	steps={
-		{lander},
-		{mutant},
-		{baiter},
-		{bomber},
-		{pod},
-		{swarmer}
+		lander,
+		mutant,
+		baiter,
+		bomber,
+		pod,
+		swarmer
 	}
 }
 -- note: ns match steps
@@ -61,7 +61,7 @@ ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
 attrs={
 	[lander]={100,11,5,7,3,0.0025},
-	[mutant]={150,11,5,7,3,0.006},
+	[mutant]={150,5,5,7,3,0.006},
 	[baiter]={200,11,4,7,3,0.015},
 	[bomber]={250,14,4,4,3,0.005},
 	[pod]={1000,8,5,7,4,1.00},
@@ -499,6 +499,7 @@ function update_enemies()
 						 		--no need: already decremented and reset_enemies will notice: wave.landers -= 1  -- spawn 1 less
 						 		e.k=mutant
 						 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
+ 					 		e.c=attrs[mutant][2]
 						 		e.lazy=0  -- todo or remove altogether?
 									l.dy=mutant_speed*lander_speed_y_factor
 						 	end
@@ -673,16 +674,6 @@ function update_enemies()
 						 	e.target.x=e.x 
 						 	e.target.y=e.y + 7
 						 	-- todo dx/dy?
-	--						 	if e.y <= hudy then
-	--						 		--printh("convert to mutant"..e.x)
-	--						 		kill_actor(e.target,nil,false)  -- kill human silently
-	--						 		-- possibly now nullspace
-	--						 		--no need: already decremented and reset_enemies will notice: wave.landers -= 1  -- spawn 1 less
-	--						 		e.k = mutant
-	--						 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
-	--						 		e.lazy = 0  -- todo or remove altogether?
-	--									l.dy = mutant_speed*lander_speed_y_factor
-	--						 	end
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
 						 	--printh("capturing! "..e.x.." "..e.target.x)
 						 	e.dy=-lander_speed*3.1
@@ -962,7 +953,7 @@ function _update60_instructions()
 				end 	
 	  else
 				if demo.step_next_part==1 then
-					l=make_actor(demo.steps[demo.step][1],cx+demo_sx,demo_sy,t)
+					l=make_actor(demo.steps[demo.step],cx+demo_sx,demo_sy,t)
 					l.dy=-lander_speed*3
 					add_explosion(l,true)  -- reverse i.e. spawn
 					demo.step_next_part+=1
@@ -976,7 +967,7 @@ function _update60_instructions()
 				 -- wait for death explosion
 					if (t-bombing_t>particle_expire) demo.step_next_part+=1
 				elseif demo.step_next_part==6 then
-					l=make_actor(demo.steps[demo.step][1],cx+12+((demo.step-1)%3*36),demo_sy-20+((demo.step-1)\3)*30,t)
+					l=make_actor(demo.steps[demo.step],cx+12+((demo.step-1)%3*36),demo_sy-20+((demo.step-1)\3)*30,t)
 					l.name=names[demo.step]
 					-- note: draw name+score in draw
 					add_explosion(l, true)  -- reverse i.e. spawn
@@ -1065,11 +1056,8 @@ end
 
 function wxtoc(wx)
  -- note: we wrap here 
-	local x=wx-cx
-	if cx+128>ww then
-		if (wx<(128-(ww-cx))) x=(wx+ww)-cx
-	end
-	return x
+	if (cx+128>ww and wx<(128-(ww-cx))) return (wx+ww)-cx
+	return wx-cx
 end
 
 function side(l,e,cmp)
@@ -1132,18 +1120,18 @@ function draw_hud(force_ground)
 	-- else null space
 	end
 	
-	-- player
- local	sx,sy=wtos(pl.x,pl.y)
-	pset(sx,sy,7)
-
 	-- enemies
 	for e in all(actors) do
 	 -- todo skip if bullet? though handy!
-	 --if e.k~=bullet then
-		sx,sy=wtos(e.x,e.y)
-		pset(sx,sy,e.c)
-		--end
+	 if e.k~=bullet and e.k~=mine then
+			sx,sy=wtos(e.x,e.y)
+			pset(sx,sy,e.c)
+		end
 	end
+
+	-- player
+ local	sx,sy=wtos(pl.x,pl.y)
+	pset(sx,sy,7)
 
 	-- scanner box 
 	local c=1
@@ -1898,6 +1886,7 @@ function kill_actor(e, laser, explode)
 		 		if a.k==lander then
 		 			--printh("converting lander to mutant after null space (all humans dead) "..a.x)
 		 			a.k=mutant
+			 		a.c=attrs[mutant][2]
 			 		a.lazy=0  -- todo or remove altogether?
 						a.dy=mutant_speed*lander_speed_y_factor
 		 		end
