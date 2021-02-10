@@ -178,7 +178,7 @@ wave_reset=2  -- seconds
 delay_first_enemies=0.5 -- give time for initial music to finish
 
 extra_score_expire=1
-bombing_expire=0.3
+bombing_expire=0.3 -- todo rename bombing_e -> flash_e
 ground_destroy_expire=2
 
 title_delay=8
@@ -239,8 +239,10 @@ function _init()
 	cc=1
 	
 	extra_score=nil
-	bombing_t=nil  -- also used for title animation and null space ground explode
-	--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
+--	bombing_t=nil  
+--	bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
+	bombing_t=t  -- also used for title animation and null space ground explode
+	bombing_e=bombing_expire*3 
 	
 	-- todo pl.hit still needed here?
  pl.hit=t --time()  -- delay
@@ -784,18 +786,18 @@ function _update60_title()
 	--local age = t-pl.hit
 	local timeout=(t-pl.hit)>title_delay
 	
-	if bombing_t==nil then
---	 for i=1,8 do
---		 for j=-1,1 do
---				--add_explosion({x=cx+60+sp[i][1]*6-j*6,y=48+sp[i][2]*3, c=8}, true, particle_speed/3, title_particle_expire*2, 36)
---				add_explosion({x=cx+60+sp[i][1]*2-j*4,y=32+sp[i][2]*1, c=8}, true, particle_speed/3, bombing_expire*2, 24)
---			end
---		end
-		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
-		--add_explosion({x=cx+60,y=32, c=8}, true, particle_speed/1, bombing_expire*2, 24)
-		bombing_t=t
-		bombing_e=bombing_expire*3 -- todo increase here!
-	end
+--	if bombing_t==nil then
+----	 for i=1,8 do
+----		 for j=-1,1 do
+----				--add_explosion({x=cx+60+sp[i][1]*6-j*6,y=48+sp[i][2]*3, c=8}, true, particle_speed/3, title_particle_expire*2, 36)
+----				add_explosion({x=cx+60+sp[i][1]*2-j*4,y=32+sp[i][2]*1, c=8}, true, particle_speed/3, bombing_expire*2, 24)
+----			end
+----		end
+--		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
+--		--add_explosion({x=cx+60,y=32, c=8}, true, particle_speed/1, bombing_expire*2, 24)
+--		bombing_t=t
+--		bombing_e=bombing_expire*3 -- todo increase here!
+--	end
 
  update_particles()  -- could include special effects
  
@@ -1006,8 +1008,10 @@ function _update60_instructions()
   particles={}
   demo.t=0 -- stop demo
   pl.hit=t  
-  bombing_t=nil  -- title explosion reset
-		--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
+--  bombing_t=nil  -- title explosion reset
+--		--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
+		bombing_t=t
+		bombing_e=bombing_expire*3 
  	_update60=_update60_title
  	_draw=_draw_title
 	elseif btnp(🅾️) or btnp(❎) then
@@ -1403,17 +1407,7 @@ end
 function _draw_highscores()
  cls()
 
-	draw_score(pl.score)
-	-- todo remove: why extra_score here?
--- if extra_score then
---  local t = time()
--- 	local age = t - extra_score[4]
--- 	if age < extra_score_expire then
---		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
---		else
---		 extra_score = nil
---		end 
--- end
+	if (pl.score>0) draw_score(pl.score)
 
 	draw_particles()
 
@@ -1421,18 +1415,20 @@ function _draw_highscores()
 
 	map(0,1, 25,0, 10,4)
 
-	print("hall of fame", 39, hudy+24, 5)
+	print("hall of fame", 41, hudy+23, 5)
 
-	print("todays", 10, hudy+32, 5)
-	print("all time", 82, hudy+32, 5)
-	print("greatest", 6, hudy+38, 5)
-	print("greatest", 82, hudy+38, 5)
-	-- todo underlines
+	print("todays", 14, hudy+32, 5)
+	print("all time", 86, hudy+32, 5)
+	print("greatest", 10, hudy+38, 5)
+	print("greatest", 86, hudy+38, 5)
+	-- underlines
+ line(10, hudy+44, 40, hudy+44, 5)
+ line(86, hudy+44, 116, hudy+44, 5)
 
 	for hst=today,alltime do
 	 local co=(hst-1)*76
 		for i,hs in pairs(highscores[hst]) do
-			local y=hudy+40+i*6
+			local y=hudy+42+i*6
  		print(i, 1+co, y, 5)
 		 if hs[1]~=nil then
 				print(hs[1],10+co,y,5)
@@ -1451,7 +1447,7 @@ function _draw_new_highscore()
 
 	-- never expire! draw_player()  -- needed to expire
 
-	print("player one", 56, hudy+1, 2)
+	print("player one", 46, hudy+1, 2)
 	print("you have qualified for", 16, hudy+16, 2)
 	print("the defender hall of fame", 16, hudy+24, 2)
 
@@ -1514,7 +1510,7 @@ function _draw_end_wave()
 		--local t=time()
 		wave.t_chunk=t-wave_progression+wave_reset  -- reset
 
-		_draw = _draw_wave
+		_draw=_draw_wave
 	end
 end
 
@@ -1563,7 +1559,7 @@ function _draw_wave()
 		--end
 --		print(#actors,100,0)
 --		print(wave.swarmers_loosed,118,0)
-		print(#particles,100,6)
+--		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
@@ -2306,7 +2302,7 @@ function load_highscores()
 		-- note: bytes 0+1 for future use
 		for hs=1,8 do
 			local name=nil  -- i.e. stored as 0
-			local hso=0x5e00+(hs*2*4)
+			local hso=0x5e00+(hs*8)
    -- todo @ instead of peek
 			local c1=peek(hso+0) 
    local c2=peek(hso+1)
@@ -2371,7 +2367,7 @@ function add_highscore(score, name, new)
 					 -- note: 8 slots hardcoded here
 						-- note: bytes 0+1 for future use
 						for hs=1,8 do
-							local hso=0x5e00+(hs*2*4)
+							local hso=0x5e00+(hs*8)
 						 local hs_name=hste[hs][1]
 						 local name_bytes=0  -- i.e. nil = not set
 						 if hs_name ~= nil then
