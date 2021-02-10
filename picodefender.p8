@@ -6,7 +6,7 @@ __lua__
 -- remake of the williams classic
 
 debug=true
-debug_test= debug  
+debug_test= not debug  
 debug_kill=not debug
 
 epi_friendly=false
@@ -860,7 +860,7 @@ end
 function _update60_new_highscore()
 	t=time()
 	--local age=t-pl.hit
-	local timeout=(t-pl.hit)>new_highscore_delay
+	--local timeout=(t-pl.hit)>new_highscore_delay
 
  update_particles()  -- could include special effects
 
@@ -890,7 +890,7 @@ function _update60_new_highscore()
 		pl.hit=t  -- reset timeout
  end
 
- if timeout then
+ if (t-pl.hit)>new_highscore_delay then
   -- note: too late!
   -- 					 we still add with name of hs_name as-is (default "")
 		add_highscore(pl.score, hs_name)
@@ -1038,10 +1038,11 @@ function start_game(full)
 		actors={}  -- ok?
 		lasers={}
 		iwave=0  -- todo leave out?
+		humans=0  -- topped up by load_wave
 		if	debug_test then
 			iwave=5
+			humans=max_humans
 		end
-		humans=0  -- topped up by load_wave
 		add_humans_needed=true
 		load_wave()
 	end
@@ -1447,7 +1448,7 @@ function _draw_new_highscore()
 
 	-- never expire! draw_player()  -- needed to expire
 
-	print("player one", 46, hudy+1, 2)
+	print("player one", 48, hudy+1, 2)
 	print("you have qualified for", 16, hudy+16, 2)
 	print("the defender hall of fame", 16, hudy+24, 2)
 
@@ -1458,13 +1459,15 @@ function _draw_new_highscore()
 	-- todo mention bomb to backspace?
 
 	for ci=1,#hs_name do
- 	print(sub(hs_name,ci,ci), 54+ci*10, 80, 2)
+ 	print(sub(hs_name,ci,ci), 48+ci*10, 80, 2)
  end
  local ci=#hs_name+1
-	print(hs_chr, 54+ci*10, 80, 2)
+	print(hs_chr, 48+ci*10, 80, 2)
 	-- underlines
-	for ci = #hs_name+2,3 do
- 	line(54+ci*10, 88, 54+ci*10+3, 88, 2)
+	for ci = #hs_name+1,3 do
+	 local c=2
+	 if (ci==#hs_name+1 and flr(t)%2==0) c=0
+ 	line(48+ci*10, 88, 48+ci*10+3, 88, c)
  end
 
 end
@@ -2064,7 +2067,7 @@ function load_wave()
 	wave.swarmers_loosed=0 -- temp during reset
 
 	if iwave==0 or ((iwave+1)%5==0) then
-  -- replenish
+  -- replenish - assumes starts at 0
 		wave.humans_added=max_humans-humans
 		humans+=wave.humans_added
 		-- todo: use humans_added to avoid re-adding (update: we now do this via add_humans_needed)
@@ -2078,14 +2081,14 @@ function load_wave()
  	wave.landers=0
  end
  
-	if	debug_test then
-		--wave_old = 1
-		--wave_progression=1
-		wave.landers=2 --1 --breaks null space
-		wave.mutants=0
-		--wave.bombers=min(1,wave.bombers)
-		--wave.pods=min(1,wave.pods)
-	end
+--	if	debug_test then
+--		--wave_old = 1
+--		--wave_progression=1
+--		wave.landers=2 --1 --breaks null space
+--		wave.mutants=0
+--		--wave.bombers=min(1,wave.bombers)
+--		--wave.pods=min(1,wave.pods)
+--	end
 end
 
 function add_enemies(ht)
