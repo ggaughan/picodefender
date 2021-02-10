@@ -6,7 +6,7 @@ __lua__
 -- remake of the williams classic
 
 debug=true
-debug_test=not debug  
+debug_test= debug  
 debug_kill=not debug
 
 epi_friendly=false
@@ -100,23 +100,25 @@ waves={
 		bombers=5,
 		pods=4,
 	},
+	
+	-- any missing from here on will take from wave 4
  {--5
 	 c=10,
-		landers=20,
-		bombers=5,
-		pods=4,
+--		landers=20,
+--		bombers=5,
+--		pods=4,
 	},
  {--6
 	 c=4,
-		landers=20,
-		bombers=5,
-		pods=4,
+--		landers=20,
+--		bombers=5,
+--		pods=4,
 	},
  {--7
 	 c=0,
-		landers=20,
-		bombers=5,
-		pods=4,
+--		landers=20,
+--		bombers=5,
+--		pods=4,
 	}
 }
 
@@ -723,10 +725,8 @@ function update_wave()
 	-- called regularly to top-up things
 	-- note: wave_progression hacked to call on wave re-start e.g. after player death
 	--t=time()
-	local age=t-wave.t_chunk  -- since last update
-	if age>wave_progression then
+	if t-wave.t_chunk>wave_progression then
   wave.t_chunk=t  -- reset
-		age=t-wave.t  -- total age
 		if	add_humans_needed then
 		 -- first call, add humans
 			-- note: do even if humans==0 to reset the flag: if humans > 0 then
@@ -734,7 +734,7 @@ function update_wave()
 			add_humans()
 		end
 
-		if wave.landers>0 or wave.mutants>0 or age>wave_old then	 
+		if wave.landers>0 or wave.mutants>0 or t-wave.t>wave_old then -- total age check
 		 --printh("add_enemies call at "..t)
 			add_enemies()
 		end
@@ -1039,7 +1039,7 @@ function start_game(full)
 		lasers={}
 		iwave=0  -- todo leave out?
 		if	debug_test then
-			--iwave=1
+			iwave=5
 		end
 		humans=0  -- topped up by load_wave
 		add_humans_needed=true
@@ -2039,13 +2039,13 @@ end
 
 function load_wave()
 	--local t=time()
-	local sw=waves[iwave%7+1]
+	local sw,w4=waves[iwave%7+1],waves[4]
 	-- copy
 	wave={
  	 c=sw.c,
- 		landers=sw.landers,
- 		bombers=sw.bombers,
- 		pods=sw.pods,	
+ 		landers=sw.landers or w4.landers,
+ 		bombers=sw.bombers or w4.bombers,
+ 		pods=sw.pods or w4.pods,	
  		
  		mutants=0,
  		
@@ -2098,10 +2098,10 @@ function add_enemies(ht)
 	if wave.landers>0 then
 	 make=min(wave.landers,5)
 		for e=1,make do
-		 local x=rnd(ww)
-		 local y=hudy+2
+		 --local x=rnd(ww)
+		 --local y=hudy+2
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(lander,x,y,ht)
+			l=make_actor(lander,rnd(ww),hudy+2,ht)
 			l.dy=lander_speed*lander_speed_y_factor
 			l.lazy=rnd(512)  -- higher = less likely to chase
 			--l.h=5
@@ -2130,11 +2130,11 @@ function add_enemies(ht)
 		wave.landers-=make
 	end
 	if wave.mutants>0 then
-	 make=wave.mutants
+	 make=wave.mutants  -- todo limit to 10 - but check if one-off temp counter?
 		for e=1,make do
-		 local x,y=rnd(ww),hudy+2
+		 --local x,y=rnd(ww),hudy+2
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(mutant,x,y,ht)
+			l=make_actor(mutant,rnd(ww),hudy+2,ht)
 			l.dy=mutant_speed*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy=rnd(512)  -- higher = less likely to chase
@@ -2147,15 +2147,15 @@ function add_enemies(ht)
 		wave.mutants-=make
 	end
 	if wave.bombers>0 then
-	 make=min(wave.bombers,3) -- ok?
+	 make=min(wave.bombers,3) 
 	 local groupx=rnd(ww)
 	 local groupdx=1
 		if (rnd()<0.5) groupdx*=-1
 		for e=1,make do
-		 local x=groupx+rnd(ww/20)
-		 local y=hudy+2+rnd(80)
+		 --local x=groupx+rnd(ww/20)
+		 --local y=hudy+2+rnd(80)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(bomber,x,y,ht)
+			l=make_actor(bomber,groupx+rnd(ww/20),hudy+2+rnd(80),ht)
 			l.dy=bomber_speed
  		if (rnd()<0.5) l.dy*=-1
 			l.dx=groupdx*bomber_speed
@@ -2167,11 +2167,11 @@ function add_enemies(ht)
  if wave.pods>0 then
 	 make=min(wave.pods,4) -- ok?
 		for e=1,make do
-		 local x,y=rnd(ww), hudy+2+rnd(30)
+		 --local x,y=rnd(ww), hudy+2+rnd(30)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(pod,x,y,ht)
-			l.dy=pod_speed
-			l.dx=pod_speed/4
+			l=make_actor(pod,rnd(ww),hudy+2+rnd(30),ht)
+			l.dy,l.dx=pod_speed,pod_speed/4
+			--l.dx=pod_speed/4
 			add_explosion(l,true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
 		end
@@ -2181,9 +2181,9 @@ function add_enemies(ht)
 	 make=wave.swarmers_loosed
 	 --refactor:share pod kill logic
 		for e=1,make do
-		 local x,y=rnd(ww), hudy+2+rnd(30)
+		 --local x,y=rnd(ww), hudy+2+rnd(30)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(swarmer,x,y,ht)
+			l=make_actor(swarmer,rnd(ww),hudy+2+rnd(30),ht)
 			l.dy=swarmer_speed/2
 			if (rnd()<0.5) l.dy*=-1  
 			-- don't go towards player at first: l.dx = swarmer_speed
@@ -2199,22 +2199,19 @@ function add_enemies(ht)
  -- baiters, if near end of wave
  if wave.baiters_generated<max_baiters then  -- todo adjust for iwave?
 		--local t=time()
-		local age=t-wave.t
-		if age>wave_old*2 or (wave.landers==0 and wave.bombers==0 and wave.pods==0) then
-			if age>wave_old*2 or (wave.mutants==0) then -- todo: include here? active xor this i think?
+		local very_old=(t-wave.t)>wave_old*2
+		if very_old or (wave.landers==0 and wave.bombers==0 and wave.pods==0) then
+			if very_old or (wave.mutants==0) then -- todo: include here? active xor this i think?
 				local ae=active_enemies(lander)+active_enemies(mutant) -- excludes baiters
-				if ae<5 or age>wave_old*2 then 
-					if age>wave_old then  -- todo adjust for iwave?	2,3,4+ need more time?		
+				if ae<5 or very_old then 
+					if t-wave.t>wave_old then  -- todo adjust for iwave?	2,3,4+ need more time?		
 					 make=1 -- remove: 5-ae 
-					 if ae<4 then
-							-- prime next one sooner
-							wave.t_chunk=t-wave_progression+baiter_next*ae
+					 if (ae<4) wave.t_chunk=t-wave_progression+baiter_next*ae  -- prime next one sooner						
 							--printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
-						end			 
 						for e=1,make do
-						 local x,y=rnd(ww),hudy+2
+						 --local x,y=rnd(ww),hudy+2
 							-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-							l=make_actor(baiter,x,y,ht)
+							l=make_actor(baiter,rnd(ww),hudy+2,ht)
 							l.dy=baiter_speed/3
 							l.lazy=-256  -- higher = less likely to chase
 							add_explosion(l,true)  -- reverse i.e. spawn
