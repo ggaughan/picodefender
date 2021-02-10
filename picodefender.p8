@@ -134,8 +134,8 @@ max_h_speed_factor=max_speed/48
 laser_expire=0.5
 laser_size=22  -- see rate
 laser_rate=4
-laser_max_length=100  -- cap
-laser_min_length=8  -- show something immediately
+laser_max_length=80  -- cap
+laser_min_length=1  -- show something immediately
 min_laser_speed=0.2 -- e.g. static ship, move away still
 laser_speed=2.0
 laser_min_effective_age=0.03  -- delay so it can be seen before being effective
@@ -1049,9 +1049,7 @@ end
 --draw
 
 function wtos(wx,wy)
-	local x=hc+((ocx+wx-cx)\hwr)%hudw
-	local y=wy\hhr
-	return x,y
+	return hc+((ocx+wx-cx)\hwr)%hudw,wy\hhr
 end
 
 function wxtoc(wx)
