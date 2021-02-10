@@ -60,16 +60,16 @@ demo={
 ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
 attrs={
-	[lander]={100,11,5,7,3},
-	[mutant]={150,11,5,7,3},
-	[baiter]={200,11,4,7,3},
-	[bomber]={250,14,4,4,3},
-	[pod]={1000,8,5,7,4},
-	[swarmer]={150,9,4,5,1},
+	[lander]={100,11,5,7,3,0.0025},
+	[mutant]={150,11,5,7,3,0.006},
+	[baiter]={200,11,4,7,3,0.015},
+	[bomber]={250,14,4,4,3,0.005},
+	[pod]={1000,8,5,7,4,1.00},
+	[swarmer]={150,9,4,5,1,0.004},
 	
-	[human]={500,6,6,3,2},
+	[human]={500,6,6,3,2,1.00},
 	
-	[bullet]={0,6,1,1,1},
+	[bullet]={0,6,1,1,1,1.00},
 }
 
 
@@ -2268,27 +2268,16 @@ function	reset_enemies()
 end
 
 function enemy_attack(e) 
+	local threshold=attrs[e.k][6]
+	if (threshold>=1) return -- no chance - todo remove if never calls here
 	-- todo wrap?
 	local exs=wxtoc(e.x)
  local fire=e.k==bomber or (exs>=0 and exs<128) -- on-screen, or bomber lays mines off screen
 	-- note: on screen -> (abs(e.x-pl.x)<128) since player on-screen 
 	if fire then   
-	 -- todo move rnd to table
-
-	 -- todo elseif more efficient	- no: rnd-lookup first
-		--if ((e.k==lander) and (wxtoc(e.x)>128 or wxtoc(e.x)<0)) fire=false  -- off screen
-
-		if (e.k==lander and rnd()>0.0025) fire=false
-		if (e.k==mutant and rnd()>0.006) fire=false
-
-		-- todo wrap?								
-		--if (e.k==baiter and (abs(e.x-pl.x)>128 or rnd()>0.015)) fire=false -- todo higher rnd?	
-		if (e.k==baiter and rnd()>0.015) fire=false -- todo higher rnd?	
-		--if (e.k==swarmer and (abs(e.x-pl.x)>128 or not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
-		if (e.k==swarmer and (not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
-					-- swarmer may not be chasing yet or chasing but gone past so stop firing (todo:for now)
-
-		if (e.k==bomber and rnd()>0.005) fire=false
+		if (rnd()>threshold) fire=false
+		if (e.k==swarmer and (not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)))) fire=false 
+			-- swarmer may not be chasing yet or chasing but gone past so stop firing
 		
 		if fire then
 			local this_sound=(sound and e.k~=bomber)
