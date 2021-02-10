@@ -2269,24 +2269,28 @@ end
 
 function enemy_attack(e) 
 	-- todo wrap?
- local fire=(e.k==bomber or (abs(e.x-pl.x)<128))  -- bomber lays mines
+	local exs=wxtoc(e.x)
+ local fire=e.k==bomber or (exs>=0 and exs<128) -- on-screen, or bomber lays mines off screen
+	-- note: on screen -> (abs(e.x-pl.x)<128) since player on-screen 
 	if fire then   
 	 -- todo move rnd to table
 
 	 -- todo elseif more efficient	- no: rnd-lookup first
-		if ((e.k==lander) and (wxtoc(e.x)>128 or wxtoc(e.x)<0)) fire=false  -- off screen
+		--if ((e.k==lander) and (wxtoc(e.x)>128 or wxtoc(e.x)<0)) fire=false  -- off screen
 
 		if (e.k==lander and rnd()>0.0025) fire=false
 		if (e.k==mutant and rnd()>0.006) fire=false
 
 		-- todo wrap?								
-		if (e.k==baiter and (abs(e.x-pl.x)>128 or rnd()>0.015)) fire=false -- todo higher rnd?	
-		if (e.k==swarmer and (abs(e.x-pl.x)>128 or not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
+		--if (e.k==baiter and (abs(e.x-pl.x)>128 or rnd()>0.015)) fire=false -- todo higher rnd?	
+		if (e.k==baiter and rnd()>0.015) fire=false -- todo higher rnd?	
+		--if (e.k==swarmer and (abs(e.x-pl.x)>128 or not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
+		if (e.k==swarmer and (not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)) or rnd()>0.004)) fire=false -- todo differ rnd from mutant
 					-- swarmer may not be chasing yet or chasing but gone past so stop firing (todo:for now)
 
 		if (e.k==bomber and rnd()>0.005) fire=false
 		
-		if fire then		
+		if fire then
 			local this_sound=(sound and e.k~=bomber)
 			-- move sfx # to table (and allow none)
 		 if (this_sound) sfx(7)  -- todo not if baiter? why? another sound!? also for swarmer
