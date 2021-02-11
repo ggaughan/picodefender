@@ -9,7 +9,7 @@ debug=true
 debug_test= not debug  
 debug_kill=not debug
 
-epi_friendly=false
+cart0=0  -- 32 bits: 0=epi_friendly
 
 t=time()
 
@@ -193,11 +193,20 @@ hs_chr="a"
 --	max_humans = 1
 --end
 
+function toggle_bit1()
+	epi_friendly,cc=not epi_friendly,10
+	cart0^^=0b0001
+	dset(0, cart0)
+end
+
 function _init()
 	cart_exists=cartdata("ggaughan_picodefender_1")
+	if (cart_exists)	cart0=dget(0)
+	-- todo else prompt/delay flashing?
+	epi_friendly=cart0&0b0001!=0
 
 	-- todo save on cart?
-	menuitem(1,"toggle flashing", function() epi_friendly,cc=not epi_friendly,10 end)
+	menuitem(1,"toggle flashing",toggle_bit1)
 
 	w={}  -- ground level
 	sw={} -- scanner ground summary
@@ -238,7 +247,7 @@ function _init()
 	
 	-- palette rotate	
 	pt=t --time()
-	cc=1
+	cc=10
 	
 	extra_score=nil
 --	bombing_t=nil  
@@ -2287,7 +2296,7 @@ end
 function load_highscores()
 	if cart_exists then
 	 -- note: 8 slots hardcoded here
-		-- note: bytes 0+1 for future use
+		-- note: numbers 0+1 for future use (8 bytes)
 		for hs=1,8 do
 			local name=nil  -- i.e. stored as 0
 			local hso=0x5e00+(hs*8)
