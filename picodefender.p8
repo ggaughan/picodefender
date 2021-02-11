@@ -1522,7 +1522,8 @@ function _draw_wave()
 			else
 				cls()
 			end
-			camera(2-rnd(2), 2-rnd(2))
+			local shake=4*easeinoutquad(age/bombing_e)
+			camera(shake-rnd(shake), shake-rnd(shake))
 		else
 			camera(0,0)
 			bombing_t=nil
