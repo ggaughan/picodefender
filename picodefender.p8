@@ -1392,6 +1392,7 @@ function _draw_title()
 			end
 		end
 	end
+	-- todo? if (not cart_exists) print("press pause to turn off flashing", 0, hudy+60)
 	
 	local o = hudy+78
 
@@ -2318,7 +2319,9 @@ function load_highscores()
 	else
  	--printh("skipped dget: not cart_exists")
 	 -- todo: better score + add via add_highscore to ensure they're kept in order!
-	 highscores[alltime][1]={"gjg", 21270>>16}
+	 --highscores[alltime][1]={"drj", 21270>>16}
+		add_highscore(21270>>16,"drj",false)
+		add_highscore(21260>>16,"gjg",false)
 	end
   
 	-- todo reinstate!
