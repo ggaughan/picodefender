@@ -423,13 +423,10 @@ function _update60_wave()
 	end
 end
 
-function update_enemy(e,target,nearx,yt,yb,chasex,flipx,chasey,flipy,closex,closey,dyfactor,attack)
+function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfactor,attack)
  	chasex=chasex~=false
- 	chasey=chasey~=false
-		flipx=flipx or 0
-		flipy=flipy or 0
-		closex=closex or 0
-		closey=closey or 0
+		flipx,flipy=flipx or 0,flipy or 0
+		closex,closey=closex or 0,closey or 0
 		dyfactor=dyfactor or 1
 		attack=attack~=false
 		local rand=rnd()	
@@ -451,20 +448,18 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,chasey,flipy,closex,clos
 		else
 			-- close in - don't ram
 		 e.dx*=0.96+rnd(0.08)  -- todo param inertia
-		 if rand<0.99 then
-			 -- todo wrap/bug
-				e.dx=sgn(e.x-pl.x) 
-			end
+		 -- todo wrap/bug
+		 if (rand<0.2) e.dx=sgn(e.x-pl.x)
 		 if (rnd()<0.02) e.dx*=-1  -- random move
 		end
 		
 		local dy=abs(e.y-target.y)
 		if dy>closey then
-			-- todo extend 120 down a bit?		 
+			-- todo extend 120 down a bit?
 		 if (
-		 				(e.y<hudy+yt and ((chasey and target and e.y<target.y) or not chasey) and e.dy<0) 
+		 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
 		 				or
-		 				(e.y>120-yb and ((chasey and target and e.y>target.y) or not chasey) and e.dy>0)
+		 				(e.y>120-yb and e.y>target.y and e.dy>0)
 		 ) then
 		 	--printh(e.y.." yflip for "..target.y.." "..tostr(chasey).." "..yt)
 		 	e.dy*=-1*dyfactor
@@ -472,9 +467,7 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,chasey,flipy,closex,clos
 		else
 			-- close in - don't ram
 			e.dy=0
-		 if rand<flipy then
-			 e.dy=-sgn(e.y-target.y) -- move away
-			end
+		 if (rand<flipy) e.dy=-sgn(e.y-target.y) -- move away
 		 if (rnd()<0.02) e.dx*=-1  -- random move
 		 -- todo remove: not bug! if (rnd()<0.02) e.dy*=-1  -- random move
 		end
@@ -497,6 +490,7 @@ function update_enemies()
 					local x,y=laser[1],laser[2]			
 					local tl=age*laser_size*laser_rate
 					local tx=x+(laser[3]*tl) -- no wrap, could be -ve
+					-- todo maybe check if e on screen
 					-- no wrap e.x, to match tx (side handles wrap)
 					if (laser[3]>0 and side(x,e.x,laser[3]) and tx>(e.x+e.xl+e.dx) 
 					   or 
@@ -584,15 +578,15 @@ function update_enemies()
 								e.target.dy=gravity_speed  -- for if/when dropped
 								e.target.dx=0 -- stop any walking
 								sfx(10)
---						 elseif e.x<e.target.x then
---							 e.dx=lander_speed
---			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
---							else
---							 e.dx = -lander_speed
---			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+						 elseif e.x<e.target.x then
+							 e.dx=lander_speed
+			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
 							else
-							 -- note: pass no attack
-								update_enemy(e,e.target,ww,90,-20,true,0,false,0,0,0,1,false)
+							 e.dx = -lander_speed
+			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+--							else
+--							 -- note: pass no attack
+--								update_enemy(e,e.target,ww,90,-30,true,0,false,0,0,0,1,false)
 						 end			
 	 				else
 	 					-- will bounce up and down
@@ -631,7 +625,7 @@ function update_enemies()
 						-- todo less overlap with other baiters
 						-- todo wrap/bug?
 						-- todo bug?? or tune: flipx not 0.99 but 0.01?
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,true,0.1,32+rnd(16),16+rnd(16),3)
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,0.1,32+rnd(16),24+rnd(16),3)
 						
 --						local dx=abs(e.x-pl.x)
 --						if dx>32+rnd(16) then
@@ -681,7 +675,7 @@ function update_enemies()
 					elseif e.k == swarmer then
 						-- ai
 						-- todo overshoot
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(40),rnd(40),false,0.05,false,0)
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(40),rnd(40),false,0.05,0)
 						
 --						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
 --						 if e.dx==0 then
@@ -1790,7 +1784,9 @@ function add_bullet(x, y, from, track)
 		end
 	end
  -- todo here: add miss-factor!
- tx+=rnd(16-min(iwave,7)*2)
+ local miss=30-min(iwave,24)
+ tx+=rnd(miss)
+ ty+=rnd(miss*0.5)
  -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
 	b.dx=(tx-b.x)*bv
  b.dy=(ty-b.y)*bv
@@ -2263,10 +2259,11 @@ function add_enemies(ht)
  if wave.swarmers_loosed>0 then
 	 make=wave.swarmers_loosed
 	 --refactor:share pod kill logic
+	 local groupx=rnd(ww)
 		for e=1,make do
 		 --local x,y=rnd(ww), hudy+2+rnd(30)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
-			l=make_actor(swarmer,rnd(ww),hudy+2+rnd(30),ht)
+			l=make_actor(swarmer,groupx+rnd(20),hudy+2+rnd(60),ht)
 			l.dy=attrs[swarmer][7]/2
 			if (rnd()<0.5) l.dy*=-1  
 			-- don't go towards player at first: l.dx = swarmer_speed
