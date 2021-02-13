@@ -15,19 +15,25 @@ t=time()
 
 today,alltime=1,2
 e_hs={nil,0}
-highscores = {
+highscores={
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
+init_hs={
+ ["drj"]=21270>>16,
+ ["sam"]=18315>>16,
+ --["led"]=15920>>16,
+ --["pgd"]=14285>>16,
+ ["gjg"]=13333>>16,
+}
 
-ww=128*9  --1152
-cx=128*4
+ww,cx=1152,512  --128*9 --128*4
 ocx=cx
 
-hc=128/4
+hc=32    --128/4
 hudy,hudw=12,hc*2
 hwr=ww/hudw
-hhr=(128-4-hudy)/hudy+1
+hhr=(124-hudy)/hudy+1
 lmax=82
 
 human=7
@@ -211,7 +217,7 @@ function _init()
 	w={}  -- ground level
 	sw={} -- scanner ground summary
 	stars={}
-	cx=128*4
+	cx=512  --128*4
  cdx=0
  canim,canim_dx=0,0
 
@@ -468,10 +474,8 @@ function update_enemies()
 --					 printh(debug_data[2].." "..debug_data[4])
 --					 _update60=_update60_debug_stop
 --					else
-					if not debug_kill then
-		 			e.hit=t
-				 	kill_player(e)
-				 end
+  			e.hit=t
+			 	kill_player(e)
 				end
 			else -- human - can we catch it?
 				-- note: no need to wrap assumes will line up on x at some point - if not we could wrap in wxtoc
@@ -1318,12 +1322,7 @@ function draw_stars()
 				end
 	
 				if star[1]>((ww/star[3])-128) then
-	 			if col==14 then
-	 				--all! how!? 
-	 				--col = 11  --new+fade?
-	 			else
-						col=12  --fade or new depending on dir
-					end
+	 			if (col~=14) col=12  --fade or new depending on dir
 	 		end
 			end
 
@@ -1507,7 +1506,7 @@ function _draw_end_wave()
 		-- note: already increased score
 		reset_player()
 	 
-		iwave+=1
+		iwave=(iwave+1)%256
 		load_wave()
 		-- prime the spawning
 		--local t=time()
@@ -1788,7 +1787,7 @@ end
 
 function kill_actor(e, laser, explode)
  --local t=time()
-	if (explode==nil) explode=true
+	explode=explode~=false
 	--print("explode "..tostr(explode))
  if explode then
 		if not(e.k==bullet or e.k==mine) then
@@ -2100,7 +2099,7 @@ end
 
 function add_enemies(ht)
  -- note: pass in ht to override make_actor hit time
- if (ht==nil) ht=t -- time()
+ ht=ht or t -- time()
  --local t=time()
  local sound=not(ht>t) -- if ht>t we don't fire sfx - i.e. assume game starting music is playing
  -- see reset_enemies for undo
@@ -2322,9 +2321,12 @@ function load_highscores()
 	else
  	--printh("skipped dget: not cart_exists")
 	 -- todo: better score + add via add_highscore to ensure they're kept in order!
+	 for i,s in pairs(init_hs) do
+	 	add_highscore(s,i,false)
+ 	end
 	 --highscores[alltime][1]={"drj", 21270>>16}
-		add_highscore(21270>>16,"drj",false)
-		add_highscore(21260>>16,"gjg",false)
+		--add_highscore(21270>>16,"drj",false)
+		--add_highscore(21260>>16,"gjg",false)
 	end
   
 	-- todo reinstate!
@@ -2343,7 +2345,8 @@ end
 function add_highscore(score, name, new)
 	-- assumes caller already knows we have a highscore (e.g. checked against [8])
 	-- pass new=false if loading from cdata, i.e. don't try to store = cycle!
-	if (new==nil) new=true
+	--new=new or true
+	new=new~=false
 	local start_board=today
 	if (not new) start_board=alltime  -- don't load cart/alltime into today
  -- find position 
@@ -2364,27 +2367,27 @@ function add_highscore(score, name, new)
  		 -- todo >>16 here? or caller?
 		 	hste[pos+1]={name, score}
 		 	
-		 	if hst==alltime and new then
+		 	if hst==alltime and (new or not cart_exists) then
 					--printh("writing alltime highscore to cart "..name..":"..score.." at "..pos+1)
-					if true then -- todo remove: cart_exists then
-					 -- note: 8 slots hardcoded here
-						-- note: bytes 0+1 for future use
-						for hs=1,8 do
-							local hso=0x5e00+(hs*8)
-						 local hs_name=hste[hs][1]
-						 local name_bytes=0  -- i.e. nil = not set
-						 if hs_name ~= nil then
-							 poke(hso+0, ord(sub(hs_name,1,1))) 
-        poke(hso+1, ord(sub(hs_name,2,2)))
-								poke(hso+2, ord(sub(hs_name,3,3)))
-								poke(hso+3, ord(chr(0)))
-								--printh("!"..hs_name.." "..name_bytes)
-							end
-							dset(hs*2+1, hste[hs][2])
-						end 			 
-					else
-						--printh("failed dset: not cart_exists")
-					end
+					--if true then -- todo remove: cart_exists then
+				 -- note: 8 slots hardcoded here
+					-- note: bytes 0+1 for future use
+					for hs=1,8 do
+						local hso=0x5e00+(hs*8)
+					 local hs_name=hste[hs][1]
+					 local name_bytes=0  -- i.e. nil = not set
+					 if hs_name ~= nil then
+						 poke(hso+0, ord(sub(hs_name,1,1))) 
+       poke(hso+1, ord(sub(hs_name,2,2)))
+							poke(hso+2, ord(sub(hs_name,3,3)))
+							poke(hso+3, ord(chr(0)))
+							--printh("!"..hs_name.." "..name_bytes)
+						end
+						dset(hs*2+1, hste[hs][2])
+					end 			 
+					--else
+					--	--printh("failed dset: not cart_exists")
+				 --end
 		 	end
 		 -- else assert
 		 end	
