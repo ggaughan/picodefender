@@ -22,8 +22,8 @@ highscores={
 init_hs={
  ["drj"]=21270>>16,
  ["sam"]=18315>>16,
- --["led"]=15920>>16,
- --["pgd"]=14285>>16,
+ ["led"]=15920>>16,
+ ["pgd"]=14285>>16,
  ["gjg"]=13333>>16,
 }
 
@@ -66,16 +66,17 @@ demo={
 ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
 attrs={
-	[lander]={100,11,5,7,3,0.0025},
-	[mutant]={150,5,5,7,3,0.006},
-	[baiter]={200,11,4,7,3,0.015},
-	[bomber]={250,14,4,4,3,0.005},
-	[pod]={1000,8,5,7,4,1.00},
-	[swarmer]={150,9,4,5,1,0.004},
+	-- points,colour,w,h,frames,attack-prob,speed
+	[lander]={100,11,5,7,3,0.0025,0.15},
+	[mutant]={150,5,5,7,3,0.006,0.3},
+	[baiter]={200,11,4,7,3,0.015,2.2},
+	[bomber]={250,14,4,4,3,0.005,0.3},
+	[pod]={1000,8,5,7,4,1.00,0.2},
+	[swarmer]={150,9,4,5,1,0.004,0.7},
 	
-	[human]={500,6,6,3,2,1.00},
+	[human]={500,6,6,3,2,1.00,0.02},
 	
-	[bullet]={0,6,1,1,1,1.00},
+	[bullet]={0,6,1,1,1,1.00,0.02},
 }
 
 
@@ -140,23 +141,23 @@ max_h_speed_factor=max_speed/48
 laser_expire=0.5
 laser_size=22  -- see rate
 laser_rate=4
-laser_max_length=80  -- cap
+laser_max_length=70  -- cap
 laser_min_length=1  -- show something immediately
 min_laser_speed=0.2 -- e.g. static ship, move away still
 laser_speed=2.0
 laser_min_effective_age=0.03  -- delay so it can be seen before being effective
 laser_inertia=0.999
 
-lander_speed=0.15
+lander_speed=attrs[lander][7]  -- todo attrs[7]
 lander_speed_y_factor=2
-mutant_speed=0.3
-baiter_speed=2.2  -- faster than player  -- todo set to max_speed*factor?
-bomber_speed=0.3
-pod_speed=0.2
-swarmer_speed=0.7
+--mutant_speed=0.3  -- todo attrs[7]
+--baiter_speed=2.2  -- faster than player  -- todo set to max_speed*factor?
+--bomber_speed=0.3
+--pod_speed=0.2
+--swarmer_speed=0.7  -- todo attrs[7]
 swarmer_inertia=1 --0.99
 bullet_expire=1.4  -- todo depend on actual bullet_speed?
-bullet_speed=0.02
+--bullet_speed=0.02
 mine_expire=6
 
 particle_expire=0.8
@@ -169,7 +170,7 @@ old_particle=1
 enemy_die_expire=1
 
 max_humans=10
-human_speed=0.02
+--human_speed=0.02
 target_x_epsilon=3
 target_y_epsilon=4
 capture_targetted=1
@@ -422,6 +423,65 @@ function _update60_wave()
 	end
 end
 
+function update_enemy(e,target,nearx,yt,yb,chasex,flipx,chasey,flipy,closex,closey,dyfactor,attack)
+ 	chasex=chasex~=false
+ 	chasey=chasey~=false
+		flipx=flipx or 0
+		flipy=flipy or 0
+		closex=closex or 0
+		closey=closey or 0
+		dyfactor=dyfactor or 1
+		attack=attack~=false
+		local rand=rnd()	
+		-- todo remove if target - always given?
+		-- todo wrap?
+		local dx=abs(e.x-target.x)
+		if dx>closex then
+			if dx<nearx then
+			 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
+			 local s=attrs[e.k][7]	 
+				if chasex or e.dx==0 then
+				 if e.x<target.x or rand<flipx then
+					 e.dx=s
+					else
+					 e.dx=-s
+				 end
+				end
+			end
+		else
+			-- close in - don't ram
+		 e.dx*=0.96+rnd(0.08)  -- todo param inertia
+		 if rand<0.99 then
+			 -- todo wrap/bug
+				e.dx=sgn(e.x-pl.x) 
+			end
+		 if (rnd()<0.02) e.dx*=-1  -- random move
+		end
+		
+		local dy=abs(e.y-target.y)
+		if dy>closey then
+			-- todo extend 120 down a bit?		 
+		 if (
+		 				(e.y<hudy+yt and ((chasey and target and e.y<target.y) or not chasey) and e.dy<0) 
+		 				or
+		 				(e.y>120-yb and ((chasey and target and e.y>target.y) or not chasey) and e.dy>0)
+		 ) then
+		 	--printh(e.y.." yflip for "..target.y.." "..tostr(chasey).." "..yt)
+		 	e.dy*=-1*dyfactor
+		 end
+		else
+			-- close in - don't ram
+			e.dy=0
+		 if rand<flipy then
+			 e.dy=-sgn(e.y-target.y) -- move away
+			end
+		 if (rnd()<0.02) e.dx*=-1  -- random move
+		 -- todo remove: not bug! if (rnd()<0.02) e.dy*=-1  -- random move
+		end
+
+		if (attack) enemy_attack(e)
+end
+
 function update_enemies()
 	--local t = time()
 	for e in all(actors) do
@@ -514,7 +574,7 @@ function update_enemies()
 						 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
  					 		e.c=attrs[mutant][2]
 						 		e.lazy=0  -- todo or remove altogether?
-									l.dy=mutant_speed*lander_speed_y_factor
+									l.dy=attrs[mutant][7]*lander_speed_y_factor
 						 	end
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
 						 	--printh("capturing! "..e.x.." "..e.target.x)
@@ -524,20 +584,22 @@ function update_enemies()
 								e.target.dy=gravity_speed  -- for if/when dropped
 								e.target.dx=0 -- stop any walking
 								sfx(10)
-						 elseif e.x<e.target.x then
-							 e.dx=lander_speed
-			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+--						 elseif e.x<e.target.x then
+--							 e.dx=lander_speed
+--			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+--							else
+--							 e.dx = -lander_speed
+--			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
 							else
-							 e.dx = -lander_speed
-			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+							 -- note: pass no attack
+								update_enemy(e,e.target,ww,90,-20,true,0,false,0,0,0,1,false)
 						 end			
 	 				else
 	 					-- will bounce up and down
 							if rnd()<0.2 then
 								e.dx=lander_speed/4
-							elseif rnd()<0.2 then
-								e.dx=-lander_speed/4
-							elseif rnd()<0.2 then
+								if (rnd()<0.2) e.dx*=-1
+							elseif rnd()<0.05 then
 								e.dx=0
 							end
 						end				
@@ -545,98 +607,106 @@ function update_enemies()
 						enemy_attack(e)
 					elseif e.k==mutant then
 						-- ai
-						-- todo remove lazy now? use for other type
-						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
-						 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
-						 if e.x<pl.x then
-							 e.dx=mutant_speed
-							else
-							 e.dx=-mutant_speed
-						 end
-						 
-						 if e.y<hudy+rnd(20) and e.y<pl.y and e.dy<0 then
-						 	e.dy *= -1
-						 elseif e.y>120-rnd(20) and e.y>pl.y and e.dy>0 then
-						 	e.dy *= -1
-						 end
-						end
-	
-						enemy_attack(e)
+						-- todo remove lazy now? use for other type				
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(20),rnd(20))
+						
+--						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
+--						 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
+--						 if e.x<pl.x then
+--							 e.dx=mutant_speed
+--							else
+--							 e.dx=-mutant_speed
+--						 end
+--						 
+--						 if e.y<hudy+rnd(20) and e.y<pl.y and e.dy<0 then
+--						 	e.dy *= -1
+--						 elseif e.y>120-rnd(20) and e.y>pl.y and e.dy>0 then
+--						 	e.dy *= -1
+--						 end
+--						end
+--	
+--						enemy_attack(e)
 					elseif e.k==baiter then
 						-- ai
 						-- todo less overlap with other baiters
 						-- todo wrap/bug?
-						local dx=abs(e.x-pl.x)
-						if dx>32+rnd(16) then
-							-- todo need lazy here? yes to vary baiters
-							if dx<(rnd(256)-e.lazy) then
-							 if e.x<pl.x then
-								 e.dx=baiter_speed
-								else
-								 e.dx=-baiter_speed
-							 end
-							end
-						else 
-	 					-- don't get too close
-	 				 e.dx*=0.96+rnd(0.08)  -- todo var inertia
-	 				 if rnd()<0.99 then
-		 				 -- todo wrap/bug
-		 				 -- todo sgn()
-		 				 if (e.x<pl.x) e.dx=-1  -- rand away
-		 				 if (e.x>pl.x) e.dx=1  -- rand away
-		 				end
-	 				 if rnd()<0.02 then
-	 				  e.dx*=-1  -- random move
-	 				 end
-						end	 
-						local dy=abs(e.y-pl.y) 
-						if dy>16+rnd(16) then
-						 if e.y<hudy+rnd(30) or (e.y<pl.y and e.dy<=0) then
-						 	e.dy=baiter_speed/3
-						 elseif e.y>120-rnd(30) or (e.y>pl.y and e.dy>=0) then
-						 	e.dy*=-baiter_speed/3
-						 end
-						else
-							-- don't get too close/ram
-							e.dy=0
-	 				 if rnd()<0.1 then
-		 				 -- todo sgn()
-		 				 if (e.y<pl.y) e.dy=-1  -- rand away
-		 				 if (e.y>pl.y) e.dy=1  -- rand away
-		 				end
-	 				 if (rnd()<0.02) e.dx*=-1  -- random move
-						end
-	
-					 enemy_attack(e)
+						-- todo bug?? or tune: flipx not 0.99 but 0.01?
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,true,0.1,32+rnd(16),16+rnd(16),3)
+						
+--						local dx=abs(e.x-pl.x)
+--						if dx>32+rnd(16) then
+--							-- todo need lazy here? yes to vary baiters
+--							if dx<(rnd(256)-e.lazy) then
+--							 if e.x<pl.x then
+--								 e.dx=baiter_speed
+--								else
+--								 e.dx=-baiter_speed
+--							 end
+--							end
+--						else 
+--	 					-- don't get too close
+--	 				 e.dx*=0.96+rnd(0.08)  -- todo var inertia
+--	 				 if rnd()<0.99 then
+--		 				 -- todo wrap/bug
+--		 				 -- todo sgn()
+----		 				 if (e.x<pl.x) e.dx=-1  -- rand away
+----		 				 if (e.x>pl.x) e.dx=1  -- rand away
+--								e.dx=sgn(e.x-pl.x)
+--		 				end
+--	 				 if rnd()<0.02 then
+--	 				  e.dx*=-1  -- random move
+--	 				 end
+--						end	 
+--						local dy=abs(e.y-pl.y) 
+--						if dy>16+rnd(16) then
+--						 if e.y<hudy+rnd(30) or (e.y<pl.y and e.dy<=0) then
+--						 	e.dy=baiter_speed/3
+--						 elseif e.y>120-rnd(30) or (e.y>pl.y and e.dy>=0) then
+--						 	e.dy*=-baiter_speed/3
+--						 end
+--						else
+--							-- don't get too close/ram
+--							e.dy=0
+--	 				 if rnd()<0.1 then
+--		 				 -- todo sgn()
+--		 				 if (e.y<pl.y) e.dy=-1  -- rand away
+--		 				 if (e.y>pl.y) e.dy=1  -- rand away
+--		 				end
+--	 				 if (rnd()<0.02) e.dx*=-1  -- random move
+--						end
+--					 enemy_attack(e)
 					elseif e.k==bomber then
 					 if (e.y<hudy+rnd(30) or e.y>120-rnd(30)) e.dy*=-1
 					 enemy_attack(e)
 					elseif e.k == swarmer then
 						-- ai
 						-- todo overshoot
-						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
-						 if e.dx==0 then
-							 if e.x<pl.x or rnd()<0.05 then
-								 e.dx=swarmer_speed
-								else
-								 e.dx=-swarmer_speed
-							 end
-							-- else already chasing - don't turn -- todo do eventually!
-							end
-	
-							-- todo undulate: delay between y flips?					 
-							--      or sin(e.t)?
-						 if e.y<hudy+rnd(40) and e.y<pl.y and e.dy<0 then
-						 	e.dy*=-1
-						 elseif e.y>120-rnd(40) and e.y>pl.y and e.dy>0 then
-						 	e.dy*=-1
-						 end
-						end
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(40),rnd(40),false,0.05,false,0)
+						
+--						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
+--						 if e.dx==0 then
+--							 if e.x<pl.x or rnd()<0.05 then
+--								 e.dx=swarmer_speed
+--								else
+--								 e.dx=-swarmer_speed
+--							 end
+--							-- else already chasing - don't turn -- todo do eventually!
+--							end
+--	
+--							-- todo undulate: delay between y flips?					 
+--							--      or sin(e.t)?
+--						 if e.y<hudy+rnd(40) and e.y<pl.y and e.dy<0 then
+--						 	e.dy*=-1
+--						 elseif e.y>120-rnd(40) and e.y>pl.y and e.dy>0 then
+--						 	e.dy*=-1
+--						 end
+--						end
 						-- overshoot?/don't get too close
+						-- todo move into update_enemy
 					 e.dx*=swarmer_inertia --+rnd(0.08)  -- todo remove?
 					 -- todo maybe if e.dx < limit set e.dx=0 and can chase again
 
- 					enemy_attack(e)	
+ 					--enemy_attack(e)	
 					elseif e.k==mine then
 				 	if (t-e.t>mine_expire) del(actors,e)
 					elseif e.k==bullet then
@@ -1687,8 +1757,8 @@ function add_bullet(x, y, from, track)
  -- note: also creates mines
  --local t=time()
 	b=make_actor(bullet,x,y)
-	local bv = bullet_speed
-	if (from and from.k==baiter) bv *= 1.6
+	local bv = attrs[bullet][7]
+	if (from and from.k==baiter) bv*=1.2
 	-- todo for some, hang around player?
 	local tx,ty=pl.x,pl.y  -- aim at player
 	-- todo if bad aimer, add miss (slow bv does this to some extent)
@@ -1720,6 +1790,7 @@ function add_bullet(x, y, from, track)
 		end
 	end
  -- todo here: add miss-factor!
+ tx+=rnd(16-min(iwave,7)*2)
  -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
 	b.dx=(tx-b.x)*bv
  b.dy=(ty-b.y)*bv
@@ -1850,7 +1921,7 @@ function kill_actor(e, laser, explode)
 		 for sw=1,make do
 			 local x,y=e.x+rnd(3),e.y+rnd(6)
 				l=make_actor(swarmer,x,y)  -- no time = show immediately
-				l.dy=swarmer_speed/2
+				l.dy=attrs[swarmer][7]/2
 				if (rnd()<0.5) l.dy*=-1  
 				-- don't go towards player at first: l.dx = swarmer_speed
 				-- if (rnd()<0.5) l.dx *= -1
@@ -1901,11 +1972,12 @@ function kill_actor(e, laser, explode)
 		 	-- convert any existing landers to mutants
 		 	for a in all(actors) do
 		 		if a.k==lander then
+		 		 --todo refactor/share
 		 			--printh("converting lander to mutant after null space (all humans dead) "..a.x)
 		 			a.k=mutant
 			 		a.c=attrs[mutant][2]
 			 		a.lazy=0  -- todo or remove altogether?
-						a.dy=mutant_speed*lander_speed_y_factor
+						a.dy=attrs[mutant][7]*lander_speed_y_factor
 		 		end
 		 	end
 				wave.mutants+=wave.landers
@@ -2002,7 +2074,7 @@ function add_humans()
 	 local x=rnd(ww)  -- todo groups?
 	 local y=120-flr(rnd(4))
 		h=make_actor(human,x,y,time())
-		h.dx=rnd(human_speed)  
+		h.dx=rnd(attrs[human][7])  
 		if (rnd()>0.5) h.dx=h.dx*-1
 		-- todo rnd frame?
 		h.capture=nil
@@ -2087,8 +2159,9 @@ function load_wave()
  	wave.landers=0
  end
  
---	if	debug_test then
---		--wave_old = 1
+--	if	true then
+--		wave_old=1
+--	end
 --		--wave_progression=1
 --		wave.landers=2 --1 --breaks null space
 --		wave.mutants=0
@@ -2144,7 +2217,7 @@ function add_enemies(ht)
 		 --local x,y=rnd(ww),hudy+2
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(mutant,rnd(ww),hudy+2,ht)
-			l.dy=mutant_speed*lander_speed_y_factor
+			l.dy=attrs[mutant][7]*lander_speed_y_factor
 			-- todo remove lazy here?
 			l.lazy=rnd(512)  -- higher = less likely to chase
 			--l.h=5
@@ -2165,9 +2238,9 @@ function add_enemies(ht)
 		 --local y=hudy+2+rnd(80)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,groupx+rnd(ww/20),hudy+2+rnd(80),ht)
-			l.dy=bomber_speed
+			l.dy=attrs[bomber][7]
+			l.dx=groupdx*l.dy
  		if (rnd()<0.5) l.dy*=-1
-			l.dx=groupdx*bomber_speed
 			add_explosion(l,true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
 		end
@@ -2179,7 +2252,8 @@ function add_enemies(ht)
 		 --local x,y=rnd(ww), hudy+2+rnd(30)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,rnd(ww),hudy+2+rnd(30),ht)
-			l.dy,l.dx=pod_speed,pod_speed/4
+			l.dy=attrs[pod][7]
+			l.dx=l.dy/4
 			--l.dx=pod_speed/4
 			add_explosion(l,true)  -- reverse i.e. spawn
 			if (sound) sfx(2)  -- todo: if on screen
@@ -2193,7 +2267,7 @@ function add_enemies(ht)
 		 --local x,y=rnd(ww), hudy+2+rnd(30)
 			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(swarmer,rnd(ww),hudy+2+rnd(30),ht)
-			l.dy=swarmer_speed/2
+			l.dy=attrs[swarmer][7]/2
 			if (rnd()<0.5) l.dy*=-1  
 			-- don't go towards player at first: l.dx = swarmer_speed
 			-- if (rnd()<0.5) l.dx *= -1
@@ -2221,7 +2295,7 @@ function add_enemies(ht)
 						 --local x,y=rnd(ww),hudy+2
 							-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 							l=make_actor(baiter,rnd(ww),hudy+2,ht)
-							l.dy=baiter_speed/3
+							l.dy=attrs[baiter][7]/3
 							l.lazy=-256  -- higher = less likely to chase
 							add_explosion(l,true)  -- reverse i.e. spawn
 							if (sound) sfx(2)  -- todo: if on screen
