@@ -1392,9 +1392,9 @@ function _draw_title()
 			end
 		end
 	end
-	-- todo? if (not cart_exists) print("press pause to turn off flashing", 0, hudy+60)
+	if (not epi_friendly and not cart_exists) print("press p to turn off flashing", 8, hudy+60)
 	
-	local o = hudy+78
+	local o=hudy+78
 
 	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
@@ -1557,7 +1557,7 @@ function _draw_wave()
 	draw_player()
 
 --todo reinstate		
-	if debug then
+--	if debug then
 --		print(cx,1,120,1)
 --		print(pl.x,48,120)
 --		--print(cdx,1,6)
@@ -1570,7 +1570,7 @@ function _draw_wave()
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
-	end
+--	end
 end
 
 -->8
@@ -2307,6 +2307,7 @@ function load_highscores()
 			local c1=peek(hso+0) 
    local c2=peek(hso+1)
 			local c3=peek(hso+2)
+			--c1,c2,c3=peek(hs0,3)
 			--local c4=peek(0x5e00 + (hs*2)*4+3)
 			-- todo assert c4==0
 			if c1~=0 or c2~=0 or c3~=0 then
@@ -2398,6 +2399,7 @@ function easeinoutquad(et)
  et-=1
  return 1-et*et*2
 end
+
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000bb000000bb00000099b00000b9900000bbb0000000000000000000000000000000000
