@@ -245,7 +245,7 @@ function _init()
 	_draw=_draw_title
 	_update60=_update60_title
 	
-	lsr=0
+	lsr=0 -- current laser sfx
 end
 
 -->8
@@ -1897,6 +1897,7 @@ function kill_player(e)
 	sfx(4)
 	wave.t_chunk-=player_die_expire  -- don't include dying time
  cdx=0 -- freeze
+ lasers={}
  for i=1,16 do
   local d=sp[i]
 	 pl.x+=d[1]*rnd(4)
