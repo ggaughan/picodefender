@@ -155,7 +155,7 @@ lander_speed_y_factor=2
 --bomber_speed=0.3
 --pod_speed=0.2
 --swarmer_speed=0.7  -- todo attrs[7]
-swarmer_inertia=1 --0.99
+--swarmer_inertia=1 --0.99
 bullet_expire=1.4  -- todo depend on actual bullet_speed?
 --bullet_speed=0.02
 mine_expire=6
@@ -469,7 +469,6 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 			e.dy=0
 		 if (rand<flipy) e.dy=-sgn(e.y-target.y) -- move away
 		 if (rnd()<0.02) e.dx*=-1  -- random move
-		 -- todo remove: not bug! if (rnd()<0.02) e.dy*=-1  -- random move
 		end
 
 		if (attack) enemy_attack(e)
@@ -596,111 +595,17 @@ function update_enemies()
 							elseif rnd()<0.05 then
 								e.dx=0
 							end
-						end				
-						
+						end									
 						enemy_attack(e)
 					elseif e.k==mutant then
-						-- ai
-						-- todo remove lazy now? use for other type				
 						update_enemy(e,pl,rnd(256)-e.lazy,rnd(20),rnd(20))
-						
---						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
---						 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
---						 if e.x<pl.x then
---							 e.dx=mutant_speed
---							else
---							 e.dx=-mutant_speed
---						 end
---						 
---						 if e.y<hudy+rnd(20) and e.y<pl.y and e.dy<0 then
---						 	e.dy *= -1
---						 elseif e.y>120-rnd(20) and e.y>pl.y and e.dy>0 then
---						 	e.dy *= -1
---						 end
---						end
---	
---						enemy_attack(e)
 					elseif e.k==baiter then
-						-- ai
-						-- todo less overlap with other baiters
-						-- todo wrap/bug?
-						-- todo bug?? or tune: flipx not 0.99 but 0.01?
 						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,0.1,32+rnd(16),24+rnd(16),3)
-						
---						local dx=abs(e.x-pl.x)
---						if dx>32+rnd(16) then
---							-- todo need lazy here? yes to vary baiters
---							if dx<(rnd(256)-e.lazy) then
---							 if e.x<pl.x then
---								 e.dx=baiter_speed
---								else
---								 e.dx=-baiter_speed
---							 end
---							end
---						else 
---	 					-- don't get too close
---	 				 e.dx*=0.96+rnd(0.08)  -- todo var inertia
---	 				 if rnd()<0.99 then
---		 				 -- todo wrap/bug
---		 				 -- todo sgn()
-----		 				 if (e.x<pl.x) e.dx=-1  -- rand away
-----		 				 if (e.x>pl.x) e.dx=1  -- rand away
---								e.dx=sgn(e.x-pl.x)
---		 				end
---	 				 if rnd()<0.02 then
---	 				  e.dx*=-1  -- random move
---	 				 end
---						end	 
---						local dy=abs(e.y-pl.y) 
---						if dy>16+rnd(16) then
---						 if e.y<hudy+rnd(30) or (e.y<pl.y and e.dy<=0) then
---						 	e.dy=baiter_speed/3
---						 elseif e.y>120-rnd(30) or (e.y>pl.y and e.dy>=0) then
---						 	e.dy*=-baiter_speed/3
---						 end
---						else
---							-- don't get too close/ram
---							e.dy=0
---	 				 if rnd()<0.1 then
---		 				 -- todo sgn()
---		 				 if (e.y<pl.y) e.dy=-1  -- rand away
---		 				 if (e.y>pl.y) e.dy=1  -- rand away
---		 				end
---	 				 if (rnd()<0.02) e.dx*=-1  -- random move
---						end
---					 enemy_attack(e)
 					elseif e.k==bomber then
 					 if (e.y<hudy+rnd(30) or e.y>120-rnd(30)) e.dy*=-1
 					 enemy_attack(e)
 					elseif e.k == swarmer then
-						-- ai
-						-- todo overshoot
 						update_enemy(e,pl,rnd(256)-e.lazy,rnd(40),rnd(40),false,0.05,0)
-						
---						if abs(e.x-pl.x)<(rnd(256)-e.lazy) then
---						 if e.dx==0 then
---							 if e.x<pl.x or rnd()<0.05 then
---								 e.dx=swarmer_speed
---								else
---								 e.dx=-swarmer_speed
---							 end
---							-- else already chasing - don't turn -- todo do eventually!
---							end
---	
---							-- todo undulate: delay between y flips?					 
---							--      or sin(e.t)?
---						 if e.y<hudy+rnd(40) and e.y<pl.y and e.dy<0 then
---						 	e.dy*=-1
---						 elseif e.y>120-rnd(40) and e.y>pl.y and e.dy>0 then
---						 	e.dy*=-1
---						 end
---						end
-						-- overshoot?/don't get too close
-						-- todo move into update_enemy
-					 e.dx*=swarmer_inertia --+rnd(0.08)  -- todo remove?
-					 -- todo maybe if e.dx < limit set e.dx=0 and can chase again
-
- 					--enemy_attack(e)	
 					elseif e.k==mine then
 				 	if (t-e.t>mine_expire) del(actors,e)
 					elseif e.k==bullet then
@@ -721,11 +626,8 @@ function update_enemies()
 								e.dropped_y=nil
 							end
 						end 	 
-					-- else other types
 					end
-					
-					-- todo perhaps move enemy_attack() here and inside return if bullety or human?
-				
+						
 					-- general bounce to stop y out of bounds
 					if e.y<=hudy then
 						e.y=hudy+1
@@ -739,26 +641,18 @@ function update_enemies()
 				else
 					-- demo mode
 					if e.y<hudy+demo_ty then
- 					e.y=hudy+demo_ty -- once
-						e.dy=0  -- stop and wait
+ 					e.y,e.dy=hudy+demo_ty,0 -- once -- stop and wait
 						demo.step_next_part+=1
 					end			
 					if e.k==lander then  
 						if e.target~=nil then
-							-- todo wrap/re-use from above
 						 if e.target.capture==capture_lifted then
-						 	--printh("lifting "..e.x.." "..e.target.x)
 						 	e.target.x=e.x 
 						 	e.target.y=e.y + 7
-						 	-- todo dx/dy?
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
-						 	--printh("capturing! "..e.x.." "..e.target.x)
 						 	e.dy=-lander_speed*3.1
-						 	--e.dx = 0  -- straight up
 								e.target.capture=capture_lifted
 								e.target.dy=gravity_speed*3  -- for if/when dropped
-								--e.target.dx = 0 -- stop any walking
-								--todo demo.step_next_part+=1
 							end
 						-- else step 1 lander, not 0
 						end
@@ -824,8 +718,7 @@ function _update60_game_over()
 		-- todo stop sfx
 
  	-- we have a highscore (at least for today)
- 	hs_name=""
- 	hs_chr="a"
+ 	hs_name,hs_chr="","a"
   pl.hit=t
  	_update60=_update60_new_highscore
  	_draw=_draw_new_highscore
