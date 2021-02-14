@@ -194,6 +194,8 @@ function _init()
 	-- todo save on cart?
 	menuitem(1,"toggle flashing",toggle_bit1)
 
+	poke(0x5f5c,255) -- key repeat off
+
 	w={}  -- ground level
 	sw={} -- scanner ground summary
 	stars={}
@@ -406,54 +408,55 @@ function _update60_wave()
 end
 
 function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfactor,attack)
- 	chasex=chasex~=false
-		flipx,flipy=flipx or 0,flipy or 0
-		closex,closey=closex or 0,closey or 0
-		dyfactor=dyfactor or 1
-		attack=attack~=false
-		local rand=rnd()	
-		-- todo remove if target - always given?
-		-- todo wrap?
-		local dx=abs(e.x-target.x)
-		if dx>closex then
-			if dx<nearx then
-			 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
-			 local s=attrs[e.k][7]	 
-				if chasex or e.dx==0 then
-				 if e.x<target.x or rand<flipx then
-					 e.dx=s
-					else
-					 e.dx=-s
-				 end
-				end
+ -- todo yt,yb = yy
+	chasex=chasex~=false
+	flipx,flipy=flipx or 0,flipy or 0
+	closex,closey=closex or 0,closey or 0
+	dyfactor=dyfactor or 1
+	attack=attack~=false
+	local rand=rnd()	
+	-- todo remove if target - always given?
+	-- todo wrap?
+	local dx=abs(e.x-target.x)
+	if dx>closex then
+		if dx<nearx then
+		 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
+		 local s=attrs[e.k][7]	 
+			if chasex or e.dx==0 then
+			 if e.x<target.x or rand<flipx then
+				 e.dx=s
+				else
+				 e.dx=-s
+			 end
 			end
-		else
-			-- close in - don't ram
-		 e.dx*=0.96+rnd(0.08)  -- todo param inertia
-		 -- todo wrap/bug
-		 if (rand<0.2) e.dx=sgn(e.x-pl.x)
-		 if (rnd()<0.02) e.dx*=-1  -- random move
 		end
-		
-		local dy=abs(e.y-target.y)
-		if dy>closey then
-			-- todo extend 120 down a bit?
-		 if (
-		 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
-		 				or
-		 				(e.y>120-yb and e.y>target.y and e.dy>0)
-		 ) then
-		 	--printh(e.y.." yflip for "..target.y.." "..tostr(chasey).." "..yt)
-		 	e.dy*=-1*dyfactor
-		 end
-		else
-			-- close in - don't ram
-			e.dy=0
-		 if (rand<flipy) e.dy=-sgn(e.y-target.y) -- move away
-		 if (rnd()<0.02) e.dx*=-1  -- random move
-		end
+	else
+		-- close in - don't ram
+	 e.dx*=0.96+rnd(0.08)  -- todo param inertia
+	 -- todo wrap/bug
+	 if (rand<0.2) e.dx=sgn(e.x-pl.x)
+	 if (rnd()<0.02) e.dx*=-1  -- random move
+	end
+	
+	local dy=abs(e.y-target.y)
+	if dy>closey then
+		-- todo extend 120 down a bit?
+	 if (
+	 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
+	 				or
+	 				(e.y>120-yb and e.y>target.y and e.dy>0)
+	 ) then
+	 	--printh(e.y.." yflip for "..target.y.." "..tostr(chasey).." "..yt)
+	 	e.dy*=-1*dyfactor
+	 end
+	else
+		-- close in - don't ram
+		e.dy=0
+	 if (rand<flipy) e.dy=-sgn(e.y-target.y) -- move away
+	 if (rnd()<0.02) e.dx*=-1  -- random move
+	end
 
-		if (attack) enemy_attack(e)
+	if (attack) enemy_attack(e)
 end
 
 function update_enemies()
@@ -477,7 +480,7 @@ function update_enemies()
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx<(e.x+e.xr+e.dx)) then
 						if y>=e.y+e.dy+e.yt and y<=e.y+e.dy+e.yb then
 							--printh("laser hit "..e.x.." from "..x.." "..tx)
-							if t-laser[4]>0.0167 then
+							if t-laser[4]>0.0334 then
 					 		e.hit=t
 							 kill_actor(e, laser)
 							-- else not drawn yet
@@ -511,7 +514,7 @@ function update_enemies()
 --					 printh(debug_data[2].." "..debug_data[4])
 --					 _update60=_update60_debug_stop
 --					else
-				 if (e~=bullet or e.t-t>0.0167) then
+				 if (e~=bullet or e.t-t>0.0334) then
 	  			e.hit=t
 				 	kill_player(e)
 				 end
@@ -586,7 +589,7 @@ function update_enemies()
 					elseif e.k==mutant then
 						update_enemy(e,pl,rnd(256)-e.lazy,rnd(20),rnd(20))
 					elseif e.k==baiter then
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,0.1,32+rnd(16),24+rnd(16),3)
+						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,0.1,24+rnd(12),24+rnd(16),3)
 					elseif e.k==bomber then
 					 if (e.y<hudy+rnd(30) or e.y>120-rnd(30)) e.dy*=-1
 					 enemy_attack(e)
@@ -1630,49 +1633,49 @@ function add_bullet(x, y, from, track)
  -- note: also creates mines
  --local t=time()
 	b=make_actor(bullet,x,y)
-	local bv = attrs[bullet][7]
-	--if (from and from.k==baiter) bv*=1.1
-	-- todo for some, hang around player?
-	local tx,ty=pl.x,pl.y  -- aim at player
-	if false then--track then
-	 -- todo also take account of e.dy
-	 local proj_speed=bv --+from.dx  -- todo remove from.dx?
-	 local pldx=cdx*pl.facing
-		local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
-		local tb=2*(pldx*(pl.x-b.x)+pl.dy*(pl.y-b.y))
-		local tc=(pl.x-b.x)*(pl.x-b.x)+(pl.y-b.y)*(pl.y-b.y)
-		local disc=tb*tb-4*ta*tc
-		if disc>=0 then
-			local t1=(-tb+sqrt(disc))/(2*ta)
-			local t2
-			if disc~=0 then
-				t2=(-tb-sqrt(disc))/(2*ta)
-			else
-				t2=t1
+	
+	if from.k==bomber then
+	 -- b.dx,b.dy already 0
+		b.k,b.c=mine,5
+	else	
+		local bv=attrs[bullet][7]
+		--if (from and from.k==baiter) bv*=1.1
+		local tx,ty=pl.x,pl.y  -- aim at player
+		if false then --track then
+		 -- todo also take account of e.dy
+		 local dx,dy=pl.x-b.x,pl.y-b.y
+		 local proj_speed=bv --+from.dx  -- todo remove from.dx?
+		 local pldx=cdx*pl.facing
+			local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
+			local tb=2*(pldx*dx+pl.dy*dy)
+			local tc=dx*dx+dy*dy
+			local disc=tb*tb-4*ta*tc
+			if disc>=0 then
+				local t1=(-tb+sqrt(disc))/(2*ta)
+				local t2=t1
+				if (disc~=0) t2=(-tb-sqrt(disc))/(2*ta)
+				local tt=t1
+				if (tt<0 or (t2>tt and t2>0)) tt=t2
+				if tt>0 then
+					tx=tt*pldx+pl.x
+					ty=tt*pl.dy+pl.y
+					--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
+					--printh(tx..","..ty)
+				 -- else none +ve (can't fire back in time)
+				end	
+			-- else no discriminant, forget it - todo perhaps undo fire?
 			end
-			local tt=t1
-			if (tt<0 or (t2>tt and t2>0)) tt=t2
-			if tt>0 then
-				tx=tt*pldx+pl.x
-				ty=tt*pl.dy+pl.y
-				--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
-				--printh(tx..","..ty)
-			 -- else none +ve (can't fire back in time)
-			end	
-		-- else no discriminant, forget it - todo perhaps undo fire?
 		end
+	 local miss=30-min(iwave,24)
+	 --todo vary miss against pl dx/dy
+	 tx+=rnd(miss)*-sgn(pl.dx)
+	 ty+=rnd(miss*0.5)*-sgn(pl.dy)
+		local dst=sqrt((tx-b.x)^2+(ty-b.y)^2)
+		--printh(dst)
+		b.dx=((tx-b.x)/dst)*bv
+	 b.dy=((ty-b.y)/dst)*bv
 	end
- -- todo here: add miss-factor!
- --local miss=30-min(iwave,24)
- --tx+=rnd(miss)
- --ty+=rnd(miss*0.5)
- -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
-	local dst=sqrt((tx-b.x)^2+(ty-b.y)^2)
-	--printh(dst)
-	b.dx=((tx-b.x)/dst)*bv
- b.dy=((ty-b.y)/dst)*bv
 	b.t=t
-	if (from and from.k==bomber)	b.k,b.c,b.dx,b.dy=mine,5,0,0
 	return b
 end
 
@@ -2034,9 +2037,9 @@ function load_wave()
  	wave.landers=0
  end
  
-	if	true then
-		wave_old=1
-	end
+	--if	true then
+	--	wave_old=1
+	--end
 --		--wave_progression=1
 --		wave.landers=2 --1 --breaks null space
 --		wave.mutants=0
@@ -2251,15 +2254,15 @@ function load_highscores()
 			local name=nil  -- i.e. stored as 0
 			local hso=0x5e00+(hs*8)
    -- todo @ instead of peek
-			local c1=peek(hso+0) 
-   local c2=peek(hso+1)
-			local c3=peek(hso+2)
-			--c1,c2,c3=peek(hs0,3)
+			--local c1=peek(hso+0) 
+   --local c2=peek(hso+1)
+			--local c3=peek(hso+2)
+			local c1,c2,c3=peek(hso,3)
 			--local c4=peek(0x5e00 + (hs*2)*4+3)
 			-- todo assert c4==0
 			if c1~=0 or c2~=0 or c3~=0 then
 				name=chr(c1)..chr(c2)..chr(c3)
-				--printh("!"..name.." "..c1..c2..c3)
+				printh("!"..name.." "..c1..c2..c3)
 			-- else ?assert score==0
 			end
 			local score=dget(hs*2+1)
@@ -2325,14 +2328,14 @@ function add_highscore(score, name, new)
 					for hs=1,8 do
 						local hso=0x5e00+(hs*8)
 					 local hs_name=hste[hs][1]
-					 local name_bytes=0  -- i.e. nil = not set
-					 if hs_name ~= nil then
-						 poke(hso+0, ord(sub(hs_name,1,1))) 
-       poke(hso+1, ord(sub(hs_name,2,2)))
-							poke(hso+2, ord(sub(hs_name,3,3)))
-							poke(hso+3, ord(chr(0)))
+					 --local name_bytes=0  -- i.e. nil = not set
+					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
+						 --poke(hso+0, ord(sub(hs_name,1,1))) 
+       --poke(hso+1, ord(sub(hs_name,2,2)))
+							--poke(hso+2, ord(sub(hs_name,3,3)))
+							--poke(hso+3, ord(chr(0)))
+							-- todo poke 4 at once				 
 							--printh("!"..hs_name.." "..name_bytes)
-						end
 						dset(hs*2+1, hste[hs][2])
 					end 			 
 					--else
