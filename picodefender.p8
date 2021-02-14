@@ -19,13 +19,14 @@ highscores={
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
-init_hs={
- ["drj"]=21270>>16,
- ["sam"]=18315>>16,
- ["led"]=15920>>16,
- ["pgd"]=14285>>16,
- ["gjg"]=13333>>16,
-}
+init_hs="drj=21270,sam=18315,led=15920,pgd=14285,gjg=13333"
+--{
+-- ["drj"]=21270>>16,
+-- ["sam"]=18315>>16,
+-- ["led"]=15920>>16,
+-- ["pgd"]=14285>>16,
+-- ["gjg"]=13333>>16,
+--}
 
 ww,cx=1152,512  --128*9 --128*4
 ocx=cx
@@ -76,7 +77,7 @@ attrs={
 	
 	[human]={500,6,6,3,2,1.00,0.02,nil},
 	
-	[bullet]={0,6,1,1,1,1.00,0.02,nil},
+	[bullet]={0,6,1,1,1,1.00,1.0,nil},
 }
 
 
@@ -134,7 +135,7 @@ lander_speed_y_factor=2
 --pod_speed=0.2
 --swarmer_speed=0.7  -- todo attrs[7]
 --swarmer_inertia=1 --0.99
-bullet_expire=1.4  -- todo depend on actual bullet_speed?
+bullet_expire=1.4  
 --bullet_speed=0.02
 mine_expire=6
 
@@ -466,7 +467,6 @@ function update_enemies()
 		   -- note: if multiple hit: 1st in actors is hit: todo sort?
 		   -- test y first = faster? less filtery though?
 					local age=(t-laser[4])/laser_expire
-					-- todo add min age check so we know we've been drawn
 					local x,y=laser[1],laser[2]			
 					local tl=age*laser_size*laser_rate
 					local tx=x+(laser[3]*tl) -- no wrap, could be -ve
@@ -477,8 +477,11 @@ function update_enemies()
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx<(e.x+e.xr+e.dx)) then
 						if y>=e.y+e.dy+e.yt and y<=e.y+e.dy+e.yb then
 							--printh("laser hit "..e.x.." from "..x.." "..tx)
-				 		e.hit=t
-						 kill_actor(e, laser)
+							if t-laser[4]>0.0167 then
+					 		e.hit=t
+							 kill_actor(e, laser)
+							-- else not drawn yet
+							end
 						end
 					end
 			 end		
@@ -508,8 +511,10 @@ function update_enemies()
 --					 printh(debug_data[2].." "..debug_data[4])
 --					 _update60=_update60_debug_stop
 --					else
-  			e.hit=t
-			 	kill_player(e)
+				 if (e~=bullet or e.t-t>0.0167) then
+	  			e.hit=t
+				 	kill_player(e)
+				 end
 				end
 			else -- human - can we catch it?
 				-- note: no need to wrap assumes will line up on x at some point - if not we could wrap in wxtoc
@@ -1626,13 +1631,12 @@ function add_bullet(x, y, from, track)
  --local t=time()
 	b=make_actor(bullet,x,y)
 	local bv = attrs[bullet][7]
-	if (from and from.k==baiter) bv*=1.1
+	--if (from and from.k==baiter) bv*=1.1
 	-- todo for some, hang around player?
 	local tx,ty=pl.x,pl.y  -- aim at player
-	-- todo if bad aimer, add miss (slow bv does this to some extent)
-	if track then
+	if false then--track then
 	 -- todo also take account of e.dy
-	 local proj_speed=bv+from.dx  -- todo remove from.dx?
+	 local proj_speed=bv --+from.dx  -- todo remove from.dx?
 	 local pldx=cdx*pl.facing
 		local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
 		local tb=2*(pldx*(pl.x-b.x)+pl.dy*(pl.y-b.y))
@@ -1652,23 +1656,23 @@ function add_bullet(x, y, from, track)
 				tx=tt*pldx+pl.x
 				ty=tt*pl.dy+pl.y
 				--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
+				--printh(tx..","..ty)
 			 -- else none +ve (can't fire back in time)
 			end	
 		-- else no discriminant, forget it - todo perhaps undo fire?
 		end
 	end
  -- todo here: add miss-factor!
- local miss=30-min(iwave,24)
- tx+=rnd(miss)
- ty+=rnd(miss*0.5)
+ --local miss=30-min(iwave,24)
+ --tx+=rnd(miss)
+ --ty+=rnd(miss*0.5)
  -- done?-- todo here: add slowdown factor/rate for non-track (landers etc.)
-	b.dx=(tx-b.x)*bv
- b.dy=(ty-b.y)*bv
+	local dst=sqrt((tx-b.x)^2+(ty-b.y)^2)
+	--printh(dst)
+	b.dx=((tx-b.x)/dst)*bv
+ b.dy=((ty-b.y)/dst)*bv
 	b.t=t
-	if from and from.k==bomber then
-		b.k,b.c=mine,5
-		b.dx,b.dy=0,0	
-	end
+	if (from and from.k==bomber)	b.k,b.c,b.dx,b.dy=mine,5,0,0
 	return b
 end
 
@@ -1707,8 +1711,7 @@ function add_explosion(e, reverse, speed, expire, size)
  for i=1,16 do
   -- todo make some faster
   local x,y=e.x+4,e.y+4  -- todo h/w better?
-  local s=speed
-  local d=sp[i]
+  local s,d=speed,sp[i]
   if d[1]==0 or d[2]==0 then
 			if (f==0) s=particle_speed*0.8
   	f=1-f  --prevent for next one
@@ -1775,8 +1778,7 @@ function kill_actor(e, laser, explode)
 		 --todo remove wave.pods_hit+=1
 		 -- todo sfx(?)
 		 -- spawn swarmers
-		 local r=flr(rnd(256))
-		 local make=7 -- 172..255
+		 local r,make=flr(rnd(256)),7 -- 172..255
 		 if r<64 then
 		  make=4
 		 elseif r<128 then
@@ -2032,9 +2034,9 @@ function load_wave()
  	wave.landers=0
  end
  
---	if	true then
---		wave_old=1
---	end
+	if	true then
+		wave_old=1
+	end
 --		--wave_progression=1
 --		wave.landers=2 --1 --breaks null space
 --		wave.mutants=0
@@ -2267,8 +2269,10 @@ function load_highscores()
 	else
  	--printh("skipped dget: not cart_exists")
 	 -- todo: better score + add via add_highscore to ensure they're kept in order!
-	 for i,s in pairs(init_hs) do
-	 	add_highscore(s,i,false)
+	 --for i,s in pairs(init_hs) do
+	 for i in all(split(init_hs)) do
+		 local s=split(i,"=")
+	 	add_highscore(s[2]>>16,s[1],false)
  	end
 	 --highscores[alltime][1]={"drj", 21270>>16}
 		--add_highscore(21270>>16,"drj",false)
