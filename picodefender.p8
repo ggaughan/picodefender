@@ -687,7 +687,7 @@ function update_wave()
 
 		-- todo? or bombers/pods and was reset?
 		-- todo just flag+check reset?
-		if wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or or t-wave.t>wave_old then -- total age check
+		if wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or t-wave.t>wave_old then -- total age check
 		 --printh("add_enemies call at "..t)
 			add_enemies()
 		end
@@ -698,39 +698,42 @@ function _update60_game_over()
 	t=time()
 	local age=t-pl.hit
 	local timeout=age>game_over_delay
-	local some_timeout=age>1  -- make sure we see the message
+	local some_timeout=age>2  -- make sure we see the message
 
  update_particles()  -- could include player dying
  
- if some_timeout and pl.score>highscores[today][8][2] then
-		actors={}  -- ok?
-		particles={}
-		lasers={}
-		-- todo stop sfx
-
- 	-- we have a highscore (at least for today)
- 	hs_name,hs_chr="","a"
-  pl.hit=t
- 	_update60=_update60_new_highscore
- 	_draw=_draw_new_highscore
- end
- 
- if timeout or (some_timeout and btnp(➡️)) then
-		actors={}  -- ok?
-		particles={}
-		lasers={}
-		-- todo stop sfx
-
-  pl.hit=t
- 	_update60=_update60_highscores
- 	_draw=_draw_highscores
- elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
-  start_game(true)
-  
-  pl.hit=t
- 	_update60=_update60_wave
- 	_draw=_draw_wave
- end
+ if pl.score>highscores[today][8][2] then
+  if timeout then
+			actors={}  -- ok?
+			particles={}
+			lasers={}
+			-- todo stop sfx
+	
+	 	-- we have a highscore (at least for today)
+	 	hs_name,hs_chr="","a"
+	  pl.hit=t
+	 	_update60=_update60_new_highscore
+	 	_draw=_draw_new_highscore
+	 -- else wait
+	 end
+ else
+	 if timeout or (some_timeout and btnp(➡️)) then
+			actors={}  -- ok?
+			particles={}
+			lasers={}
+			-- todo stop sfx
+	
+	  pl.hit=t
+	 	_update60=_update60_highscores
+	 	_draw=_draw_highscores
+	 elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
+	  start_game(true)
+	  
+	  pl.hit=t
+	 	_update60=_update60_wave
+	 	_draw=_draw_wave
+	 end
+	end
 end
 
 function _update60_title()
@@ -1165,12 +1168,6 @@ function draw_player()
 --		end	
 	end
 	
-	--debug
-	for i=1,16 do
-		local a=i*(1/16)
-		pset(wxtoc(pl.x+4)+cos(a)*10, pl.y+4-sin(a)*10)
-	end
-
 	if pl.hit~=nil and demo.t==0 then
 		local age=t-pl.hit
 		--printh("player dying "..age)
@@ -1519,7 +1516,7 @@ function _draw_wave()
 		--end
 --		print(#actors,100,0)
 --		print(wave.swarmers_loosed,118,0)
---		print(#particles,100,6)
+		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
@@ -1726,8 +1723,10 @@ function add_explosion(e, reverse, speed, expire, size, circular)
   local x,y=e.x+4,e.y+4  -- todo h/w better?
   local s,d=speed,sp[i]
   if circular then
-			local a=i*(1/16)
-  	d={cos(a)*4,sin(a)*4}	
+			local a=i*(1/16)+rnd(15)
+  	d={cos(a),sin(a)}	
+  	x+=rnd(5)-rnd(5)
+  	y+=rnd(5)-rnd(5)
   else
 	  if d[1]==0 or d[2]==0 then
 				if (f==0) s=particle_speed*0.8
@@ -1913,23 +1912,27 @@ end
 
 function kill_player(e)
  pl.hit=t --time()
-	sfx(3,-2)
-	sfx(4)
+	sfx(3,-2) -- stop any thrust
+	music(-1) -- stop any music 23
+	sfx(4)  
 	wave.t_chunk-=player_die_expire  -- don't include dying time
  cdx=0 -- freeze
  lasers={}
- for i=1,16 do
-  local d=sp[i]
-	 pl.x+=d[1]*rnd(4)
-	 pl.y+=d[2]*rnd(4)
-	 add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
+ for i=1,16 do --24 do --32 do
+  local d=sp[i] --ceil(i/2.5)]
+  --pl.x+=d[1]*(rnd(3)-rnd(3))
+	 --pl.y+=d[2]*(rnd(3)-rnd(3))
+	 --pl.x+=rnd(4)-rnd(4)
+	 --pl.y+=rnd(4)-rnd(4)
+  add_explosion(pl, false, rnd(particle_speed*1.5)+0.06, player_die_expire, 40, true)
+	 --add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
 	end 
 	--note: pl x/y adjusted - don't bother to restore since we're dying
 	--printh(#particles)
 	pl.lives-=1
 	add_pl_score(25)
 	
- add_explosion(pl, false, 0.3, player_die_expire, 100, true)
+ --add_explosion(pl, false, 0.3, player_die_expire, 100, true)
 	-- todo maybe reset_player() here (if so lose cdx = 0 above)
 	
 	--printh("player killed by "..e.x)
