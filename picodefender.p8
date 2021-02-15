@@ -685,7 +685,9 @@ function update_wave()
 			add_humans()
 		end
 
-		if wave.landers>0 or wave.mutants>0 or t-wave.t>wave_old then -- total age check
+		-- todo? or bombers/pods and was reset?
+		-- todo just flag+check reset?
+		if wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or or t-wave.t>wave_old then -- total age check
 		 --printh("add_enemies call at "..t)
 			add_enemies()
 		end
@@ -1161,6 +1163,12 @@ function draw_player()
 --			)					
 --			--printh(age.." "..x.."("..laser[1]..") "..off*laser[3])	
 --		end	
+	end
+	
+	--debug
+	for i=1,16 do
+		local a=i*(1/16)
+		pset(wxtoc(pl.x+4)+cos(a)*10, pl.y+4-sin(a)*10)
 	end
 
 	if pl.hit~=nil and demo.t==0 then
@@ -1641,31 +1649,32 @@ function add_bullet(x, y, from, track)
 		local bv=attrs[bullet][7]
 		--if (from and from.k==baiter) bv*=1.1
 		local tx,ty=pl.x,pl.y  -- aim at player
-		if false then --track then
-		 -- todo also take account of e.dy
-		 local dx,dy=pl.x-b.x,pl.y-b.y
-		 local proj_speed=bv --+from.dx  -- todo remove from.dx?
-		 local pldx=cdx*pl.facing
-			local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
-			local tb=2*(pldx*dx+pl.dy*dy)
-			local tc=dx*dx+dy*dy
-			local disc=tb*tb-4*ta*tc
-			if disc>=0 then
-				local t1=(-tb+sqrt(disc))/(2*ta)
-				local t2=t1
-				if (disc~=0) t2=(-tb-sqrt(disc))/(2*ta)
-				local tt=t1
-				if (tt<0 or (t2>tt and t2>0)) tt=t2
-				if tt>0 then
-					tx=tt*pldx+pl.x
-					ty=tt*pl.dy+pl.y
-					--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
-					--printh(tx..","..ty)
-				 -- else none +ve (can't fire back in time)
-				end	
-			-- else no discriminant, forget it - todo perhaps undo fire?
-			end
-		end
+		-- todo reinstate!
+--		if false then --track then
+--		 -- todo also take account of e.dy
+--		 local dx,dy=pl.x-b.x,pl.y-b.y
+--		 local proj_speed=bv --+from.dx  -- todo remove from.dx?
+--		 local pldx=cdx*pl.facing
+--			local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
+--			local tb=2*(pldx*dx+pl.dy*dy)
+--			local tc=dx*dx+dy*dy
+--			local disc=tb*tb-4*ta*tc
+--			if disc>=0 then
+--				local t1=(-tb+sqrt(disc))/(2*ta)
+--				local t2=t1
+--				if (disc~=0) t2=(-tb-sqrt(disc))/(2*ta)
+--				local tt=t1
+--				if (tt<0 or (t2>tt and t2>0)) tt=t2
+--				if tt>0 then
+--					tx=tt*pldx+pl.x
+--					ty=tt*pl.dy+pl.y
+--					--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
+--					--printh(tx..","..ty)
+--				 -- else none +ve (can't fire back in time)
+--				end	
+--			-- else no discriminant, forget it - todo perhaps undo fire?
+--			end
+--		end
 	 local miss=30-min(iwave,24)
 	 --todo vary miss against pl dx/dy
 	 tx+=rnd(miss)*-sgn(pl.dx)
@@ -1704,10 +1713,11 @@ sp = {
  {-1,   0}, 
  {-1,   0}, 
 }
-function add_explosion(e, reverse, speed, expire, size)
+function add_explosion(e, reverse, speed, expire, size, circular)
 	reverse=reverse or false
 	speed=speed or particle_speed
 	expire=expire or particle_expire
+	circular=circular or false
 	size=size or 30 -- todo merge with reverse
 	--local t=time()
 	local f=0
@@ -1715,10 +1725,15 @@ function add_explosion(e, reverse, speed, expire, size)
   -- todo make some faster
   local x,y=e.x+4,e.y+4  -- todo h/w better?
   local s,d=speed,sp[i]
-  if d[1]==0 or d[2]==0 then
-			if (f==0) s=particle_speed*0.8
-  	f=1-f  --prevent for next one
-  end
+  if circular then
+			local a=i*(1/16)
+  	d={cos(a)*4,sin(a)*4}	
+  else
+	  if d[1]==0 or d[2]==0 then
+				if (f==0) s=particle_speed*0.8
+	  	f=1-f  --prevent for next one
+	  end
+	 end
   if reverse then
   	x+=d[1]*size
   	y+=d[2]*size
@@ -1914,6 +1929,7 @@ function kill_player(e)
 	pl.lives-=1
 	add_pl_score(25)
 	
+ add_explosion(pl, false, 0.3, player_die_expire, 100, true)
 	-- todo maybe reset_player() here (if so lose cdx = 0 above)
 	
 	--printh("player killed by "..e.x)
