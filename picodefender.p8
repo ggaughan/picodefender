@@ -264,8 +264,10 @@ function _update60_wave()
 		 pl.facing*=-1
 		 -- start reverse animation
 		 canim=80
+		 canim_cdx=cdx
 		 canim_dx=pl.facing
 	  cdx*=0.5
+	  if (btn(➡️)) canim_cdx*=1.5
 		end
 	 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
 	 if btn(⬆️) then
@@ -337,6 +339,11 @@ function _update60_wave()
 	 cdx*=inertia_cx
 	 cx=(cx+cdx*pl.facing)%ww
 	 pl.x+=cdx*pl.facing  -- note: effectively pl.dx
+	 if canim>0 then
+	  -- slide
+			pl.x+=canim_cdx*-pl.facing	 
+	 	canim_cdx*=inertia_cx
+	 end
 	
 		-- player thrust/decay
 		-- in screen space to handle any wrapping
