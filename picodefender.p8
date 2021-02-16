@@ -248,7 +248,7 @@ function _init()
 	_draw=_draw_title
 	_update60=_update60_title
 	
-	lsr=0 -- current laser sfx
+	--lsr=0 -- current laser sfx
 end
 
 -->8
@@ -289,7 +289,7 @@ function _update60_wave()
 	 if btnp(❎) then
 			-- fire laser - todo limit 
 	  local x=pl.x
-	 	if (pl.facing>0)	x+=11
+	 	if (pl.facing>0)	x+=9
 	 	add(lasers, {x-2,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})
 			--lsr=(lsr+1)%4
 	 	--sfx(lsr+40,3) --lsr%2)
@@ -495,7 +495,7 @@ function update_enemies()
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx<(e.x+e.xr+e.dx)) then
 						if y>=e.y+e.dy+e.yt and y<=e.y+e.dy+e.yb then
 							--printh("laser hit "..e.x.." from "..x.." "..tx)
-							if t-laser[4]>0.0334 then
+							if t-laser[4]>0.0167 then
 					 		e.hit=t
 							 kill_actor(e, laser)
 							-- else not drawn yet
@@ -529,7 +529,7 @@ function update_enemies()
 --					 printh(debug_data[2].." "..debug_data[4])
 --					 _update60=_update60_debug_stop
 --					else
-				 if (e~=bullet or e.t-t>0.0334) then
+				 if (e~=bullet or e.t-t>0.0167) then
 	  			e.hit=t
 				 	kill_player(e)
 				 end
@@ -899,7 +899,7 @@ function _update60_instructions()
 					demo.step_next_part+=1
 				-- note: 2 = waiting to hit bottom/capture hit top
 				elseif demo.step_next_part==3 then
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})  --time()
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})  --time()
 					demo.step_next_part+=1
 				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
@@ -947,7 +947,7 @@ function _update60_instructions()
 				-- note: 2 = waiting to hit top
 				elseif demo.step_next_part==3 then
 					-- actor hit the top, shoot to kill
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})	 -- time()
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})	 -- time()
 					demo.step_next_part+=1
 				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
@@ -976,6 +976,12 @@ function _update60_instructions()
 				timeout=false
 			end
 		end
+
+		for laser in all(lasers) do
+	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
+	 	--laser[5]*=laser_inertia
+	 end
+
 	end	
 
  update_particles()  -- could include special effects
@@ -2305,7 +2311,7 @@ function load_highscores()
 			-- todo assert c4==0
 			if c1~=0 or c2~=0 or c3~=0 then
 				name=chr(c1)..chr(c2)..chr(c3)
-				printh("!"..name.." "..c1..c2..c3)
+				--printh("!"..name.." "..c1..c2..c3)
 			-- else ?assert score==0
 			end
 			local score=dget(hs*2+1)
