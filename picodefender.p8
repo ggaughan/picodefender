@@ -123,8 +123,8 @@ laser_rate=4
 laser_max_length=70  -- cap
 laser_min_length=1  -- show something immediately
 min_laser_speed=0.2 -- e.g. static ship, move away still
-laser_speed=2.0
-laser_min_effective_age=0.03  -- delay so it can be seen before being effective
+laser_speed=1.8
+--laser_min_effective_age=0.03  -- delay so it can be seen before being effective
 laser_inertia=0.999
 
 lander_speed=attrs[lander][7]  -- todo attrs[7]
@@ -154,7 +154,7 @@ target_x_epsilon=3
 target_y_epsilon=4
 capture_targetted=1
 capture_lifted=2
-gravity_speed=0.16
+gravity_speed=0.16  -- note: demo timings!
 safe_height=80
 
 wave_progression=15  -- seconds
@@ -279,6 +279,13 @@ function _update60_wave()
 	  if (pl.dy>max_vert_speed) pl.dy=max_vert_speed
 	 end
 	
+	 -- update any existing lasers
+	 for laser in all(lasers) do
+	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
+	 	laser[5]*=laser_inertia
+	 	if (t-laser[4]>laser_expire) del(lasers,laser)
+	 end
+
 	 if btnp(❎) then
 			-- fire laser - todo limit 
 	  local x=pl.x
@@ -287,12 +294,6 @@ function _update60_wave()
 			--lsr=(lsr+1)%4
 	 	--sfx(lsr+40,3) --lsr%2)
 	 	sfx(48,3)
-	 end
-	 -- update any existing lasers
-	 for laser in all(lasers) do
-	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
-	 	laser[5]*=laser_inertia
-	 	if (t-laser[4]>laser_expire) del(lasers,laser)
 	 end
 	 
 	 if btnp(🅾️) then 
@@ -448,6 +449,7 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 	local dy=abs(e.y-target.y)
 	if dy>closey then
 		-- todo extend 120 down a bit?
+		if (e.dy==0) e.dy=-1  --kick start
 	 if (
 	 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
 	 				or
@@ -909,7 +911,7 @@ function _update60_instructions()
 					if (t-bombing_t>particle_expire) demo.step_next_part+=1
 				elseif demo.step_next_part==7 then
 					pl.x+=1.2
-					pl.y+=0.5				
+					pl.y+=0.8				
 					if pl.x>=cx+demo_sx then
 						add_pl_score(-h.score) -- undo
 					 demo.step_next_part+=1
@@ -1530,7 +1532,7 @@ function _draw_wave()
 		--end
 --		print(#actors,100,0)
 --		print(wave.swarmers_loosed,118,0)
-		print(#particles,100,6)
+--		print(#particles,100,6)
 --		assert(humans<=max_humans)
 --		print(humans,120,0)
 --		print(iwave+1,120,6)
