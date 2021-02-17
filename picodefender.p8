@@ -47,8 +47,7 @@ baiter=41  -- spawn near end of level
 mine=105  -- from bomber
 bullet=24	
 
-demo_sx=108
-demo_sy=(128-hudy)/2
+demo_sx,demo_sy=108,(128-hudy)/2
 demo_ty=14
 demo={
 	t=0,  -- 0 = not started
@@ -111,8 +110,7 @@ waves={
 inertia_py=0.90
 inertia_cx=0.97
 
-max_speed=2
-thrust=0.4
+max_speed,thrust=2,0.4
 vert_accel=0.6
 max_vert_speed=max_speed/2
 max_h_speed_factor=max_speed/48
@@ -144,6 +142,7 @@ particle_speed=0.6
 --enemy_explode_size = 32
 
 player_birth_expire=1
+player_exp_delay=0.3
 player_die_expire=3
 old_particle=1
 enemy_die_expire=1
@@ -211,6 +210,7 @@ function _init()
 	pl={
 		w=6,
 		h=3,
+		x=0,y=0,
 
 	 c=7,  -- for explosion
 	 
@@ -494,8 +494,9 @@ function update_enemies()
 					   or 
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx<(e.x+e.xr+e.dx)) then
 						if y>=e.y+e.dy+e.yt and y<=e.y+e.dy+e.yb then
-							--printh("laser hit "..e.x.." from "..x.." "..tx)
-							if t-laser[4]>0.0167 then
+							--printh("laser hit "..e.x.." from "..x.." "..tx.." "..pl.x)
+							--printh(pl.x..e.x)
+							if t-laser[4]>0.0167 then -- or abs(pl.x-e.x)<13 then
 					 		e.hit=t
 							 kill_actor(e, laser)
 							-- else not drawn yet
@@ -679,12 +680,15 @@ function update_particles()
 			 e.dx*=0.99
 			 e.dy*=0.99
 			end	
-	  e.y+=e.dy  
-	  if e.y<=hudy or e.y>127 then
-	 		del(particles,e)
-	  else
-		  e.x=(e.x+e.dx)%ww
-			 -- todo opt: cull if off-screen - though short-lived
+			if t>e.t then
+		  e.y+=e.dy  
+		  if e.y<=hudy or e.y>127 then
+		 		del(particles,e)
+		  else
+			  e.x=(e.x+e.dx)%ww
+				 -- todo opt: cull if off-screen - though short-lived
+				end
+			-- else delayed
 			end
 	 end
 	end
@@ -1195,16 +1199,14 @@ function draw_player()
 	
 	if pl.hit~=nil and demo.t==0 then
 		local age=t-pl.hit
-		--printh("player dying "..age)
+		if (age<=player_exp_delay)	spr(2+(age*100)%2, wxtoc(old_p[1]), old_p[2], 1,1, old_p[3]==-1)
 		if age>player_die_expire then
 			pl.hit=nil	
  		reset_enemies()  -- hide and respawn enemies after a period...
 			--printh("player rebirth "..age)
 		end
 	elseif pl.birth~=nil then
-		local age=t-pl.birth
-		--printh("player being born "..age)
-		if (age>player_birth_expire) pl.birth=nil	
+		if (t-pl.birth>player_birth_expire) pl.birth=nil	
 	else
 		local x=wxtoc(pl.x)
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
@@ -1275,11 +1277,14 @@ function draw_particles(alt_cycle)
  end
  
 	for e in all(particles) do
-		local x,y=wxtoc(e.x),e.y
-		local c=e.c
-		--local age=t-e.t
-		if (t-e.t>old_particle) c=9
-		pset(x,y,c)	
+		if t>e.t then
+			local x,y=wxtoc(e.x),e.y
+			local c=e.c
+			--local age=t-e.t
+			if (t-e.t>old_particle) c=9
+			pset(x,y,c)	
+		-- else delay
+		end
 	end
 end
 
@@ -1341,6 +1346,7 @@ function _draw_game_over()
 	draw_enemies()
 	draw_particles()
 
+ -- todo wait for player_exp_delay
 	print("game over", 48, hudy+40, 5)
 end
 
@@ -1364,7 +1370,8 @@ function _draw_title()
 			end
 		end
 	end
-	if (not epi_friendly and not cart_exists) print("press p to turn off flashing", 8, hudy+60)
+	--todo: 'p' ok? test in browser...
+	--if (not epi_friendly and not cart_exists) print("press p to turn off flashing", 8, hudy+60)
 	
 	local o=hudy+78
 
@@ -1732,19 +1739,23 @@ sp = {
  {-1,   0}, 
  {-1,   0}, 
 }
-function add_explosion(e, reverse, speed, expire, size, circular)
+function add_explosion(e, reverse, speed)
 	reverse=reverse or false
-	speed=speed or particle_speed
-	expire=expire or particle_expire
-	circular=circular or false
-	size=size or 30 -- todo merge with reverse
+	local expire=particle_expire
+	local pt,f=t,0
+	if speed~=nil then
+	 expire=player_die_expire-player_exp_delay
+	 pt+=player_exp_delay
+	 f=99 --flag
+	else
+		speed=particle_speed
+	end
 	--local t=time()
-	local f=0
  for i=1,16 do
   -- todo make some faster
   local x,y=e.x+4,e.y+4  -- todo h/w better?
   local s,d=speed,sp[i]
-  if circular then
+  if f==99 then
 			local a=i*(1/16)+rnd(15)
   	d={cos(a),sin(a)}	
   	x+=rnd(5)-rnd(5)
@@ -1756,14 +1767,14 @@ function add_explosion(e, reverse, speed, expire, size, circular)
 	  end
 	 end
   if reverse then
-  	x+=d[1]*size
-  	y+=d[2]*size
+  	x+=d[1]*30
+  	y+=d[2]*30
   	d[1],d[2]=-1*d[1],-1*d[2]
   end
 		add(particles,{
 			x=x,y=y,
 			dx=d[1]*s,dy=d[2]*s,
-			c=e.c, t=t, expire=expire,
+			c=e.c, t=pt, expire=expire,
 		})
 	end
 end
@@ -1915,24 +1926,22 @@ end
 function reset_player(full)
  if full then
 		pl.lives=2  -- plus start life = 3
-		pl.score=0
-		pl.score_10k=0
+		pl.score,pl.score_10k=0,0
 		pl.bombs=3
 		-- note: no birth set
  end
  cdx=0 -- freeze  
  -- todo reset cx? bombing_t etc.
  bombing_e=bombing_expire
-	pl.x=cx+20
-	pl.y=64
+	pl.x,pl.y=cx+20,64
 	pl.facing=1  -- todo need camera move?	
 	pl.dy=0
-	pl.thrusting=false
+	pl.thrusting,pl.birth=false,nil
 	pl.target={}
-	pl.birth=nil
 end
 
 function kill_player(e)
+	old_p={pl.x,pl.y,pl.facing}
  pl.hit=t --time()
 	sfx(3,-2) -- stop any thrust
 	music(-1) -- stop any music 23
@@ -1950,7 +1959,7 @@ function kill_player(e)
   
   --pl.x+=d[1]
 	 --pl.y+=d[2]
-  add_explosion(pl, false, rnd(particle_speed/3)+i/8, player_die_expire, 40, true)
+  add_explosion(pl, false, rnd()*particle_speed/16+i/16) --, player_die_expire, true)
   --pl.x-=d[1]
 	 --pl.y-=d[2]
 	 --add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
@@ -2408,10 +2417,10 @@ end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000bb000000bb00000099b00000b9900000bbb0000000000000000000000000000000000
-00700700000000000660000000000000000000000000000000000000000fb000000fb00000b0b0b000b0b0b000bb0bb000000000000000000000000000000000
-0007700000000000e66600000000000000070000000000000000000000022e0000022e000009b9000009b900000bbb0000000000000000000000000000000000
-00077000000000006e66659000000000000075000000000000000000000e2e00000e2e0000b0b0b000b0b0b000b0b0b000000000000000000000000000000000
-007007000d000000eee6666b00000000000700000d0000000000000000040000000440000b00b00b0b00b00b0b00b00b00000000000000000000000000000000
+00700700000000000660000008800000000000000000000000000000000fb000000fb00000b0b0b000b0b0b000bb0bb000000000000000000000000000000000
+0007700000000000e66600008888000000070000000000000000000000022e0000022e000009b9000009b900000bbb0000000000000000000000000000000000
+00077000000000006e66659088888880000075000000000000000000000e2e00000e2e0000b0b0b000b0b0b000b0b0b000000000000000000000000000000000
+007007000d000000eee6666b88888888000700000d0000000000000000040000000440000b00b00b0b00b00b0b00b00b00000000000000000000000000000000
 00000000dddd1900000000000000000000000000eed5000000000000000400000004400000000000000000000000000000000000000000000000000000000000
 000000000e73dd730000000000000000000000000edd300000000000000000000000000000000000000000000000000000000000000000000000000000000000
 50505005550500550055050505055055505550505055555057755555555555550000000000000000000000000000000000000000000000000000000000000000
