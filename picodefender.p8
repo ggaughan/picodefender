@@ -449,7 +449,7 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 	local dy=abs(e.y-target.y)
 	if dy>closey then
 		-- todo extend 120 down a bit?
-		if (e.dy==0) e.dy=-1  --kick start
+		if (e.dy==0) e.dy=-lander_speed  --kick start
 	 if (
 	 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
 	 				or
