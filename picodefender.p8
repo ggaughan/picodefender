@@ -9,7 +9,7 @@ debug=true
 debug_test= not debug  
 debug_kill=not debug
 
-cart0=0  -- 32 bits: 0=epi_friendly
+cart0=0  
 
 t=time()
 
@@ -20,18 +20,11 @@ highscores={
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
 init_hs="drj=21270,sam=18315,led=15920,pgd=14285,gjg=13333"
---{
--- ["drj"]=21270>>16,
--- ["sam"]=18315>>16,
--- ["led"]=15920>>16,
--- ["pgd"]=14285>>16,
--- ["gjg"]=13333>>16,
---}
 
-ww,cx=1152,512  --128*9 --128*4
+ww,cx=1152,512  
 ocx=cx
 
-hc=32    --128/4
+hc=32    
 hudy,hudw=12,hc*2
 hwr=ww/hudw
 hhr=(124-hudy)/hudy+1
@@ -42,15 +35,15 @@ lander=9
 mutant=25
 bomber=57
 pod=73
-swarmer=89  -- from pod
-baiter=41  -- spawn near end of level
-mine=105  -- from bomber
+swarmer=89 
+baiter=41  
+mine=105 
 bullet=24	
 
 demo_sx,demo_sy=108,(128-hudy)/2
 demo_ty=14
 demo={
-	t=0,  -- 0 = not started
+	t=0, 
 	step=0,
 	step_next_part=1,
 	steps={
@@ -62,11 +55,9 @@ demo={
 		swarmer
 	}
 }
--- note: ns match steps
 ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
 attrs={
-	-- points,colour,w,h,frames,attack-prob,speed,attack sfx
 	[lander]={100,11,5,7,3,0.0025,0.15,7},
 	[mutant]={150,5,5,7,3,0.006,0.5,13},
 	[baiter]={200,11,4,7,3,0.015,2.2,15},
@@ -84,27 +75,26 @@ max_stars=100
 
 wave_colours={1,3,8,9,10,4,0}
 waves={
- {--1
+ {
 		landers=15,
 		bombers=0,
 		pods=0,
 	},
- {--2
+ {
 		landers=20,
 		bombers=3,
 		pods=1,
 	},
- {--3
+ {
 		landers=20,
 		bombers=4,
 		pods=3,
 	},
- {--4
+ {
 		landers=20,
 		bombers=5,
 		pods=4,
 	},
-	-- further waves will take from wave 4
 }
 
 inertia_py=0.90
@@ -116,67 +106,53 @@ max_vert_speed=max_speed/2
 max_h_speed_factor=max_speed/48
 
 laser_expire=0.5
-laser_size=22  -- see rate
+laser_size=22  
 laser_rate=4
-laser_max_length=70  -- cap
-laser_min_length=1  -- show something immediately
-min_laser_speed=0.2 -- e.g. static ship, move away still
+laser_max_length=70 
+laser_min_length=1  
+min_laser_speed=0.2 
 laser_speed=1.8
---laser_min_effective_age=0.03  -- delay so it can be seen before being effective
 laser_inertia=0.999
 
-lander_speed=attrs[lander][7]  -- todo attrs[7]
+lander_speed=attrs[lander][7]  
 lander_speed_y_factor=2
---mutant_speed=0.3  -- todo attrs[7]
---baiter_speed=2.2  -- faster than player  -- todo set to max_speed*factor?
---bomber_speed=0.3
---pod_speed=0.2
---swarmer_speed=0.7  -- todo attrs[7]
---swarmer_inertia=1 --0.99
 bullet_expire=1.4  
---bullet_speed=0.02
 mine_expire=6
 
 particle_expire=0.8
 particle_speed=0.6
---enemy_explode_size = 32
 
 player_birth_expire=1
-player_exp_delay=0.3
+player_exp_delay=0.4
 player_die_expire=3
 old_particle=1
 enemy_die_expire=1
 
 max_humans=10
---human_speed=0.02
 target_x_epsilon=3
 target_y_epsilon=4
 capture_targetted=1
 capture_lifted=2
-gravity_speed=0.16  -- note: demo timings!
+gravity_speed=0.16
 safe_height=80
 
-wave_progression=15  -- seconds
-wave_old=60  -- min before baiters
-baiter_next=wave_progression/3  -- delay baiter re-spawn based on last 3 enemies
+wave_progression=15  
+wave_old=60  
+baiter_next=wave_progression/3  
 max_baiters=4
 max_swarmers=20
-wave_reset=2  -- seconds
-delay_first_enemies=0.5 -- give time for initial music to finish
+wave_reset=2  
+delay_first_enemies=0.5 
 
 extra_score_expire=1
-bombing_expire=0.3 -- todo rename bombing_e -> flash_e
+bombing_expire=0.3 
 ground_destroy_expire=2
 
 title_delay=8
 title_particle_expire=1.4
 game_over_delay=4
-new_highscore_delay=60  -- timeout if no initials in this time
+new_highscore_delay=60 
 hs_chr="a"
-
---if debug_test then
---	max_humans = 1
---end
 
 function toggle_bit1()
 	epi_friendly,cc=not epi_friendly,10
@@ -187,22 +163,20 @@ end
 function _init()
 	cart_exists=cartdata("ggaughan_picodefender_1")
 	if (cart_exists)	cart0=dget(0)
-	-- todo else prompt/delay flashing?
 	epi_friendly=cart0&0b0001!=0
 
-	-- todo save on cart?
 	menuitem(1,"toggle flashing",toggle_bit1)
 
-	poke(0x5f5c,255) -- key repeat off
+	poke(0x5f5c,255) 
 
-	w={}  -- ground level
-	sw={} -- scanner ground summary
+	w={}  
+	sw={} 
 	stars={}
-	cx=512  --128*4
+	cx=512  
  cdx=0
  canim,canim_dx=0,0
 
-	build_world()  -- if this takes any time, move to update60_title, i.e. draw something first
+	build_world() 
 	add_stars()
 	
 	load_highscores()
@@ -212,43 +186,34 @@ function _init()
 		h=3,
 		x=0,y=0,
 
-	 c=7,  -- for explosion
+	 c=7,  
 	 
 	 thrusting_t=0,
 	 thrusting_spr=0,
-	 hit=nil,  -- also used for timeouts/delays	
+	 hit=nil,  
 	}
 
 	actors={}
 	particles={}
 	
-	reset_player(true)  -- todo remove? will be called via start_game()
-	-- todo move to reset_game(true) - include call to reset_player(true) above
+	reset_player(true) 
 	lasers={}
 	iwave=0
-	humans=0  -- topped up by load_wave
+	humans=0  
 	add_humans_needed=true
-	-- todo remove: start_game does this: can't do more than once:
- load_wave() -- added back for demo
-	-- todo wrap iwave display to 2 digits (100 and 200 show as 0 when completed) 
-	--      then actually wrap at 255 with special wave 0
+ load_wave() 
 	
-	-- palette rotate	
-	pt=t --time()
+	pt=t 
 	cc=10
 	
 	extra_score=nil
---	bombing_t=nil  
---	bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
-	bombing_t=t  -- also used for title animation and null space ground explode
+	bombing_t=t  
 	bombing_e=bombing_expire*3 
-	
-	-- todo pl.hit still needed here?
- pl.hit=t --time()  -- delay
+
+	old_p=nil	
+ pl.hit=t 
 	_draw=_draw_title
 	_update60=_update60_title
-	
-	--lsr=0 -- current laser sfx
 end
 
 -->8
@@ -256,13 +221,10 @@ end
 
 function _update60_wave()
  t=time()
-
- update_particles()  -- could include player dying
-
+ update_particles()  
 	if pl.hit==nil and pl.birth==nil then
 	 if btnp(⬅️) then
 		 pl.facing*=-1
-		 -- start reverse animation
 		 canim=80
 		 canim_cdx=cdx
 		 canim_dx=pl.facing
@@ -278,8 +240,6 @@ function _update60_wave()
 	  pl.dy+=vert_accel
 	  if (pl.dy>max_vert_speed) pl.dy=max_vert_speed
 	 end
-	
-	 -- update any existing lasers
 	 for laser in all(lasers) do
 	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
 	 	laser[5]*=laser_inertia
@@ -287,18 +247,14 @@ function _update60_wave()
 	 end
 
 	 if btnp(❎) then
-			-- fire laser - todo limit 
 	  local x=pl.x
 	 	if (pl.facing>0)	x+=9
 	 	add(lasers, {x-2,pl.y+5,pl.facing,t,max(cdx, min_laser_speed)})
-			--lsr=(lsr+1)%4
-	 	--sfx(lsr+40,3) --lsr%2)
 	 	sfx(48,3)
 	 end
 	 
 	 if btnp(🅾️) then 
 	 	if btn(⬆️) and btn(⬇️) then
-	 		-- hyperspace
 	 		pl.birth=t
 	 		local hx=rnd(ww)
 	 		cx+=hx
@@ -307,20 +263,12 @@ function _update60_wave()
 	 		cdx=0
 			 canim,canim_dx=80,pl.facing
 				add_explosion(pl, true)
-	 		-- todo sfx 
 	 	else 
-		 	-- smart bomb - kill all enemies
---		 	if debug_kill then
---  				local b=add_bullet(cx+pl.x, pl.y)
---				 	kill_player(b)
---		 	else
 		 	if pl.bombs>0 then
 			 	sfx(6)
 			 	bombing_t,bombing_c=t,7
 			 	bombing_e=bombing_expire
 					for e in all(actors) do
-					 -- note: we kill bullets and mines too
-					 -- note: original doesn't seem to...
 				  if not(e.k==human) then
 							local sx=wxtoc(e.x)
 							if sx>=0 and sx<=127 then
@@ -339,23 +287,19 @@ function _update60_wave()
 	 
 	 cdx*=inertia_cx
 	 cx=(cx+cdx*pl.facing)%ww
-	 pl.x+=cdx*pl.facing  -- note: effectively pl.dx
+	 pl.x+=cdx*pl.facing  
 	 if canim>0 then
-	  -- slide
 			pl.x+=canim_cdx*-pl.facing	 
 	 	canim_cdx*=inertia_cx
 	 end
 	
-		-- player thrust/decay
-		-- in screen space to handle any wrapping
 		local x=wxtoc(pl.x)
 	 if pl.facing==1 then
 	 	if (x<40 and btn(➡️)) pl.x+=cdx * max_h_speed_factor
-	 	if (x>20 and not btn(➡️)) pl.x-=thrust/2  -- fall back
+	 	if (x>20 and not btn(➡️)) pl.x-=thrust/2  
 	 else
 	 	if (x>80 and btn(➡️)) pl.x-=cdx * max_h_speed_factor
-	 	if (x<100 and not btn(➡️)) pl.x+=thrust/2  -- fall back
-	 	-- assumes <128, if not we're off camera but will move
+	 	if (x<100 and not btn(➡️)) pl.x+=thrust/2  
 	 end
 	 
 		if btn(➡️) then
@@ -370,9 +314,7 @@ function _update60_wave()
 			pl.thrusting_t=t
 		end
 
-	 -- player wrap
 	 pl.x=pl.x%ww
-	 -- todo retain screen offset pos!
 	 
 	 if pl.y<hudy then
 	 	pl.y, pl.dy=hudy,0
@@ -380,55 +322,40 @@ function _update60_wave()
 	  pl.y,pl.dy=120,0
 	 end
 
-	 update_enemies()  -- checks for player hit  
+	 update_enemies()  
 
-	 -- todo could do every other frame? move to update_enemies/humans?
 	 for plt in all(pl.target) do
 		 if plt.capture==capture_lifted then
 		 	plt.x=pl.x 
 		 	plt.y=pl.y+6 
-		 	-- todo dx/dy?
 
 				if plt.y>116 then
-			 	--printh("dropping "..plt.x)
  		 	plt.x+=rnd(8)-4
  		 	plt.y+=rnd(8)-4
 			 	plt.dy=gravity_speed
 			 	plt.dropped_y=pl.y
-			 	-- todo set walking again?
 					sfx(19)
-		 		-- note: x-12 since score formats for 6 places
-					add_pl_score(plt.score, plt.x-12, plt.y+4)	-- note: only 1 displayed (timer)
+					add_pl_score(plt.score, plt.x-12, plt.y+4)	
 					plt.capture=nil
 			 	del(pl.target,plt)
 			 end
 			end
 	 end
 	 
-	 -- todo perhaps call less freq?
 	 update_wave()
- 
-	else
-	 -- player dying or being born
-	 -- or pausing between waves
-	 -- either way, fixed via draw_player timeout
 	end
 end
 
 function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfactor,attack)
- -- todo yt,yb = yy
 	chasex=chasex~=false
 	flipx,flipy=flipx or 0,flipy or 0
 	closex,closey=closex or 0,closey or 0
 	dyfactor=dyfactor or 1
 	attack=attack~=false
 	local rand=rnd()	
-	-- todo remove if target - always given?
-	-- todo wrap?
 	local dx=abs(e.x-target.x)
 	if dx>closex then
 		if dx<nearx then
-		 -- todo?: e.dx=sgn(pl.x-e.x)*mutant_speed
 		 local s=attrs[e.k][7]	 
 			if chasex or e.dx==0 then
 			 if e.x<target.x or rand<flipx then
@@ -439,37 +366,31 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 			end
 		end
 	else
-		-- close in - don't ram
-	 e.dx*=0.96+rnd(0.08)  -- todo param inertia
-	 -- todo wrap/bug
+	 e.dx*=0.96+rnd(0.08)  
 	 if (rand<0.2) e.dx=sgn(e.x-pl.x)
-	 if (rnd()<0.02) e.dx*=-1  -- random move
+	 if (rnd()<0.02) e.dx*=-1  
 	end
 	
 	local dy=abs(e.y-target.y)
 	if dy>closey then
-		-- todo extend 120 down a bit?
-		if (e.dy==0) e.dy=-lander_speed  --kick start
+		if (e.dy==0) e.dy=-lander_speed  
 	 if (
 	 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
 	 				or
 	 				(e.y>120-yb and e.y>target.y and e.dy>0)
 	 ) then
-	 	--printh(e.y.." yflip for "..target.y.." "..tostr(chasey).." "..yt)
 	 	e.dy*=-1*dyfactor
 	 end
 	else
-		-- close in - don't ram
 		e.dy=0
-	 if (rand<flipy) e.dy=-sgn(e.y-target.y) -- move away
-	 if (rnd()<0.02) e.dx*=-1  -- random move
+	 if (rand<flipy) e.dy=-sgn(e.y-target.y) 
+	 if (rnd()<0.02) e.dx*=-1  
 	end
 
 	if (attack) enemy_attack(e)
 end
 
 function update_enemies()
-	--local t = time()
 	for e in all(actors) do
 	 local laserable=e.k~=mine
 	 if laserable and e.k==human and e.capture==capture_lifted then
@@ -478,28 +399,19 @@ function update_enemies()
 			end
 	 end
  	if laserable then
-			-- check if hit by laser
 		 for laser in all(lasers) do 	
-		  -- maybe ignore overlaps? index lasers by y?
 		  if not e.hit then
-		   -- note: if multiple hit: 1st in actors is hit: todo sort?
-		   -- test y first = faster? less filtery though?
 					local age=(t-laser[4])/laser_expire
 					local x,y=laser[1],laser[2]			
 					local tl=age*laser_size*laser_rate
-					local tx=x+(laser[3]*tl) -- no wrap, could be -ve
-					-- todo maybe check if e on screen
-					-- no wrap e.x, to match tx (side handles wrap)
+					local tx=x+(laser[3]*tl) 
 					if (laser[3]>0 and side(x,e.x,laser[3]) and tx>(e.x+e.xl+e.dx) 
 					   or 
 					   laser[3]<0 and side(x,e.x,laser[3]) and tx<(e.x+e.xr+e.dx)) then
 						if y>=e.y+e.dy+e.yt and y<=e.y+e.dy+e.yb then
-							--printh("laser hit "..e.x.." from "..x.." "..tx.." "..pl.x)
-							--printh(pl.x..e.x)
 							if t-laser[4]>0.0167 then -- or abs(pl.x-e.x)<13 then
 					 		e.hit=t
 							 kill_actor(e, laser)
-							-- else not drawn yet
 							end
 						end
 					end
@@ -508,43 +420,24 @@ function update_enemies()
 		end
 		
 		if not e.hit then  
-			-- check if hit player
-		 -- todo include wrap at end
-		 -- note: assumes all are drawn centred
 			local x=(e.x+4+e.dx)-(pl.x+4)
 			local y=(e.y+4+e.dy)-(pl.y+4)  
 			if e.k~=human then
 				if abs(x)*2<(e.w+pl.w) and
 						 abs(y)*2<(e.h+pl.h)
 				then
---					if debug_kill then
---						pl.dy = 0
---					 debug_data = {(e.x+e.xr+e.dx),
---					 														(e.y+e.yb+e.dy), 
---					 														(pl.x+(8-pl.w)/2)+pl.w/2, 
---					 														(pl.y+(8-pl.h)/2)+pl.h/2,
---					 												  (e.w+pl.w),(e.h+pl.h)}
---					 printh(x.."<"..(e.w+pl.w))
---					 printh(y.."<"..(e.h+pl.h))
---					 printh(debug_data[1].." "..debug_data[3])
---					 printh(debug_data[2].." "..debug_data[4])
---					 _update60=_update60_debug_stop
---					else
 				 if (e~=bullet or e.t-t>0.0167) then
 	  			e.hit=t
 				 	kill_player(e)
 				 end
 				end
-			else -- human - can we catch it?
-				-- note: no need to wrap assumes will line up on x at some point - if not we could wrap in wxtoc
+			else 
 				if e.capture==nil and e.y<116 and abs(e.x-pl.x)<target_x_epsilon*2 and abs((e.y-4)-pl.y)<target_y_epsilon*2 then
-			 	--printh("catching! "..e.x.." "..pl.x..":"..e.y.." "..pl.y)
 					e.capture=capture_lifted
 			 	add(pl.target,e)
-			 	e.dy=0 --pl.dy
-			 	e.dx=0 --pl.dx = cdx * pl.facing
+			 	e.dy=0 
+			 	e.dx=0 
 					if (demo.t==0) sfx(18)
-					-- note: x-12 since score formats for 6 places
 					add_pl_score(e.score, pl.x-12, pl.y+4)
 				end
 			end			
@@ -554,33 +447,24 @@ function update_enemies()
 		  e.y+=e.dy
 			
 				if demo.t==0 then	
-					-- todo move to ai/behaviour routine
 					if e.k==lander then  
 						if e.target~=nil then
-							-- todo wrap
 						 if e.target.capture==capture_lifted then
-						 	--printh("lifting "..e.x.." "..e.target.x)
 						 	e.target.x=e.x 
 						 	e.target.y=e.y + 7
-						 	-- todo dx/dy?
 						 	if e.y<=hudy then
-						 		--printh("convert to mutant"..e.x)
-						 		kill_actor(e.target,nil,false)  -- kill human silently
-						 		-- possibly now nullspace
-						 		--no need: already decremented and reset_enemies will notice: wave.landers -= 1  -- spawn 1 less
+						 		kill_actor(e.target,nil,false)  
 						 		e.k=mutant
-						 		--note: reset_enemies will do this: wave.mutants += 1  -- note: reset_enemies won't do this
  					 		e.c=attrs[mutant][2]
-						 		e.lazy=0  -- todo or remove altogether?
-									e.dy=attrs[mutant][7] --*lander_speed_y_factor
+						 		e.lazy=0  
+									e.dy=attrs[mutant][7] 
 						 	end
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
-						 	--printh("capturing! "..e.x.." "..e.target.x)
 						 	e.dy=-lander_speed*(lander_speed_y_factor/2)
-						 	e.dx=0  -- straight up
+						 	e.dx=0  
 								e.target.capture=capture_lifted
-								e.target.dy=gravity_speed  -- for if/when dropped
-								e.target.dx=0 -- stop any walking
+								e.target.dy=gravity_speed  
+								e.target.dx=0
 								sfx(10)
 						 elseif e.x<e.target.x then
 							 e.dx=lander_speed
@@ -588,12 +472,8 @@ function update_enemies()
 							else
 							 e.dx = -lander_speed
 			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
---							else
---							 -- note: pass no attack
---								update_enemy(e,e.target,ww,90,-30,true,0,false,0,0,0,1,false)
 						 end			
 	 				else
-	 					-- will bounce up and down
 							if rnd()<0.2 then
 								e.dx=lander_speed/4
 								if (rnd()<0.2) e.dx*=-1
@@ -617,14 +497,11 @@ function update_enemies()
 				 	if (t-e.t>bullet_expire) del(actors,e)
 				 elseif e.k==human then
 						if e.dropped_y~=nil then
-							-- gravity
 						 if e.y>119 then
-						  -- don't bounce 
 								e.y=120 
 								e.dy=0 
-								if e.dropped_y<safe_height then  -- i.e. unsafe
-						 		kill_actor(e,nil,true)  -- kill human 
-						 		-- possibly now nullspace						
+								if e.dropped_y<safe_height then  
+						 		kill_actor(e,nil,true)  
 								else
 									add_pl_score(250)
 								end
@@ -633,7 +510,6 @@ function update_enemies()
 						end 	 
 					end
 						
-					-- general bounce to stop y out of bounds
 					if e.y<=hudy then
 						e.y=hudy+1
 						e.dy*=-1
@@ -644,9 +520,8 @@ function update_enemies()
 					 if (e.k==bullet) del(actors,e)
 					end 			
 				else
-					-- demo mode
 					if e.y<hudy+demo_ty then
- 					e.y,e.dy=hudy+demo_ty,0 -- once -- stop and wait
+ 					e.y,e.dy=hudy+demo_ty,0 
 						demo.step_next_part+=1
 					end			
 					if e.k==lander then  
@@ -657,21 +532,17 @@ function update_enemies()
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
 						 	e.dy=-lander_speed*3.1
 								e.target.capture=capture_lifted
-								e.target.dy=gravity_speed*3  -- for if/when dropped
+								e.target.dy=gravity_speed*3  
 							end
-						-- else step 1 lander, not 0
 						end
 					end
 				end			
-			-- else hit and no more
 			end
-		-- else hit and no more
 		end
 	end
 end
 
 function update_particles()
-	--t=time()
 	for e in all(particles) do
  	if t-e.t>e.expire then
  		del(particles,e)
@@ -686,32 +557,20 @@ function update_particles()
 		 		del(particles,e)
 		  else
 			  e.x=(e.x+e.dx)%ww
-				 -- todo opt: cull if off-screen - though short-lived
 				end
-			-- else delayed
 			end
 	 end
 	end
 end
 
--- todo rename: wave_progression
 function update_wave()
-	-- called regularly to top-up things
-	-- note: wave_progression hacked to call on wave re-start e.g. after player death
-	--t=time()
 	if t-wave.t_chunk>wave_progression then
-  wave.t_chunk=t  -- reset
+  wave.t_chunk=t  
 		if	add_humans_needed then
-		 -- first call, add humans
-			-- note: do even if humans==0 to reset the flag: if humans > 0 then
-		 --printh("add_humans call at "..t)
 			add_humans()
 		end
 
-		-- todo? or bombers/pods and was reset?
-		-- todo just flag+check reset?
 		if wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or t-wave.t>wave_old then -- total age check
-		 --printh("add_enemies call at "..t)
 			add_enemies()
 		end
 	end
@@ -721,30 +580,26 @@ function _update60_game_over()
 	t=time()
 	local age=t-pl.hit
 	local timeout=age>game_over_delay
-	local some_timeout=age>2  -- make sure we see the message
+	local some_timeout=age>2  
 
- update_particles()  -- could include player dying
+ update_particles()  
  
  if pl.score>highscores[today][8][2] then
   if timeout then
-			actors={}  -- ok?
+			actors={}  
 			particles={}
 			lasers={}
-			-- todo stop sfx
 	
-	 	-- we have a highscore (at least for today)
 	 	hs_name,hs_chr="","a"
 	  pl.hit=t
 	 	_update60=_update60_new_highscore
 	 	_draw=_draw_new_highscore
-	 -- else wait
 	 end
  else
 	 if timeout or (some_timeout and btnp(➡️)) then
-			actors={}  -- ok?
+			actors={}  
 			particles={}
 			lasers={}
-			-- todo stop sfx
 	
 	  pl.hit=t
 	 	_update60=_update60_highscores
@@ -761,35 +616,21 @@ end
 
 function _update60_title()
 	t=time()
-	--local age = t-pl.hit
 	local timeout=(t-pl.hit)>title_delay
 	
---	if bombing_t==nil then
-----	 for i=1,8 do
-----		 for j=-1,1 do
-----				--add_explosion({x=cx+60+sp[i][1]*6-j*6,y=48+sp[i][2]*3, c=8}, true, particle_speed/3, title_particle_expire*2, 36)
-----				add_explosion({x=cx+60+sp[i][1]*2-j*4,y=32+sp[i][2]*1, c=8}, true, particle_speed/3, bombing_expire*2, 24)
-----			end
-----		end
---		--add_explosion({x=cx+64,y=50,c=8}, false, particle_speed, title_particle_expire)
---		--add_explosion({x=cx+60,y=32, c=8}, true, particle_speed/1, bombing_expire*2, 24)
---		bombing_t=t
---		bombing_e=bombing_expire*3 -- todo increase here!
---	end
-
- update_particles()  -- could include special effects
+ update_particles()  
  
  if timeout or btnp(➡️) then
-	 pal(10, 10)  -- after alt_cycle
-  bombing_t=t  -- title explosion done
+	 pal(10, 10)  
+  bombing_t=t  
   particles={}
   pl.hit=t  
  	_update60=_update60_highscores
  	_draw=_draw_highscores
 	elseif btnp(🅾️) or btnp(❎) then
-	 pal(10, 10)  -- after alt_cycle
+	 pal(10, 10)  
   start_game(true)
-  pl.hit=nil  -- start now
+  pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
  end
@@ -797,39 +638,33 @@ end
 
 function _update60_highscores()
 	t=time()
-	--local age=t-pl.hit
 	local timeout=(t-pl.hit)>title_delay
 
- update_particles()  -- could include special effects
+ update_particles()  
  
  if timeout or btnp(➡️) then
   pl.hit=t
 
-		-- setup instructions - todo move to routine  
 		demo.step=0
 		demo.step_next_part=1
-		demo.t=t -- start demo mode
+		demo.t=t 
 		cx=ocx
-		-- todo move some to demo
-		h=make_actor(human,cx+demo_sx,116,t) --ime())
+		h=make_actor(human,cx+demo_sx,116,t) 
 		h.capture=nil
 		h.dropped_y=nil
 		h.capture=capture_targetted
-		--note: avoid (already setup) humans += 1
 
 		pl.facing=1
-		-- todo pl.dy?		
 		pl.lives=0
 		pl.bombs=0
 		pl.x=cx+8
 		pl.y=hudy+12
-		--- end setup
 
  	_update60=_update60_instructions
  	_draw=_draw_instructions
 	elseif btnp(🅾️) or btnp(❎) then
   start_game(true)
-  pl.hit=nil  -- start now
+  pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
  end
@@ -837,27 +672,24 @@ end
 
 function _update60_new_highscore()
 	t=time()
-	--local age=t-pl.hit
-	--local timeout=(t-pl.hit)>new_highscore_delay
 
- update_particles()  -- could include special effects
+ update_particles()  
 
-	-- todo if key: pl.hit = t  -- reset timeout
-	if btnp(⬆️) then  -- todo or ⬅️?
+	if btnp(⬆️) then  
 		hs_chr=ord(hs_chr)+1
 		if (hs_chr==123) hs_chr=32
 		if (hs_chr==33) hs_chr=97
 		hs_chr=chr(hs_chr)
-		pl.hit=t  -- reset timeout
-	elseif btnp(⬇️) then  -- todo or ➡️?
+		pl.hit=t  
+	elseif btnp(⬇️) then  
 		hs_chr=ord(hs_chr)-1
 		if (hs_chr==96) hs_chr=32
 		if (hs_chr==31) hs_chr=122
 		hs_chr=chr(hs_chr)
-		pl.hit=t  -- reset timeout
+		pl.hit=t  
 	elseif btnp(❎) then
 		hs_name=hs_name..hs_chr
-		pl.hit=t  -- reset timeout
+		pl.hit=t  
 		if #hs_name>=3 then
 			add_highscore(pl.score, hs_name)
 	  pl.hit=t 
@@ -869,12 +701,10 @@ function _update60_new_highscore()
 			hs_chr=sub(hs_name, #hs_name, #hs_name)
 		 hs_name=sub(hs_name, 1, #hs_name-1)
 		end
-		pl.hit=t  -- reset timeout
+		pl.hit=t  
  end
 
  if (t-pl.hit)>new_highscore_delay then
-  -- note: too late!
-  -- 					 we still add with name of hs_name as-is (default "")
 		add_highscore(pl.score, hs_name)
   pl.hit=t
  	_update60=_update60_highscores
@@ -883,17 +713,13 @@ function _update60_new_highscore()
 end
 
 function _update60_instructions()
- -- note: uses actors and player logic to demo things
 	t=time()
-	--local age=t-pl.hit
 	local timeout=t-pl.hit>title_delay
 
 	if demo then
-	 -- note: we animate the enemies here unlike the original - todo:stop?
 		local l
-		-- todo first step = lander:human pickup/shoot/catch/drop
 	 if demo.step<=#demo.steps then
-	  timeout=false  -- hold
+	  timeout=false  
 	  if demo.step==0 then
 				if demo.step_next_part==1 then
 					l=make_actor(lander,cx+demo_sx,hudy+demo_ty+16,t)
@@ -901,31 +727,25 @@ function _update60_instructions()
 					l.dy=lander_speed*4
 					add_explosion(l,true)  
 					demo.step_next_part+=1
-				-- note: 2 = waiting to hit bottom/capture hit top
 				elseif demo.step_next_part==3 then
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})  --time()
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})  
 					demo.step_next_part+=1
-				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
-				 -- wait for death explosion
 			 	h.capture=nil
 					if (t-bombing_t>particle_expire) demo.step_next_part+=1
 				elseif demo.step_next_part==6 then
-				 -- wait for drop 
 					if (t-bombing_t>particle_expire) demo.step_next_part+=1
 				elseif demo.step_next_part==7 then
 					pl.x+=1.2
 					pl.y+=0.8				
 					if pl.x>=cx+demo_sx then
-						add_pl_score(-h.score) -- undo
+						add_pl_score(-h.score) 
 					 demo.step_next_part+=1
 					end
 				elseif demo.step_next_part==8 then
 					pl.y+=0.5				
 			 	h.y=pl.y+6 
 					if h.y>116 then
-				 	--h.dropped_y=pl.y
-						--add_pl_score(h.score, h.x-12, h.y+4)	
 					 extra_score={h.score>>16, wxtoc(h.x-8),h.y+4, t}
 						demo.step_next_part+=1
 					end
@@ -939,33 +759,27 @@ function _update60_instructions()
 					end
 				end
 				if demo.step_next_part==10 then
-					demo.step+=1 -- i.e. 1
+					demo.step+=1 
 					demo.step_next_part=1
 				end 	
 	  else
 				if demo.step_next_part==1 then
 					l=make_actor(demo.steps[demo.step],cx+demo_sx,demo_sy,t)
 					l.dy=-lander_speed*3
-					add_explosion(l,true)  -- reverse i.e. spawn
+					add_explosion(l,true)  
 					demo.step_next_part+=1
-				-- note: 2 = waiting to hit top
 				elseif demo.step_next_part==3 then
-					-- actor hit the top, shoot to kill
-			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})	 -- time()
+			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})	 
 					demo.step_next_part+=1
-				-- note: 4 = waiting to kill_actor
 				elseif demo.step_next_part==5 then
-				 -- wait for death explosion
 					if (t-bombing_t>particle_expire) demo.step_next_part+=1
 				elseif demo.step_next_part==6 then
 					l=make_actor(demo.steps[demo.step],cx+12+((demo.step-1)%3*36),demo_sy-20+((demo.step-1)\3)*30,t)
 					l.name=names[demo.step]
-					-- note: draw name+score in draw
-					add_explosion(l, true)  -- reverse i.e. spawn
+					add_explosion(l, true)  
 					bombing_t=t
 					demo.step_next_part+=1
 				elseif demo.step_next_part==7 then
-				 -- wait for reverse explosion
 					if (t-bombing_t>particle_expire*1.2) demo.step_next_part+=1
 				end
 				if demo.step_next_part>7 then
@@ -973,9 +787,9 @@ function _update60_instructions()
 					demo.step_next_part=1
 				end
 			end
-		else -- done them all - timeout should kick in
+		else
 		 if demo.step==#demo.steps+1 then
-				pl.hit=t  -- reset timeout
+				pl.hit=t  
 				demo.step+=1
 				timeout=false
 			end
@@ -983,63 +797,48 @@ function _update60_instructions()
 
 		for laser in all(lasers) do
 	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
-	 	--laser[5]*=laser_inertia
 	 end
 
 	end	
 
- update_particles()  -- could include special effects
- update_enemies()  -- checks for player hit
+ update_particles()  
+ update_enemies()  
 
  if timeout or btnp(➡️) then
   actors={}
   particles={}
-  demo.t=0 -- stop demo
+  demo.t=0 
   pl.hit=t  
---  bombing_t=nil  -- title explosion reset
---		--bombing_e=bombing_expire  -- todo rename bombing_e -> flash_e
 		bombing_t=t
 		bombing_e=bombing_expire*3 
  	_update60=_update60_title
  	_draw=_draw_title
 	elseif btnp(🅾️) or btnp(❎) then
   actors={}
-  demo.t=0 -- stop demo
+  demo.t=0 
   start_game(true)
-  pl.hit=nil  -- start now
+  pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
  end
 end
 
--- todo remove: debug only
---function _update60_debug_stop()
--- --update_particles()  -- could include special effects
---end
-
--- todo move to tab3?
 function start_game(full)
- if full then -- todo remove this check!
- 	music(23,0,15)  -- 15 = no interupting sfx
+ if full then 
+ 	music(23,0,15)  
 		reset_player(true)
-		-- todo stop any sfx - e.g. player dying - or set min key delay > that sfx
-		actors={}  -- ok?
+		actors={}  
 		lasers={}
-		iwave=0  -- todo leave out?
-		humans=0  -- topped up by load_wave
-		if	debug_test then
-			iwave=5
-			humans=max_humans
-		end
+		iwave=0  
+		humans=0  
 		add_humans_needed=true
 		load_wave()
 	end
-
  bombing_t=nil
  bombing_e=bombing_expire
  particles={}
- add_humans()  -- initial 
- add_enemies(t+delay_first_enemies) -- initial  -- time()
+ add_humans()  
+ add_enemies(t+delay_first_enemies)
 end
 
 -->8
@@ -1050,14 +849,11 @@ function wtos(wx,wy)
 end
 
 function wxtoc(wx)
- -- note: we wrap here 
 	if (cx+128>ww and wx<(128-(ww-cx))) return (wx+ww)-cx
 	return wx-cx
 end
 
 function side(l,e,cmp)
- -- cmp +1: is l to left of e?
- -- cmp -1: is e to left of l?
  if (e<128 and l>ww-128 and cmp==1) return true
  if (l<128 and e>ww-128 and cmp==-1) return true
 	if (e>=l and cmp==1) return true
@@ -1071,18 +867,16 @@ function draw_ground(force_ground)
 			local i=((ceil(cx+x))%ww)+1
 			pset(x,w[i], 4)
 		end
-	-- else null space
 	end
 end
 
 function draw_score(v, x,y, extra)
-	-- if extra, 1st of 3 digits will be yellow
  x=x or 0
  y=y or 6
  local c,i=5,6
  repeat
   local t=v>>>1
-  if (extra and i==4) c=10 -- extra_score leading digit
+  if (extra and i==4) c=10 
   print((t%0x0.0005<<17)+(v<<16&1),x+i*4,y,c)
   v=t/5
  	i-=1
@@ -1090,45 +884,36 @@ function draw_score(v, x,y, extra)
 end
 
 function add_pl_score(v, x, y)
- --assert(v<32767)  
- if (x and y) extra_score={v>>16, wxtoc(x),y, t}  --time()
+ if (x and y) extra_score={v>>16, wxtoc(x),y, t}  
 	pl.score+=v>>16
-	-- todo opt: precalc next_10k once
 	pl.score_10k+=v>>16
 	if pl.score_10k>=10000>>16 then
 		pl.lives=min(pl.lives+1,255)
 		pl.bombs=min(pl.bombs+1,255)
 		pl.score_10k-=10000>>16
-		-- todo sfx
 	end
 end
 
 function draw_hud(force_ground)
  local hdc=hudw/9
  
- -- ground
 	if force_ground or humans>0 then
 		for x=0,hudw-1 do
 			local i=(x+(ocx+128+cx)\hwr)%hudw+1
 			pset(hc+x,sw[i],4)
 		end
-	-- else null space
 	end
 	
-	-- enemies
 	for e in all(actors) do
-	 -- todo skip if bullet? though handy!
 	 if e.k~=bullet and e.k~=mine then
 			sx,sy=wtos(e.x,e.y)
 			pset(sx,sy,e.c)
 		end
 	end
 
-	-- player
  local	sx,sy=wtos(pl.x,pl.y)
 	pset(sx,sy,7)
 
-	-- scanner box 
 	local c=1
 	if (wave) c=wave.c
 	local sl,sr=hc+hdc*4-1,hc+hdc*5+1
@@ -1143,8 +928,6 @@ function draw_hud(force_ground)
  
  draw_score(pl.score)
  if extra_score then
-  --local t=time()
- 	--local age=t-extra_score[4]
  	if t-extra_score[4]<extra_score_expire then
 		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
 		else
@@ -1161,8 +944,6 @@ function draw_hud(force_ground)
 end
 
 function draw_player()
-	--local t=time()
-	-- draw_lasers
 	for laser in all(lasers) do
 		local x,y=wxtoc(laser[1]), laser[2]
 		local age=(t-laser[4])/laser_expire
@@ -1182,28 +963,14 @@ function draw_player()
 	 	mdx,mdy
 		)
 	
---		if debug_kill then
---		 local off=((age * laser_size) * laser_rate)
---			line(
---			 x+(off)*laser[3],
---				y-1,
---				x+(
---				 		off
---			 		) * laser[3], 
---	  	y-1, 
---	  	15
---			)					
---			--printh(age.." "..x.."("..laser[1]..") "..off*laser[3])	
---		end	
 	end
 	
 	if pl.hit~=nil and demo.t==0 then
 		local age=t-pl.hit
-		if (age<=player_exp_delay)	spr(2+(age*100)%2, wxtoc(old_p[1]), old_p[2], 1,1, old_p[3]==-1)
+		if (age<=player_exp_delay and old_p)	spr(2+(age*100)%2, wxtoc(old_p[1]), old_p[2], 1,1, old_p[3]==-1)
 		if age>player_die_expire then
 			pl.hit=nil	
- 		reset_enemies()  -- hide and respawn enemies after a period...
-			--printh("player rebirth "..age)
+ 		reset_enemies()  
 		end
 	elseif pl.birth~=nil then
 		if (t-pl.birth>player_birth_expire) pl.birth=nil	
@@ -1211,33 +978,12 @@ function draw_player()
 		local x=wxtoc(pl.x)
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
 		spr(32+(pl.thrusting and 0 or 16)+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
---		if pl.thrusting then
---			spr(32+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
---		else
---			spr(48+pl.thrusting_spr, x-(8*pl.facing), pl.y, 1,1, pl.facing==-1)
---		end
-
---		if debug_kill then
---			rect(x, pl.y+(8-pl.h)/2, x+pl.w, pl.y+8-(pl.h/2), 15)
---			if debug_kill and debug_data then
---				line(wxtoc(debug_data[1]), debug_data[2],  
---									wxtoc(debug_data[3]), debug_data[4], 12)						
---				rect(wxtoc(debug_data[1]), 
---									debug_data[2],
---									wxtoc(debug_data[1])+debug_data[5], 
---									debug_data[2]+debug_data[6], 
---									10)
---			end
---		end		
 	end
 end
 
 function draw_enemies()
-	--local t=time()
 	for e in all(actors) do
 		if e.hit~=nil then
-			--local age=t-e.hit
-			-- todo if dying? cleared elsewhere?
 			if (t-e.hit>enemy_die_expire)	e.hit=nil
 		else
 			local x,y=wxtoc(e.x),e.y
@@ -1253,26 +999,18 @@ function draw_enemies()
 					print(e.score,x-(((#tostr(e.score)+1)/2)*3)+6,y+17, 5)		
 	 		end
 			end
-			
---			if debug_kill then		 
---		 	 rect(x+e.dx+e.xl, e.y+e.dy+e.yt,
---		 	 					x+e.dx+e.xr, e.y+e.dy+e.bt, 15) 
---	 	end
-
 		end
 	end
 end
 
 function draw_particles(alt_cycle)
-	--local t=time()
 	local occ,cc_freq = 5,0.2
 	if (alt_cycle) occ,cc_freq = 10,0.05
-	-- palette cycle - as good a place as any
  if t-pt>cc_freq then
   if not epi_friendly then
 	  cc=(cc%15)+1
 		end
-	 pal(occ,cc) -- todo true?
+	 pal(occ,cc) 
 	 pt=t
  end
  
@@ -1280,10 +1018,8 @@ function draw_particles(alt_cycle)
 		if t>e.t then
 			local x,y=wxtoc(e.x),e.y
 			local c=e.c
-			--local age=t-e.t
 			if (t-e.t>old_particle) c=9
 			pset(x,y,c)	
-		-- else delay
 		end
 	end
 end
@@ -1291,73 +1027,51 @@ end
 function draw_stars()
 	for star in all(stars) do
 	 if not(humans<=0) and star[2]>lmax then
-	  -- not null space and star behind ground level
 	 else
- 	 local cxp=cx/star[3] -- cx for screen; /star[3] for move-delay
+ 	 local cxp=cx/star[3] 
 			local x=star[1]-cxp  
 			local col=5
 			if cx+128>ww then
 				if star[1]-cxp<(128-(ww-cx)) then
 	 			x=(star[1]+(ww/star[3]))-cxp
-					col=14  --new or fade depending on dir
+					col=14 
 				end
-	
 				if star[1]>((ww/star[3])-128) then
-	 			if (col~=14) col=12  --fade or new depending on dir
+	 			if (col~=14) col=12  
 	 		end
 			end
-
 			if (col~=5) col=5
-			
 			pset(x,star[2],col)
 		end
 	end
 end
 
 function animate_camera()
- -- e.g. player reversing
-	-- assumes canim>0
 	canim-=1
 	cx=(cx+canim_dx)%ww
-
-	-- in screen space to handle any wrapping
-	local x=wxtoc(pl.x) 
+	local x=wxtoc(pl.x)
 	if x<20 then
-		--printh("!plx<20 "..x)
  	pl.x=(cx+20)%ww
  	canim=0
-	elseif x>100 then  -- assumes <128, if not we're off camera and will jump
-		--printh("!plx>100 "..x)
+	elseif x>100 then  
 	 pl.x=(cx+100)%ww
 	 canim=0
 	end
-	-- note: player wrap done via %	
 end
 
 function _draw_game_over()
  cls()
- 
 	draw_stars()
-
 	draw_hud()
-
 	draw_ground()
-
 	draw_enemies()
 	draw_particles()
-
- -- todo wait for player_exp_delay
 	print("game over", 48, hudy+40, 5)
 end
 
 function _draw_title()
  cls()
- --print(#particles)
- 
 	draw_particles(true)
-
-	-- never expire! draw_player()  -- needed to expire
-
 	if bombing_t==nil or t-bombing_t>bombing_e then
 		map(0,1, 25,hudy+1, 10,4)
 		print("by", 59, hudy+40, 7)
@@ -1370,41 +1084,26 @@ function _draw_title()
 			end
 		end
 	end
-	--todo: 'p' ok? test in browser...
-	--if (not epi_friendly and not cart_exists) print("press p to turn off flashing", 8, hudy+60)
-	
 	local o=hudy+78
-
-	-- note: player one only?
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
 	print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
 	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
-	
 	print("press ❎ to start", 30, o+32, 10)
 end
 
 function _draw_highscores()
  cls()
-
 	if (pl.score>0) draw_score(pl.score)
-
 	draw_particles()
-
-	-- never expire! draw_player()  -- needed to expire
-
 	map(0,1, 25,0, 10,4)
-
 	print("hall of fame", 41, hudy+23, 5)
-
 	print("todays", 14, hudy+32, 5)
 	print("all time", 86, hudy+32, 5)
 	print("greatest", 10, hudy+38, 5)
 	print("greatest", 86, hudy+38, 5)
-	-- underlines
  line(10, hudy+44, 40, hudy+44, 5)
  line(86, hudy+44, 116, hudy+44, 5)
-
 	for hst=today,alltime do
 	 local co=(hst-1)*76
 		for i,hs in pairs(highscores[hst]) do
@@ -1420,60 +1119,39 @@ end
 
 function _draw_new_highscore()
  cls()
-
 	draw_score(pl.score)
- 
 	draw_particles()
-
-	-- never expire! draw_player()  -- needed to expire
-
 	print("player one", 48, hudy+1, 2)
 	print("you have qualified for", 16, hudy+16, 2)
 	print("the defender hall of fame", 16, hudy+24, 2)
-
 	print("select initials with ⬆️/⬇️", 16, hudy+36, 2)
-
 	print("press fire to enter initial", 16, hudy+48, 2)
-
-	-- todo mention bomb to backspace?
-
 	for ci=1,#hs_name do
  	print(sub(hs_name,ci,ci), 48+ci*10, 80, 2)
  end
  local ci=#hs_name+1
 	print(hs_chr, 48+ci*10, 80, 2)
-	-- underlines
 	for ci = #hs_name+1,3 do
 	 local c=2
 	 if (ci==#hs_name+1 and flr(t)%2==0) c=0
  	line(48+ci*10, 88, 48+ci*10+3, 88, c)
  end
-
 end
 
 function _draw_instructions()
  cls()
-
-	draw_hud(true)  -- note: includes extra_score
-
+	draw_hud(true)  
 	draw_ground(true)
-	
 	draw_enemies()
 	draw_particles()
-
-	draw_player()  -- demo.t checked to avoid dying/reset (because p.hit is overused as a timer here)
- 
+	draw_player()  
 	print("scanner", 51, hudy+4, 5)
-
-	-- note: animation steps via update
 end
 
 function _draw_end_wave()
  cls()
- 
 	draw_hud()
-	draw_player()  -- needed to expire
-
+	draw_player() 
 	rectfill(0, hudy+1,127,127, 0)
 	print("attack wave "..(iwave+1), 40, hudy+20, 5)
 	print("completed", 46, hudy+28, 5)
@@ -1481,24 +1159,16 @@ function _draw_end_wave()
 	for h=1,humans do
 		spr(human,33+h*5, hudy+56)
 	end
-
 	if pl.hit==nil then
-		-- note: already increased score
 		reset_player()
-	 
 		iwave=(iwave+1)%256
 		load_wave()
-		-- prime the spawning
-		--local t=time()
-		wave.t_chunk=t-wave_progression+wave_reset  -- reset
-
+		wave.t_chunk=t-wave_progression+wave_reset  
 		_draw=_draw_wave
 	end
 end
 
 function _draw_wave()
- --local t=time()
-
  if bombing_t~=nil then
 		local age=t-bombing_t
 		if age<bombing_e then
@@ -1516,48 +1186,24 @@ function _draw_wave()
 		else
 			camera(0,0)
 			bombing_t=nil
-			bombing_e=bombing_expire  -- reset to default
+			bombing_e=bombing_expire  
 		end
 	else
 		cls()
 	end
-
  if (canim>0) animate_camera()
-
 	draw_stars()
-
 	draw_hud()
-
 	draw_ground()
-
 	draw_enemies()
 	draw_particles()
-
 	draw_player()
-
---todo reinstate		
---	if debug then
---		print(cx,1,120,1)
---		print(pl.x,48,120)
---		--print(cdx,1,6)
-		--if cx + 128 > ww then
-		--	print("★",1,13)
-		--end
---		print(#actors,100,0)
---		print(wave.swarmers_loosed,118,0)
---		print(#particles,100,6)
---		assert(humans<=max_humans)
---		print(humans,120,0)
---		print(iwave+1,120,6)
---	end
 end
 
 -->8
 --build world
 
 function build_world()
- --local t=time()
- -- note: 3+4+ -> 3+1-4+ etc.
 	local wd=[[
 	 5+3+2-2+2=4+2=2+2-2=4+2-2+3+2-2+3+2+4+7+2-2-2+3-2=3+4=2+3-7+7+2=
 	 7-4-7-4=4-4-3-3+4-2+5-2+2=3-2+3+2-2+3-4=6=3-4=2-10=2-48=2+8=
@@ -1572,7 +1218,7 @@ function build_world()
 	]]
 	local s,c="",""
 	local n,ll=nil,nil
-	local ld,d=nil,"="  -- -down, ="flat"(-+), +up
+	local ld,d=nil,"="
 	local dy,l,wi=1,1,1
 	for si=1,#wd do
 		c = sub(wd,si,si)
@@ -1582,9 +1228,8 @@ function build_world()
 			n=tonum(s)
 			ld=d
 			d=c
-			s="" -- reset
+			s=""
 			if ld==d then
-		  -- insert gap
 				l=l+(dy*-1)
 				w[wi]=127-l	
 				wi+=1  
@@ -1597,7 +1242,6 @@ function build_world()
 				elseif d=="=" then
 					dy*=-1
 				end
-				-- note: no error checking (lmin/lmax)
 				l=l+dy
 				w[wi]=127-l	
 			
@@ -1605,16 +1249,12 @@ function build_world()
 			end
 		end
 	end
-	--printh("end w:"..wi.." at level "..l.." took "..time()-t)
-	-- pre-calc for scanner				
 	for wi=1,ww do	
 	 if wi%hwr==0 then
 		 l=127-w[wi]
-		 -- todo hardcode any holes?
    ls=ll
    ll=ceil(l/hhr)  
    if ls and abs(ll-ls)>1 then
-    -- patch any holes
     ll=ll+sgn(ll-ls)*-1
    end
 	 	sw[wi\hwr]=hudy-ll
@@ -1625,9 +1265,8 @@ end
 function add_stars()
 	for s = 1,max_stars do
 		add(stars, {
-		 -- note: we add some behind the ground level but don't draw them unless null space
 			rnd(ww), rnd(120-hudy)+hudy, 
-			rnd(2)+10  -- parallax depth
+			rnd(2)+10 
 		})
 	end
 end
@@ -1642,7 +1281,7 @@ function make_actor(k, x, y, hit)
   dx=0,
   dy=0,
   frame=0,
-  t=0,  -- used as frame step or birth time for bullets/mines which have no frames
+  t=0, 
   frames=at[5],
   w=at[3],
   h=at[4],  
@@ -1651,62 +1290,27 @@ function make_actor(k, x, y, hit)
   hit=hit,
   score=attrs[k][1],
  }
- -- todo perhaps skip if bullety
- -- note flr top and right - see sprite placements
  a.yt=flr((8-a.h)/2)
  a.yb=8-a.yt 
  a.xl=ceil((8-a.w)/2)
  a.xr=8-a.xl
  
-	-- todo if hit player - move
  add(actors,a)
 	return a
 end
 
 function add_bullet(x, y, from, track)
- -- note: also creates mines
- --local t=time()
 	b=make_actor(bullet,x,y)
 	
 	if from.k==bomber then
-	 -- b.dx,b.dy already 0
 		b.k,b.c=mine,5
 	else	
 		local bv=attrs[bullet][7]
-		--if (from and from.k==baiter) bv*=1.1
-		local tx,ty=pl.x,pl.y  -- aim at player
-		-- todo reinstate!
---		if false then --track then
---		 -- todo also take account of e.dy
---		 local dx,dy=pl.x-b.x,pl.y-b.y
---		 local proj_speed=bv --+from.dx  -- todo remove from.dx?
---		 local pldx=cdx*pl.facing
---			local ta=pldx*pldx+pl.dy*pl.dy-proj_speed*proj_speed
---			local tb=2*(pldx*dx+pl.dy*dy)
---			local tc=dx*dx+dy*dy
---			local disc=tb*tb-4*ta*tc
---			if disc>=0 then
---				local t1=(-tb+sqrt(disc))/(2*ta)
---				local t2=t1
---				if (disc~=0) t2=(-tb-sqrt(disc))/(2*ta)
---				local tt=t1
---				if (tt<0 or (t2>tt and t2>0)) tt=t2
---				if tt>0 then
---					tx=tt*pldx+pl.x
---					ty=tt*pl.dy+pl.y
---					--if (debug)	printh("quadratic solved:"..tt.." ("..pldx..") -> "..tx..","..ty.." instead of "..pl.x..","..pl.y)
---					--printh(tx..","..ty)
---				 -- else none +ve (can't fire back in time)
---				end	
---			-- else no discriminant, forget it - todo perhaps undo fire?
---			end
---		end
+		local tx,ty=pl.x,pl.y  
 	 local miss=30-min(iwave,24)
-	 --todo vary miss against pl dx/dy
 	 tx+=rnd(miss)*-sgn(pl.dx)
 	 ty+=rnd(miss*0.5)*-sgn(pl.dy)
 		local dst=sqrt((tx-b.x)^2+(ty-b.y)^2)
-		--printh(dst)
 		b.dx=((tx-b.x)/dst)*bv
 	 b.dy=((ty-b.y)/dst)*bv
 	end
@@ -1746,14 +1350,12 @@ function add_explosion(e, reverse, speed)
 	if speed~=nil then
 	 expire=player_die_expire-player_exp_delay
 	 pt+=player_exp_delay
-	 f=99 --flag
+	 f=99 
 	else
 		speed=particle_speed
 	end
-	--local t=time()
  for i=1,16 do
-  -- todo make some faster
-  local x,y=e.x+4,e.y+4  -- todo h/w better?
+  local x,y=e.x+4,e.y+4  
   local s,d=speed,sp[i]
   if f==99 then
 			local a=i*(1/16)+rnd(15)
@@ -1763,7 +1365,7 @@ function add_explosion(e, reverse, speed)
   else
 	  if d[1]==0 or d[2]==0 then
 				if (f==0) s=particle_speed*0.8
-	  	f=1-f  --prevent for next one
+	  	f=1-f 
 	  end
 	 end
   if reverse then
@@ -1780,19 +1382,15 @@ function add_explosion(e, reverse, speed)
 end
 
 function kill_actor(e, laser, explode)
- --local t=time()
 	explode=explode~=false
-	--print("explode "..tostr(explode))
  if explode then
 		if not(e.k==bullet or e.k==mine) then
 		 add_explosion(e)
-	 	if (laser) del(lasers,laser)  -- i.e. allow to hit something else after a bullet
- 	 -- note: may have already been expired elsewhere		
+	 	if (laser) del(lasers,laser)  
 	 end
 	end
 
 	del(actors, e)
-	--printh(e.k.." dead "..e.x)			 	
 	
 	if demo.t==0 then
 		add_pl_score(e.score)
@@ -1803,8 +1401,6 @@ function kill_actor(e, laser, explode)
 		 
 		 if e.target~=nil then
 			 if e.target.capture==capture_lifted then
-			 	-- todo set drop time / score depending on height/landing
-			 	--printh("drop human!")
 			 	e.target.dy=gravity_speed
 					e.target.dropped_y=e.y
 			 	e.target.capture=nil
@@ -1812,23 +1408,15 @@ function kill_actor(e, laser, explode)
 			 end
 			end
 		 
-		 -- note: could have just added a batch! todo fifo?
 		 if wave.landers_hit%5==0 then
 				if (wave.landers>0) add_enemies()
 			end
 		elseif e.k==mutant then
-		 wave.landers_hit+=1  -- same as lander since we can compare with spawn number 1 for 1
-			-- todo track separate hits too?
+		 wave.landers_hit+=1  
 		elseif e.k==baiter then
-		 wave.baiters_generated-=1  -- i.e.so max_baiters => max active batiers
-			-- todo count baiters_hit - why not
-		--todo remove elseif e.k==bomber then
-		 --todo remove wave.bombers_hit+=1
+		 wave.baiters_generated-=1  
 		elseif e.k==pod then
-		 --todo remove wave.pods_hit+=1
-		 -- todo sfx(?)
-		 -- spawn swarmers
-		 local r,make=flr(rnd(256)),7 -- 172..255
+		 local r,make=flr(rnd(256)),7 
 		 if r<64 then
 		  make=4
 		 elseif r<128 then
@@ -1842,42 +1430,25 @@ function kill_actor(e, laser, explode)
 		 make=min(make, max_swarmers-active_enemies(swarmer))
 		 for sw=1,make do
 			 local x,y=e.x+rnd(3),e.y+rnd(6)
-				l=make_actor(swarmer,x,y)  -- no time = show immediately
+				l=make_actor(swarmer,x,y)  
 				l.dy=attrs[swarmer][7]/2
 				if (rnd()<0.5) l.dy*=-1  
-				-- don't go towards player at first: l.dx = swarmer_speed
-				-- if (rnd()<0.5) l.dx *= -1
-				l.lazy=rnd(64)  -- higher = less likely to chase
-				-- todo sfx(?)  
+				l.lazy=rnd(64)  
 			end
 			sfx(11) 
-			--todo remove: wave.swarmers_generated+=make
 		elseif e.k==swarmer then
---		 wave.swarmers_generated-=1  -- i.e.so max_swarmers => max active swarmers
---			-- todo count swarmers_hit - why not
 			sfx(12) 
 		elseif e.k==human then
-			--printh("dead human "..e.x)
-		 -- todo wrap in kill_human routine?
 			if e.capture~=nil then
-		  --printh("dead human had been captured "..e.x.." "..e.capture)
-		  -- reset any lander that had this as a target (else picks up a phantom)
 		 	for a in all(actors) do
 		 		if (a.k==lander and a.target==e) a.target=nil
- 	 			--printh("unlinking target after human dead "..a.target.x.." "..a.x) 			
-		 			-- todo find a new one! (not in pl.target)
 		 	end
 			 for plt in all(pl.target) do
 		 		if (plt==e) del(pl.target,plt)
-		 			--printh("unlinking player target after human dead "..plt.x.." "..pl.x)
 		 	end
 			end
 		 humans-=1
-			--printh(" humans left "..humans)
 		 if humans<=0 then
-		 	-- null space
-		 	-- todo camera shake?
-				--	explode planet!
 		  local s=particle_speed/1.5
 		  local d={rnd()-0.5,-1}
 				for sx=-64,192 do
@@ -1890,34 +1461,28 @@ function kill_actor(e, laser, explode)
 						c=4, t=t, expire=ground_destroy_expire,
 					})				
 				end
-		 	music(8,0,8)  -- review last 8 = channel 3 reserve
-		 	-- convert any existing landers to mutants
+		 	music(8,0,8)  
 		 	for a in all(actors) do
 		 		if a.k==lander then
-		 		 --todo refactor/share
-		 			--printh("converting lander to mutant after null space (all humans dead) "..a.x)
 		 			a.k=mutant
 			 		a.c=attrs[mutant][2]
-			 		a.lazy=0  -- todo or remove altogether?
-						a.dy=attrs[mutant][7] --*lander_speed_y_factor
+			 		a.lazy=0  
+						a.dy=attrs[mutant][7] 
 		 		end
 		 	end
 				wave.mutants+=wave.landers
 				wave.landers=0
-		 	-- also any further landers will be mutants - even on later levels until humans are replenished
 		 	bombing_c=5
 		 	bombing_e=ground_destroy_expire
-		 	bombing_t=t --time()
+		 	bombing_t=t 
 			end
-		 -- todo if no more landers/mutants (based on hit counts?) then kill all baiters? - no need since is_wave_complete will be true
 		end
 		if is_wave_complete() then
-		 pl.hit=t --time()  -- pause
+		 pl.hit=t 
 		 add_pl_score(humans*100*min(iwave+1,5))
 			_draw=_draw_end_wave
 		end
 	else 
-		-- demo mode
 	 bombing_t=t
 		demo.step_next_part+=1
 	end
@@ -1925,16 +1490,14 @@ end
 
 function reset_player(full)
  if full then
-		pl.lives=2  -- plus start life = 3
+		pl.lives=2  
 		pl.score,pl.score_10k=0,0
 		pl.bombs=3
-		-- note: no birth set
  end
- cdx=0 -- freeze  
- -- todo reset cx? bombing_t etc.
+ cdx=0 
  bombing_e=bombing_expire
 	pl.x,pl.y=cx+20,64
-	pl.facing=1  -- todo need camera move?	
+	pl.facing=1 
 	pl.dy=0
 	pl.thrusting,pl.birth=false,nil
 	pl.target={}
@@ -1942,91 +1505,52 @@ end
 
 function kill_player(e)
 	old_p={pl.x,pl.y,pl.facing}
- pl.hit=t --time()
-	sfx(3,-2) -- stop any thrust
-	music(-1) -- stop any music 23
+ pl.hit=t 
+	sfx(3,-2) 
+	music(-1) 
 	sfx(4)  
-	wave.t_chunk-=player_die_expire  -- don't include dying time
- --cdx=0 -- freeze
+	wave.t_chunk-=player_die_expire  
  lasers={}
- for i=1,16 do --24 do --32 do
-  --local d=sp[i] --ceil(i/2.5)]
-  --pl.x+=d[1]*(rnd(3)-rnd(3))
-	 --pl.y+=d[2]*(rnd(3)-rnd(3))
-	 --pl.x+=rnd(4)-rnd(4)
-	 --pl.y+=rnd(4)-rnd(4)
-  --add_explosion(pl, false, rnd(particle_speed*1.5)+0.06, player_die_expire, 40, true)
-  
-  --pl.x+=d[1]
-	 --pl.y+=d[2]
+ for i=1,16 do 
   add_explosion(pl, false, rnd()*particle_speed/16+i/16) --, player_die_expire, true)
-  --pl.x-=d[1]
-	 --pl.y-=d[2]
-	 --add_explosion(pl, false, rnd(particle_speed)+0.1, player_die_expire)
 	end 
-	--note: pl x/y adjusted - don't bother to restore since we're dying
-	--printh(#particles)
 	pl.lives-=1
 	add_pl_score(25)
 	
- --add_explosion(pl, false, 0.3, player_die_expire, 100, true)
-	-- todo maybe reset_player() here (if so lose cdx = 0 above)
-	
-	--printh("player killed by "..e.x)
-	kill_actor(e, nil, false)  -- no explosion
+	kill_actor(e, nil, false)  
 	
  for plt in all(pl.target) do
-		--printh("player was carrying human - also killed "..plt.x)
 		kill_actor(plt, nil)
 		del(pl.target,plt)
-		-- assume shot - not technically killed by falling from a height?
 	end
 
 	reset_player()
 
 	if pl.lives<0 then
-	 pl.hit=t --time()  -- pause
+	 pl.hit=t 
 		_draw=_draw_game_over
 		_update60=_update60_game_over
 	end
-
-	--note reset_enemies() will be called during draw (i.e. after death animation)
 end
 
 function add_humans()
- -- todo pass in t?
--- if debug then
---	 local hc=0
---		for e in all(actors) do
---			if (e.k==human) hc+=1
---		end
---		if (hc~=0) assert(hc~=0)
---			--printh(humans.." "..wave.t)
---	end
-
 	for h=1,humans do
-	 local x=rnd(ww)  -- todo groups?
+	 local x=rnd(ww)  
 	 local y=120-flr(rnd(4))
 		h=make_actor(human,x,y,time())
 		h.dx=rnd(attrs[human][7])  
 		if (rnd()>0.5) h.dx=h.dx*-1
-		-- todo rnd frame?
 		h.capture=nil
 		h.dropped_y=nil
 	end
-	--printh("added "..humans.." humans") -- replenish on 1st wave update
 	add_humans_needed=false
 end
 
 
 function active_enemies(include_only)
- -- don't count baiters (and include_only, if given)
- -- don't count bullet,mine,human
- -- todo remove: -- does count swarmers (wave.swarmers_generated) - though level restart not required if only swarmers remain - todo:ok?
  local r=0
 	for e in all(actors) do
 	 if (include_only and e.k~=include_only) then
-	   -- ignore
 	 else
 	  if (not(e.k==baiter or e.k==bullet or e.k==mine or e.k==human)) r+=1
 	 end
@@ -2036,28 +1560,17 @@ end
 
 function is_wave_complete()
 	local r=0
- -- spawned (except generated baiters)
  r+=active_enemies()
-	-- plus yet to spawn
 	r+=wave.landers
 	r+=wave.bombers
 	r+=wave.pods
-	-- todo remove: ? swarmers	
-	-- note: baiters not counted towards completion
-	-- note: mutants don't spawn initially but they accrue during play
-	-- note: loosed swarmers re-spawn as actors on each reset
 	r+=wave.mutants  
-	--printh("r="..r)
-	--printh(wave.landers_hit)
-	return r==0  -- i.e. no more left
+	return r==0  
 end
 
 function load_wave()
-	--local t=time()
-	--local sw,w4=waves[iwave%7+1],waves[4]
 	local sw=waves[4]
 	if (iwave<4) sw=waves[iwave+1]
-	-- copy
 	wave={
  	 c=wave_colours[iwave%7+1],
  		landers=sw.landers,
@@ -2069,98 +1582,58 @@ function load_wave()
  		t=t,
  		t_chunk=t,
  		
- 		landers_hit=0,  -- include mutants
- 		--todo remove bombers_hit=0,
- 		--todo remove pods_hit=0,
- 		-- todo baiters_hit
- 		-- todo remove swarmers_hit
+ 		landers_hit=0,  
  		
  		humans_added=nil,
 	}
 	wave.baiters_generated=0
-	wave.swarmers_loosed=0 -- temp during reset
+	wave.swarmers_loosed=0 
 
 	if iwave==0 or (iwave+1)%5==0 then
-  -- replenish - assumes starts at 0
 		wave.humans_added=max_humans-humans
 		humans+=wave.humans_added
-		-- todo: use humans_added to avoid re-adding (update: we now do this via add_humans_needed)
-		--assert(humans<=max_humans)  --todo remove
-		--printh("adding humans "..wave.humans_added.."="..humans)
 	end
 	
  if humans<=0 then
-  -- null space
  	wave.mutants+=wave.landers
  	wave.landers=0
  end
  
-	--if	true then
-	--	wave_old=1
-	--end
---		--wave_progression=1
---		wave.landers=2 --1 --breaks null space
---		wave.mutants=0
---		--wave.bombers=min(1,wave.bombers)
---		--wave.pods=min(1,wave.pods)
---	end
 end
 
 function add_enemies(ht)
- -- note: pass in ht to override make_actor hit time
- ht=ht or t -- time()
- --local t=time()
- local sound=not(ht>t) -- if ht>t we don't fire sfx - i.e. assume game starting music is playing
- -- see reset_enemies for undo
+ ht=ht or t 
+ local sound=not(ht>t) 
  local make
 	if wave.landers>0 then
 	 make=min(wave.landers,5)
 		for e=1,make do
-		 --local x=rnd(ww)
-		 --local y=hudy+2
-			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(lander,rnd(ww),hudy+2,ht)
 			l.dy=lander_speed*lander_speed_y_factor
-			l.lazy=rnd(512)  -- higher = less likely to chase
-			--l.h=5
-			--l.w=7
-			--todo remove l.score=150	
-			--l.frames = 3
-			-- find a target
+			l.lazy=rnd(512)  
 			l.target=nil
-			if true then --humans > 0 then
+			if true then 
 				for i,a in pairs(actors) do
 					if a.k==human and a.capture==nil and a.dropped_y==nil then
-					 -- todo perhaps skip or move if on/near wrap-line
-		 			-- note: e.capture==nil implies not in pl.target, i.e. player not carrying
-		 			--       *but* could be falling so we now check dropped_y==nil too
-		 			-- todo: though might be funny to have lander steal human from player!
 						l.target=a
 						l.target.capture=capture_targetted
-						--printh(l.x.." targetting "..i.." = "..a.x)
 						break
 					end
 				end
 			end
-			add_explosion(l,true)  -- reverse i.e. spawn
-			if (sound) sfx(2)  -- todo: if on screen
+			add_explosion(l,true) 
+			if (sound) sfx(2)  
 		end
 		wave.landers-=make
 	end
 	if wave.mutants>0 then
-	 make=wave.mutants  -- todo limit to 10 - but check if one-off temp counter?
+	 make=wave.mutants  
 		for e=1,make do
-		 --local x,y=rnd(ww),hudy+2
-			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(mutant,rnd(ww),hudy+2,ht)
-			l.dy=attrs[mutant][7] --*lander_speed_y_factor
-			-- todo remove lazy here?
-			l.lazy=rnd(64)  -- higher = less likely to chase
-			--l.h=5
-			--l.w=7
-			--todo remove l.score=150	
-			add_explosion(l, true)  -- reverse i.e. spawn
-			if (sound) sfx(2)  -- todo: if on screen
+			l.dy=attrs[mutant][7] 
+			l.lazy=rnd(64)
+			add_explosion(l, true)
+			if (sound) sfx(2)
 		end
 		wave.mutants-=make
 	end
@@ -2170,135 +1643,93 @@ function add_enemies(ht)
 	 local groupdx=1
 		if (rnd()<0.5) groupdx*=-1
 		for e=1,make do
-		 --local x=groupx+rnd(ww/20)
-		 --local y=hudy+2+rnd(80)
-			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(bomber,groupx+rnd(ww/20),hudy+2+rnd(80),ht)
 			l.dy=attrs[bomber][7]
 			l.dx=groupdx*l.dy
  		if (rnd()<0.5) l.dy*=-1
-			add_explosion(l,true)  -- reverse i.e. spawn
-			if (sound) sfx(2)  -- todo: if on screen
+			add_explosion(l,true)
+			if (sound) sfx(2)
 		end
 		wave.bombers-=make
 	end
  if wave.pods>0 then
-	 make=min(wave.pods,4) -- ok?
+	 make=min(wave.pods,4)
 		for e=1,make do
-		 --local x,y=rnd(ww), hudy+2+rnd(30)
-			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(pod,rnd(ww),hudy+2+rnd(30),ht)
 			l.dy=attrs[pod][7]
 			l.dx=l.dy/4
-			--l.dx=pod_speed/4
-			add_explosion(l,true)  -- reverse i.e. spawn
-			if (sound) sfx(2)  -- todo: if on screen
+			add_explosion(l,true)
+			if (sound) sfx(2)
 		end
 		wave.pods-=make
 	end
  if wave.swarmers_loosed>0 then
 	 make=wave.swarmers_loosed
-	 --refactor:share pod kill logic
 	 local groupx=rnd(ww)
 		for e=1,make do
-		 --local x,y=rnd(ww), hudy+2+rnd(30)
-			-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 			l=make_actor(swarmer,groupx+rnd(20),hudy+2+rnd(60),ht)
 			l.dy=attrs[swarmer][7]/2
 			if (rnd()<0.5) l.dy*=-1  
-			-- don't go towards player at first: l.dx = swarmer_speed
-			-- if (rnd()<0.5) l.dx *= -1
-			l.lazy=rnd(64)  -- higher = less likely to chase
-			--todo?? respawn? add_explosion(l,true)  -- reverse i.e. spawn
-			--todo?? respawn? sfx(2)  -- todo: if on screen -- can't be start game so no sound check needed
+			l.lazy=rnd(64)
 		end
 		wave.swarmers_loosed-=make
 	end
 	
-	-- based on wave.t? and/or remaining
- -- baiters, if near end of wave
- if wave.baiters_generated<max_baiters then  -- todo adjust for iwave?
-		--local t=time()
+ if wave.baiters_generated<max_baiters then
 		local very_old=(t-wave.t)>wave_old*2
 		if very_old or (wave.landers==0 and wave.bombers==0 and wave.pods==0) then
-			if very_old or (wave.mutants==0) then -- todo: include here? active xor this i think?
-				local ae=active_enemies(lander)+active_enemies(mutant) -- excludes baiters
-				if ae<5 or very_old then 
-					if t-wave.t>wave_old then  -- todo adjust for iwave?	2,3,4+ need more time?		
-					 make=1 -- remove: 5-ae 
-					 if (ae<4) wave.t_chunk=t-wave_progression+baiter_next*ae  -- prime next one sooner						
-							--printh(ae.." enemies left so priming next baiter respawn for "..wave.t_chunk.." at "..t)
+			if very_old or (wave.mutants==0) then
+				local ae=active_enemies(lander)+active_enemies(mutant)
+				if ae<5 or very_old then
+					if t-wave.t>wave_old then
+					 make=1
+					 if (ae<4) wave.t_chunk=t-wave_progression+baiter_next*ae
 						for e=1,make do
-						 --local x,y=rnd(ww),hudy+2
-							-- note: pass hit time = birthing - wait for implosion to finish  note: also avoids collision detection
 							l=make_actor(baiter,rnd(ww),hudy+2,ht)
 							l.dy=attrs[baiter][7]/3
-							l.lazy=-256  -- higher = less likely to chase
-							add_explosion(l,true)  -- reverse i.e. spawn
-							if (sound) sfx(2)  -- todo: if on screen
-							--printh("new baiter "..l.x)
+							l.lazy=-256
+							add_explosion(l,true)
+							if (sound) sfx(2)
 						end
-						-- note: not counted as part of wave: re-generate as needed based on enemies left/wave.t
 						wave.baiters_generated+=make
 					end		
 			 end
 			end
 		end
-	-- else max_baiters reached
 	end
 end
 
 function	reset_enemies()
-	-- undo add_enemies/add_humans
-	-- push active enemies back on wave and setup re-spawn
-	--t=time()
 	for e in all(actors) do
-		-- todo check not just hit?
 		if e.k==lander then
 			wave.landers+=1
 		elseif e.k==mutant then
-			--todo old: note: no need: already added on conversion: 
 			wave.mutants+=1
 		elseif e.k==bomber then
 			wave.bombers+=1
 		elseif e.k==pod then
 			wave.pods+=1
-		--elseif e.k == human then
-		--	-- accounted for by humans var
-		--elseif e.k == baiter then
-		--	-- not counted: re-generate as needed
 		elseif e.k == swarmer then
 			wave.swarmers_loosed+=1
-		--todo remove:	-- not counted: re-generate as needed
-		--elseif e.k == bullet then
-		--elseif e.k == mine then
-		--else -- todo remove
-		--	assert(false, "unknown e.k:"..e.k)		
 		end
-		del(actors, e)  -- note: we don't retain the positions on respawn!
+		del(actors, e)
 	end
 	wave.baiters_generated=0
-	--wave.swarmers_loosed=0
 	add_humans_needed=true
-	-- prime the respawning
-	wave.t_chunk=t-wave_progression+wave_reset  -- reset
+	wave.t_chunk=t-wave_progression+wave_reset
 end
 
 function enemy_attack(e) 
 	local threshold=attrs[e.k][6]
-	if (threshold>=1) return -- no chance - todo remove if never calls here
-	-- todo wrap?
+	if (threshold>=1) return
 	local exs=wxtoc(e.x)
- local fire=e.k==bomber or (exs>=0 and exs<128) -- on-screen, or bomber lays mines off screen
-	-- note: on screen -> (abs(e.x-pl.x)<128) since player on-screen 
+ local fire=e.k==bomber or (exs>=0 and exs<128)
 	if fire then   
 		if (rnd()>threshold) fire=false
-		if (e.k==swarmer and (not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)))) fire=false 
-			-- swarmer may not be chasing yet or chasing but gone past so stop firing
-		
+		if (e.k==swarmer and (not((e.dx>0 and e.x<pl.x) or (e.dx<0 and e.x>pl.x)))) fire=false
 		if fire then
 		 sfx(attrs[e.k][8])  
-			b=add_bullet(e.x, e.y, e, (e.k==baiter))  -- todo pass weak=true for lander
+			b=add_bullet(e.x, e.y, e, (e.k==baiter))
 		end	
 	end		
 end
@@ -2306,103 +1737,50 @@ end
 
 function load_highscores()
 	if cart_exists then
-	 -- note: 8 slots hardcoded here
-		-- note: numbers 0+1 for future use (8 bytes)
 		for hs=1,8 do
-			local name=nil  -- i.e. stored as 0
+			local name=nil
 			local hso=0x5e00+(hs*8)
-   -- todo @ instead of peek
-			--local c1=peek(hso+0) 
-   --local c2=peek(hso+1)
-			--local c3=peek(hso+2)
 			local c1,c2,c3=peek(hso,3)
-			--local c4=peek(0x5e00 + (hs*2)*4+3)
-			-- todo assert c4==0
 			if c1~=0 or c2~=0 or c3~=0 then
 				name=chr(c1)..chr(c2)..chr(c3)
-				--printh("!"..name.." "..c1..c2..c3)
-			-- else ?assert score==0
 			end
 			local score=dget(hs*2+1)
 			if (score~=0) add_highscore(score,name,false)
-			-- else empty cart (first run) or nothing saved here yet
 		end 
 	else
- 	--printh("skipped dget: not cart_exists")
-	 -- todo: better score + add via add_highscore to ensure they're kept in order!
-	 --for i,s in pairs(init_hs) do
 	 for i in all(split(init_hs)) do
 		 local s=split(i,"=")
 	 	add_highscore(s[2]>>16,s[1],false)
  	end
-	 --highscores[alltime][1]={"drj", 21270>>16}
-		--add_highscore(21270>>16,"drj",false)
-		--add_highscore(21260>>16,"gjg",false)
 	end
-  
-	-- todo reinstate!
---	if debug then
---	 local hste = highscores[today]
---	 hste[1]={"gjg", 21270>>16}
---	 hste[2]={"g2g", 11270>>16}
---	 hste[3]={"g3g", 1270>>16}
---	 hste[4]={"g4g", 270>>16}
---	end
 end
 
---function add_highscore(score, name, new)
---end
-
 function add_highscore(score, name, new)
-	-- assumes caller already knows we have a highscore (e.g. checked against [8])
-	-- pass new=false if loading from cdata, i.e. don't try to store = cycle!
-	--new=new or true
 	new=new~=false
 	local start_board=today
-	if (not new) start_board=alltime  -- don't load cart/alltime into today
- -- find position 
+	if (not new) start_board=alltime
  for hst=start_board,alltime do
- 	-- todo short-circuit if not possibly in alltime, based on today pos
  	local hste=highscores[hst]
-	 local pos=8  -- i.e. #highscores[hst]
+	 local pos=8
 	 while pos>0 and score>hste[pos][2] do
 		 pos-=1
 	 end
-	 if pos~=8 then -- #highscores[hst]
+	 if pos~=8 then 
 		 if pos>=0 then
-		 	-- push others down
-		 	for hs=8,pos+2,-1 do  -- #highscores[hst]
-			 	hste[hs]=hste[hs-1]  -- copies name+score
+		 	for hs=8,pos+2,-1 do
+			 	hste[hs]=hste[hs-1]
 		 	end
-		 	-- insert
- 		 -- todo >>16 here? or caller?
 		 	hste[pos+1]={name, score}
 		 	
 		 	if hst==alltime and (new or not cart_exists) then
-					--printh("writing alltime highscore to cart "..name..":"..score.." at "..pos+1)
-					--if true then -- todo remove: cart_exists then
-				 -- note: 8 slots hardcoded here
-					-- note: bytes 0+1 for future use
 					for hs=1,8 do
 						local hso=0x5e00+(hs*8)
 					 local hs_name=hste[hs][1]
-					 --local name_bytes=0  -- i.e. nil = not set
 					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
-						 --poke(hso+0, ord(sub(hs_name,1,1))) 
-       --poke(hso+1, ord(sub(hs_name,2,2)))
-							--poke(hso+2, ord(sub(hs_name,3,3)))
-							--poke(hso+3, ord(chr(0)))
-							-- todo poke 4 at once				 
-							--printh("!"..hs_name.." "..name_bytes)
 						dset(hs*2+1, hste[hs][2])
 					end 			 
-					--else
-					--	--printh("failed dset: not cart_exists")
-				 --end
 		 	end
-		 -- else assert
 		 end	
-		-- else assert? caller shouldn't have called us
 		end
 	end
 end
