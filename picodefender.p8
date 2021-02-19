@@ -5,6 +5,8 @@ __lua__
 -- ggaughan, 2021
 -- remake of the williams classic
 
+version = 1.00
+
 cart0=0  -- 32 bits: 0=epi_friendly
 
 t=time()
@@ -343,17 +345,19 @@ function _update60_wave()
 	end
 end
 
-function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfactor,attack)
+function update_enemy(e,target,ymargin,chasex,flipx,flipy,closex,closey,dyfactor)
 	chasex=chasex~=false
 	flipx,flipy=flipx or 0,flipy or 0
-	closex,closey=closex or 0,closey or 0
+ closex,closey=closex or 0,closey or 0
 	dyfactor=dyfactor or 1
-	attack=attack~=false
+ local nearx=rnd(256)-e.lazy
+ local ytb=rnd(ymargin)
 	local rand=rnd()	
 	local dx=abs(e.x-target.x)
 	if dx>closex then
 		if dx<nearx then
-		 local s=attrs[e.k][7]	 
+		 local s=attrs[e.k][7]
+		 if (iwave>6) s+=0.10
 			if chasex or e.dx==0 then
 			 if e.x<target.x or rand<flipx then
 				 e.dx=s
@@ -372,9 +376,9 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 	if dy>closey then
 		if (e.dy==0) e.dy=-lander_speed  
 	 if (
-	 				(e.y<hudy+yt and e.y<target.y and e.dy<0) 
+	 				(e.y<hudy+ytb and e.y<target.y and e.dy<0) 
 	 				or
-	 				(e.y>120-yb and e.y>target.y and e.dy>0)
+	 				(e.y>120-ytb and e.y>target.y and e.dy>0)
 	 ) then
 	 	e.dy*=-1*dyfactor
 	 end
@@ -384,7 +388,7 @@ function update_enemy(e,target,nearx,yt,yb,chasex,flipx,flipy,closex,closey,dyfa
 	 if (rnd()<0.02) e.dx*=-1  
 	end
 
-	if (attack) enemy_attack(e)
+	enemy_attack(e)
 end
 
 function update_enemies()
@@ -467,27 +471,32 @@ function update_enemies()
 							 e.dx=lander_speed
 			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
 							else
-							 e.dx = -lander_speed
+							 e.dx=-lander_speed
 			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
 						 end			
 	 				else
-							if rnd()<0.2 then
-								e.dx=lander_speed/4
-								if (rnd()<0.2) e.dx*=-1
-							elseif rnd()<0.05 then
-								e.dx=0
+							if rnd()<0.15 then
+								e.dx=lander_speed*(0.9+rnd())
+								if (rnd()<0.1) e.dx*=-1
+							--elseif rnd()<0.05 then
+							--	e.dx=0
 							end
+							if rnd()<0.01 and e.y<100 then
+					 		e.dy=lander_speed
+							end
+							--	e.dy=lander_speed*lander_speed_y_factor*(0.5+rnd())
+							--end
 						end									
 						enemy_attack(e)
 					elseif e.k==mutant then
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(20),rnd(20))
+						update_enemy(e,pl,20)
 					elseif e.k==baiter then
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(30),rnd(30),true,0,0.1,24+rnd(12),24+rnd(16),3)
+						update_enemy(e,pl,30,true,0,0.1,32+rnd(12),32+rnd(16),3)
 					elseif e.k==bomber then
 					 if (e.y<hudy+rnd(30) or e.y>120-rnd(30)) e.dy*=-1
 					 enemy_attack(e)
 					elseif e.k == swarmer then
-						update_enemy(e,pl,rnd(256)-e.lazy,rnd(40),rnd(40),false,0.05,0)
+						update_enemy(e,pl,40,false,0.05,0)
 					elseif e.k==mine then
 				 	if (t-e.t>mine_expire) del(actors,e)
 					elseif e.k==bullet then
@@ -959,7 +968,6 @@ function draw_player()
 	 	0,0,
 	 	mdx,mdy
 		)
-	
 	end
 	
 	if pl.hit~=nil and demo.t==0 then
