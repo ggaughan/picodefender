@@ -438,8 +438,10 @@ function update_enemies()
 			 	add(pl.target,e)
 			 	e.dy=0 
 			 	e.dx=0 
-					if (demo.t==0) sfx(18)
-					add_pl_score(e.score, pl.x-12, pl.y+4)
+					if demo.t==0 then
+					 sfx(18)
+						add_pl_score(e.score, pl.x-12, pl.y+4)
+					end
 				end
 			end			
 			
@@ -731,7 +733,7 @@ function _update60_instructions()
 					l=make_actor(lander,cx+demo_sx,hudy+demo_ty+16,t)
 					l.target=h
 					l.dy=lander_speed*4
-					add_explosion(l,true)  
+					add_explosion(l,true)
 					demo.step_next_part+=1
 				elseif demo.step_next_part==3 then
 			 	add(lasers, {pl.x+9,pl.y+5,pl.facing,t,max(max_speed/2, min_laser_speed)})  
@@ -744,10 +746,7 @@ function _update60_instructions()
 				elseif demo.step_next_part==7 then
 					pl.x+=1.2
 					pl.y+=0.8				
-					if pl.x>=cx+demo_sx then
-						add_pl_score(-h.score) 
-					 demo.step_next_part+=1
-					end
+					if (pl.x>=cx+demo_sx) demo.step_next_part+=1
 				elseif demo.step_next_part==8 then
 					pl.y+=0.5				
 			 	h.y=pl.y+6 
@@ -1071,7 +1070,10 @@ function _draw_game_over()
 	draw_ground()
 	draw_enemies()
 	draw_particles()
-	print("game over", 48, hudy+40, 5)
+	
+	local age=t-pl.hit
+ if (age<=player_exp_delay)	spr(2+(age*100)%2, wxtoc(old_p[1]), old_p[2], 1,1, old_p[3]==-1)
+	if (age>1) print("game over", 48, hudy+40, 5)
 end
 
 function _draw_title()
@@ -1497,9 +1499,9 @@ end
 
 function reset_player(full)
  if full then
-		pl.lives=2  
-		pl.score,pl.score_10k=0,0
-		pl.bombs=3
+		pl.lives,pl.bombs=2,3
+		pl.score=0
+		pl.score_10k=0
  end
  cdx=0 
  bombing_e=bombing_expire
