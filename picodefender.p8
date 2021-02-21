@@ -17,7 +17,7 @@ highscores={
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
 }
-init_hs="drj=13293.75,sam=11446.875,led=9950,pgd=8928.125,gjg=8333.3125" -- >>12
+init_hs="drj=13293.75,sam=11446.875,led=9950,pgd=8928.125,gjg=8256.25" -- >>12
 
 ww,cx=1152,512  
 ocx=cx
@@ -328,11 +328,11 @@ function _update60_wave()
 
 				if plt.y>116 then
  		 	plt.x+=rnd(8)-4
- 		 	plt.y+=rnd(8)-4
+ 		 	plt.y+=rnd(4)+1
 			 	plt.dy=gravity_speed
 			 	plt.dropped_y=pl.y
 					sfx(19)
-					add_pl_score(plt.score, plt.x-12, plt.y+4)	
+					add_pl_score(plt.score, plt.x-12, plt.y+2)	
 					plt.capture=nil
 			 	del(pl.target,plt)
 			 end
@@ -345,7 +345,7 @@ end
 
 function update_enemy(e,target,ymargin)
 	local chasex,dyfactor=true,1
-	local flipx,flipy,closex,closey=0,0,0,10
+	local flipx,flipy,closex,closey=0,0,0,24
 	if (e.k==baiter) flipy,closex,closey,dyfactor=0.1,24+rnd(12),24+rnd(16),3
 	if (e.k==swarmer) chasex,flipx,flipy,closey=false,0.05,0.1,80
  local ytb,rand=rnd(ymargin),rnd()
@@ -432,8 +432,7 @@ function update_enemies()
 				if e.capture==nil and e.y<116 and abs(e.x-pl.x)<target_x_epsilon*2 and abs((e.y-4)-pl.y)<target_y_epsilon*2 then
 					e.capture=capture_lifted
 			 	add(pl.target,e)
-			 	e.dy=0 
-			 	e.dx=0 
+			 	e.dy,e.dx=0,0 
 					if demo.t==0 then
 					 sfx(18)
 						add_pl_score(e.score, pl.x-12, pl.y+4)
@@ -479,9 +478,7 @@ function update_enemies()
 							--elseif rnd()<0.05 then
 							--	e.dx=0
 							end
-							if rnd()<0.01 and e.y<100 then
-					 		e.dy=lander_speed
-							end
+							if (rnd()<0.01 and e.y<100) e.dy=lander_speed
 							--	e.dy=lander_speed*lander_speed_y_factor*(0.5+rnd())
 							--end
 						end									
@@ -502,12 +499,11 @@ function update_enemies()
 				 elseif e.k==human then
 						if e.dropped_y~=nil then
 						 if e.y>119 then
-								e.y=120 
-								e.dy=0 
-								if e.dropped_y<safe_height then  
+								e.y,e.dy=120,0
+								if e.dropped_y<safe_height then
 						 		kill_actor(e,nil,true)  
 								else
-									add_pl_score(250)
+								 if (e.dropped_y<=110)	add_pl_score(250)
 								end
 								e.dropped_y=nil
 							end
@@ -572,11 +568,8 @@ function update_wave()
   wave.t_chunk=t  
 		if	add_humans_needed then
 			add_humans()
-		end
-
-		if wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or t-wave.t>wave_old then -- total age check
-			add_enemies()
-		end
+	 end
+		if (wave.landers>0 or wave.mutants>0 or wave.swarmers_loosed>0 or t-wave.t>wave_old)	add_enemies()
 	end
 end
 
@@ -659,10 +652,8 @@ function _update60_highscores()
 		h.capture=capture_targetted
 
 		pl.facing=1
-		pl.lives=0
-		pl.bombs=0
-		pl.x=cx+8
-		pl.y=hudy+12
+		pl.lives,pl.bombs=0,0
+		pl.x,pl.y=cx+8,hudy+12
 
  	_update60=_update60_instructions
  	_draw=_draw_instructions
@@ -885,7 +876,7 @@ function draw_score(v, x,y, extra)
 end
 
 function add_pl_score(v, x, y)
- if (x and y) extra_score={v>>16, wxtoc(x),y, t}  
+ if (x and y) extra_score={v>>16, wxtoc(x),y, t}
 	pl.score+=v>>16
 	pl.score_10k+=v>>16
 	if pl.score_10k>=10000>>16 then
@@ -1398,7 +1389,7 @@ function kill_actor(e, laser, explode)
 	del(actors, e)
 	
 	if demo.t==0 then
-		add_pl_score(e.score)
+	 if (e.k~=human) add_pl_score(e.score)
 		
 		if e.k==lander then
 		 sfx(1)
@@ -1544,8 +1535,7 @@ function add_humans()
 		h=make_actor(human,x,y,time())
 		h.dx=rnd(attrs[human][7])  
 		if (rnd()>0.5) h.dx=h.dx*-1
-		h.capture=nil
-		h.dropped_y=nil
+		h.capture,h.dropped_y=nil,nil
 	end
 	add_humans_needed=false
 end
@@ -1554,8 +1544,7 @@ end
 function active_enemies(include_only)
  local r=0
 	for e in all(actors) do
-	 if (include_only and e.k~=include_only) then
-	 else
+	 if not(include_only and e.k~=include_only) then
 	  if (not(e.k==baiter or e.k==bullet or e.k==mine or e.k==human)) r+=1
 	 end
  end
@@ -1565,10 +1554,7 @@ end
 function is_wave_complete()
 	local r=0
  r+=active_enemies()
-	r+=wave.landers
-	r+=wave.bombers
-	r+=wave.pods
-	r+=wave.mutants  
+	r+=wave.landers+wave.bombers+wave.pods+wave.mutants
 	return r==0  
 end
 
