@@ -161,6 +161,7 @@ function _init()
 	cart_exists=cartdata("ggaughan_picodefender_1")
 	if (cart_exists)	cart0=dget(0)
 	epi_friendly=cart0&0b0001!=0
+	original_controls=false
 
 	menuitem(1,"toggle flashing",toggle_bit1)
 
@@ -171,7 +172,7 @@ function _init()
 	stars={}
 	cx=512  
  cdx=0
- canim,canim_dx=0,0
+ canim,canim_dx,canim_cdx=0,0,0
 
 	build_world() 
 	add_stars()
@@ -190,11 +191,8 @@ function _init()
 	 hit=nil,  
 	}
 
-	actors={}
-	particles={}
-	
+	reset_pix()
 	reset_player(true) 
-	lasers={}
 	iwave=0
 	humans=0  
 	add_humans_needed=true
@@ -220,15 +218,37 @@ function _update60_wave()
  t=time()
  update_particles()  
 	if pl.hit==nil and pl.birth==nil then
-	 if btnp(⬅️) then
-		 pl.facing*=-1
-		 canim=80
-		 canim_cdx=cdx
-		 canim_dx=pl.facing
-	  cdx*=0.5
-	  if (btn(➡️)) canim_cdx*=1.5
+		if original_controls then
+		 if btnp(⬅️) then
+			 pl.facing*=-1
+			 canim=80
+			 canim_cdx=cdx
+			 canim_dx=pl.facing
+		  cdx*=0.5
+		  if (btn(➡️)) canim_cdx*=1.5
+			end
+		 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
+		else
+		 local plf=pl.facing
+		 --if ((btn(⬅️) or btn(➡️)) and canim<40) cdx=min(cdx+thrust,max_speed)
+		 if (btnp(⬅️)) pl.facing=-1
+		 if (btnp(➡️))	pl.facing=1
+		 if pl.facing~=plf then
+			 canim=60
+			 canim_cdx=cdx/1.5
+			 canim_dx=pl.facing
+		  cdx*=0.5
+			 if (cdx<0.1) cdx=0
+			 --printh(cdx)
+		  --if (pl.thrusting) canim_cdx*=1.5
+		  if (cdx>0.3) canim_cdx*=1.5
+		 else
+	   if (pl.thrusting) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
+			 if (canim>40 and cdx<2) cdx=0
+			 --printh(cdx..","..canim)
+			end
+		 --if (btn(⬅️) or btn(➡️)) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
 		end
-	 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
 	 if btn(⬆️) then
 	  pl.dy-=vert_accel
 	  if (pl.dy<-max_vert_speed) pl.dy=-max_vert_speed
@@ -251,7 +271,8 @@ function _update60_wave()
 	 end
 	 
 	 if btnp(🅾️) then 
-	 	if btn(⬆️) and btn(⬇️) then
+	 	--if (btn(⬆️) and btn(⬇️)) or btn(❎) then
+	 	if btn(❎) then
 	 		pl.birth=t
 	 		local hx=rnd(ww)
 	 		cx+=hx
@@ -289,27 +310,30 @@ function _update60_wave()
 			pl.x+=canim_cdx*-pl.facing	 
 	 	canim_cdx*=inertia_cx
 	 end
-	
-		local x=wxtoc(pl.x)
-	 if pl.facing==1 then
-	 	if (x<40 and btn(➡️)) pl.x+=cdx * max_h_speed_factor
-	 	if (x>20 and not btn(➡️)) pl.x-=thrust/2  
-	 else
-	 	if (x>80 and btn(➡️)) pl.x-=cdx * max_h_speed_factor
-	 	if (x<100 and not btn(➡️)) pl.x+=thrust/2  
-	 end
-	 
-		if btn(➡️) then
-			pl.thrusting=true
+
+	 if original_controls then
+			pl.thrusting=btn(➡️)
+		else
+			pl.thrusting=(btn(➡️) and pl.facing==1) or (btn(⬅️) and pl.facing==-1)	
+		end
+		if pl.thrusting then
 		 sfx(3)
-		else 
-	 	pl.thrusting=false
+		else
 			sfx(3, -2)
 		end
 	 if t-pl.thrusting_t>0.05 then
 			pl.thrusting_spr=(pl.thrusting_spr+1)%4
 			pl.thrusting_t=t
 		end
+	
+		local x=wxtoc(pl.x)
+	 if pl.facing==1 then
+  	if (x<40 and pl.thrusting) pl.x+=cdx * max_h_speed_factor
+	 	if (x>20 and not pl.thrusting) pl.x-=thrust/2
+	 else
+	 	if (x>80 and pl.thrusting) pl.x-=cdx * max_h_speed_factor
+	 	if (x<100 and not pl.thrusting) pl.x+=thrust/2
+	 end
 
 	 pl.x=pl.x%ww
 	 
@@ -583,10 +607,7 @@ function _update60_game_over()
  
  if pl.score>highscores[today][8][2] then
   if timeout then
-			actors={}  
-			particles={}
-			lasers={}
-	
+  	reset_pix()
 	 	hs_name,hs_chr="","a"
 	  pl.hit=t
 	 	_update60=_update60_new_highscore
@@ -594,15 +615,13 @@ function _update60_game_over()
 	 end
  else
 	 if timeout or (some_timeout and btnp(➡️)) then
-			actors={}  
-			particles={}
-			lasers={}
+		 reset_pix()
 	
 	  pl.hit=t
 	 	_update60=_update60_highscores
 	 	_draw=_draw_highscores
 	 elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
-	  start_game(true)
+	  start_game() --true)
 	  
 	  pl.hit=t
 	 	_update60=_update60_wave
@@ -620,13 +639,14 @@ function _update60_title()
  if timeout or btnp(➡️) then
 	 pal(10, 10)  
   bombing_t=t  
-  particles={}
+  --particles={}
+  reset_pix()
   pl.hit=t  
  	_update60=_update60_highscores
  	_draw=_draw_highscores
 	elseif btnp(🅾️) or btnp(❎) then
 	 pal(10, 10)  
-  start_game(true)
+  start_game() --true)
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
@@ -658,7 +678,7 @@ function _update60_highscores()
  	_update60=_update60_instructions
  	_draw=_draw_instructions
 	elseif btnp(🅾️) or btnp(❎) then
-  start_game(true)
+  start_game() --true)
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
@@ -797,8 +817,7 @@ function _update60_instructions()
  update_enemies()  
 
  if timeout or btnp(➡️) then
-  actors={}
-  particles={}
+		reset_pix()
   demo.t=0 
   pl.hit=t  
 		bombing_t=t
@@ -806,29 +825,29 @@ function _update60_instructions()
  	_update60=_update60_title
  	_draw=_draw_title
 	elseif btnp(🅾️) or btnp(❎) then
-  actors={}
   demo.t=0 
-  start_game(true)
+  start_game() --true)
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
  end
 end
 
-function start_game(full)
- if full then 
- 	music(23,0,15)  
-		reset_player(true)
-		actors={}  
-		lasers={}
-		iwave=0  
-		humans=0  
-		add_humans_needed=true
-		load_wave()
-	end
+function start_game() --full)
+ --if full then 
+	music(23,0,15)  
+	reset_pix()
+	reset_player(true)
+	--actors={}  
+	--lasers={}
+	iwave=0  
+	humans=0  
+	add_humans_needed=true
+	load_wave()
+	--end
  bombing_t=nil
  bombing_e=bombing_expire
- particles={}
+ --particles={}
  add_humans()  
  add_enemies(t+delay_first_enemies)
 end
@@ -1043,10 +1062,10 @@ function animate_camera()
 	local x=wxtoc(pl.x)
 	if x<20 then
  	pl.x=(cx+20)%ww
- 	canim=0
+ 	canim,canim_cdx=0,0
 	elseif x>100 then  
 	 pl.x=(cx+100)%ww
-	 canim=0
+	 canim,canim_cdx=0,0
 	end
 end
 
@@ -1080,9 +1099,16 @@ function _draw_title()
 	end
 	local o=hudy+78
 	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
-	print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
-	print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
-	print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
+	if original_controls then
+		--print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
+		--print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
+		print("⬅️ REVERSE ➡️ THRUST", 30, o+6, 15)	
+	else
+		print("⬅️ LEFT  ➡️ RIGHT", 30, o+6, 15)	
+	end
+	print("❎ FIRE 🅾️ BOMB", 35, o+16, 1)	
+	--print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
+	print("❎🅾️ HYPERSPACE", 35, o+22, 1)
 	print("press ❎ to start", 30, o+32, 10)
 end
 
@@ -1746,33 +1772,39 @@ function load_highscores()
 end
 
 function add_highscore(score, name, new)
-	new=new~=false
-	local start_board=today
-	if (not new) start_board=alltime
- for hst=start_board,alltime do
- 	local hste=highscores[hst]
-	 local pos=8
-	 while pos>0 and score>hste[pos][2] do
-		 pos-=1
-	 end
-	 if pos~=8 then 
-		 if pos>=0 then
-		 	for hs=8,pos+2,-1 do
-			 	hste[hs]=hste[hs-1]
-		 	end
-		 	hste[pos+1]={name, score}
-		 	
-		 	if hst==alltime and (new or not cart_exists) then
-					for hs=1,8 do
-						local hso=0x5e00+(hs*8)
-					 local hs_name=hste[hs][1]
-					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
-						dset(hs*2+1, hste[hs][2])
-					end 			 
-		 	end
-		 end	
-		end
-	end
+--	new=new~=false
+--	local start_board=today
+--	if (not new) start_board=alltime
+-- for hst=start_board,alltime do
+-- 	local hste=highscores[hst]
+--	 local pos=8
+--	 while pos>0 and score>hste[pos][2] do
+--		 pos-=1
+--	 end
+--	 if pos~=8 then 
+--		 if pos>=0 then
+--		 	for hs=8,pos+2,-1 do
+--			 	hste[hs]=hste[hs-1]
+--		 	end
+--		 	hste[pos+1]={name, score}
+--		 	
+--		 	if hst==alltime and (new or not cart_exists) then
+--					for hs=1,8 do
+--						local hso=0x5e00+(hs*8)
+--					 local hs_name=hste[hs][1]
+--					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
+--						dset(hs*2+1, hste[hs][2])
+--					end 			 
+--		 	end
+--		 end	
+--		end
+--	end
+end
+
+function reset_pix()
+	actors={}  
+	particles={}
+	lasers={}
 end
 
 
