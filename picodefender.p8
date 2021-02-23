@@ -59,7 +59,7 @@ attrs={
 	-- points,colour,w,h,frames,attack-prob,speed,attack sfx
 	[lander]={100,11,5,7,3,0.0025,0.15,7},
 	[mutant]={150,5,5,7,3,0.006,0.5,13},
-	[baiter]={200,11,4,7,3,0.015,2.2,15},
+	[baiter]={200,11,4,7,3,0.015,2.0,15},
 	[bomber]={250,14,4,4,3,0.005,0.3,nil},
 	[pod]={1000,8,5,7,4,1.00,0.2,nil},
 	[swarmer]={150,9,4,5,1,0.004,0.7,14},
@@ -356,15 +356,15 @@ end
 
 function update_enemy(e,target,ymargin)
 	local chasex,dyfactor=true,1
-	local flipx,flipy,closex,closey=0,0,0,24
+	local flipx,flipy,closex,closey=0,0.1,0,24
 	if (e.k==baiter) flipy,closex,closey,dyfactor=0.1,24+rnd(12),24+rnd(16),3
-	if (e.k==swarmer) chasex,flipx,flipy,closey=false,0.05,0.1,80
+	if (e.k==swarmer) chasex,flipx,flipy,closey=false,0.05,0.15,80
  local ytb,rand=rnd(ymargin),rnd()
 	local dx=abs(e.x-target.x)
+ local s=attrs[e.k][7]
 	if dx>closex then
 		if dx<rnd(256)-e.lazy then
-		 local s=attrs[e.k][7]
-		 if (iwave>6) s+=0.10
+		 if (iwave>6) s*=1.1
 			if chasex or e.dx==0 then
 			 if e.x<target.x or rand<flipx then
 				 e.dx=s
@@ -375,7 +375,7 @@ function update_enemy(e,target,ymargin)
 		end
 	else
 	 e.dx*=0.96+rnd(0.08)  
-	 if (rand<0.2) e.dx=sgn(e.x-pl.x)
+	 if (rand<0.2) e.dx=sgn(e.x-pl.x)*s
 	 if (rnd()<0.02) e.dx*=-1  
 	end
 	
@@ -390,8 +390,8 @@ function update_enemy(e,target,ymargin)
 	 	e.dy*=-1*dyfactor
 	 end
 	else
-		e.dy=0
-	 if (rand<flipy) e.dy=-sgn(e.y-target.y)
+		if ((dx<closex or closex==0) and rnd()<flipy/2) e.dy=0
+	 if (rand<flipy) e.dy=-sgn(e.y-target.y)*(s/3)
 	 if (rnd()<0.02) e.dy*=-1
 	end
 
@@ -466,7 +466,7 @@ function update_enemies()
 						 		e.k=mutant
  					 		e.c=attrs[mutant][2]
 						 		e.lazy=0  
-									e.dy=attrs[mutant][7] 
+									e.dy=attrs[mutant][7]/2
 						 	end
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
 						 	e.dy=-lander_speed
@@ -1439,7 +1439,7 @@ function kill_actor(e, laser, explode)
 		 make=min(make, 20-active_enemies(swarmer))
 		 for sw=1,make do
 			 local x,y=e.x+rnd(3),e.y+rnd(6)
-				l=make_actor(swarmer,x,y)  
+				l=make_actor(swarmer,x,y)
 				l.dy=attrs[swarmer][7]/2
 				if (rnd()<0.5) l.dy*=-1  
 				l.lazy=rnd(64)  
@@ -1476,7 +1476,7 @@ function kill_actor(e, laser, explode)
 		 			a.k=mutant
 			 		a.c=attrs[mutant][2]
 			 		a.lazy=0  
-						a.dy=attrs[mutant][7] 
+						a.dy=attrs[mutant][7]/2
 		 		end
 		 	end
 				wave.mutants+=wave.landers
@@ -1565,6 +1565,7 @@ function active_enemies(include_only)
 end
 
 function is_wave_complete()
+ if (iwave<7) return true
 	local r=0
  r+=active_enemies()
 	r+=wave.landers+wave.bombers+wave.pods+wave.mutants
@@ -1633,7 +1634,7 @@ function add_enemies(ht)
 	 make=wave.mutants  
 		for e=1,make do
 			l=make_actor(mutant,rnd(ww),14,ht)
-			l.dy=attrs[mutant][7] 
+			l.dy=attrs[mutant][7]/2
 			l.lazy=rnd(64)
 			add_explosion(l, true)
 			if (sound) sfx(2)
