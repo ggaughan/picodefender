@@ -25,7 +25,7 @@ ocx=cx
 hc=32
 hudy,hudw=12,hc*2
 hwr=ww/hudw
-hhr=(124-hudy)/13
+hhr=(124-hudy)/12+1
 lmax=82
 
 human=7
@@ -150,7 +150,7 @@ function _init()
 	original_controls=cart0&0b0010~=0
 
 	menuitem(1,"toggle flashing",toggle_bit1)
-	menuitem(2,"toggle controls",toggle_bit2)
+	menuitem(2,"toggle alt keys",toggle_bit2)
 
 	poke(0x5f5c,255) 
 
