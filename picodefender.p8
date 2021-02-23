@@ -69,9 +69,6 @@ attrs={
 	[bullet]={0,6,1,1,1,1.00,1.0,nil},
 }
 
-
-max_stars=100
-
 wave_colours={1,3,8,9,10,4,0}
 waves={
  {
@@ -96,7 +93,6 @@ waves={
 	},
 }
 
-inertia_py=0.90
 inertia_cx=0.97
 
 max_speed,thrust=2,0.4
@@ -106,49 +102,33 @@ max_h_speed_factor=max_speed/48
 
 laser_expire=0.5
 laser_size,laser_rate=22,4
-laser_max_length,laser_min_length=70,1
+laser_max_length=70
 min_laser_speed=0.2 
 laser_speed=1.8
-laser_inertia=0.999
 
 lander_speed=attrs[lander][7]  
-lander_speed_y_factor=2
-bullet_expire=1.4  
-mine_expire=6
 
 particle_expire=0.8
 particle_speed=0.6
 
-player_birth_expire=1
 player_exp_delay=0.4
 player_die_expire=3
 old_particle=1
-enemy_die_expire=1
 
-max_humans=10
 target_x_epsilon=3
 target_y_epsilon=4
 capture_targetted=1
 capture_lifted=2
 gravity_speed=0.16
-safe_height=80
 
 wave_progression=15  
 wave_old=60  
-baiter_next=wave_progression/3  
-max_baiters=4
-max_swarmers=20
 wave_reset=2  
-delay_first_enemies=0.5 
 
-extra_score_expire=1
 bombing_expire=0.3 
 ground_destroy_expire=2
 
 title_delay=8
-title_particle_expire=1.4
-game_over_delay=4
-new_highscore_delay=60 
 hs_chr="a"
 
 function toggle_bit1()
@@ -167,11 +147,8 @@ function _init()
 
 	poke(0x5f5c,255) 
 
-	w={}  
-	sw={} 
-	stars={}
-	cx=512  
- cdx=0
+	w,sw,stars={},{},{}
+	cx,cdx=512,0
  canim,canim_dx,canim_cdx=0,0,0
 
 	build_world() 
@@ -234,8 +211,10 @@ function _update60_wave()
 		 if (btnp(⬅️)) pl.facing=-1
 		 if (btnp(➡️))	pl.facing=1
 		 if pl.facing~=plf then
-			 canim=60
-			 canim_cdx=cdx/1.5
+			 --canim=60
+			 --canim_cdx=cdx/1.5
+			 canim=80
+			 canim_cdx=cdx*0.6
 			 canim_dx=pl.facing
 		  cdx*=0.5
 			 if (cdx<0.1) cdx=0
@@ -244,7 +223,8 @@ function _update60_wave()
 		  if (cdx>0.3) canim_cdx*=1.5
 		 else
 	   if (pl.thrusting) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
-			 if (canim>40 and cdx<2) cdx=0
+			 --if (canim>40 and cdx<2) cdx=0
+			 if (canim>60 and cdx<2) cdx=0
 			 --printh(cdx..","..canim)
 			end
 		 --if (btn(⬅️) or btn(➡️)) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
@@ -259,7 +239,7 @@ function _update60_wave()
 	 end
 	 for laser in all(lasers) do
 	 	laser[1]=(laser[1] + laser[5]*laser[3] * laser_speed)%ww
-	 	laser[5]*=laser_inertia
+	 	laser[5]*=0.999
 	 	if (t-laser[4]>laser_expire) del(lasers,laser)
 	 end
 
@@ -300,7 +280,7 @@ function _update60_wave()
 			end
 	 end
 	 
-	 pl.dy*=inertia_py
+	 pl.dy*=0.90
 	 pl.y+=pl.dy 
 	 
 	 cdx*=inertia_cx
@@ -482,7 +462,7 @@ function update_enemies()
 									e.dy=attrs[mutant][7] 
 						 	end
 						 elseif e.target.capture==capture_targetted and abs(e.x-e.target.x)<target_x_epsilon and abs(e.y-e.target.y)<target_y_epsilon then
-						 	e.dy=-lander_speed*(lander_speed_y_factor/2)
+						 	e.dy=-lander_speed
 						 	e.dx=0  
 								e.target.capture=capture_lifted
 								e.target.dy=gravity_speed  
@@ -517,14 +497,14 @@ function update_enemies()
 					elseif e.k == swarmer then
 						update_enemy(e,pl,40)
 					elseif e.k==mine then
-				 	if (t-e.t>mine_expire) del(actors,e)
+				 	if (t-e.t>6) del(actors,e)
 					elseif e.k==bullet then
-				 	if (t-e.t>bullet_expire) del(actors,e)
+				 	if (t-e.t>1.4) del(actors,e)
 				 elseif e.k==human then
 						if e.dropped_y~=nil then
 						 if e.y>119 then
 								e.y,e.dy=120,0
-								if e.dropped_y<safe_height then
+								if e.dropped_y<80 then
 						 		kill_actor(e,nil,true)  
 								else
 								 if (e.dropped_y<=110)	add_pl_score(250)
@@ -600,7 +580,7 @@ end
 function _update60_game_over()
 	t=time()
 	local age=t-pl.hit
-	local timeout=age>game_over_delay
+	local timeout=age>4
 	local some_timeout=age>2  
 
  update_particles()  
@@ -719,7 +699,7 @@ function _update60_new_highscore()
 		pl.hit=t  
  end
 
- if (t-pl.hit)>new_highscore_delay then
+ if (t-pl.hit)>60 then
 		add_highscore(pl.score, hs_name)
   pl.hit=t
  	_update60=_update60_highscores
@@ -849,7 +829,7 @@ function start_game() --full)
  bombing_e=bombing_expire
  --particles={}
  add_humans()  
- add_enemies(t+delay_first_enemies)
+ add_enemies(t+0.5)
 end
 
 -->8
@@ -939,7 +919,7 @@ function draw_hud(force_ground)
  
  draw_score(pl.score)
  if extra_score then
- 	if t-extra_score[4]<extra_score_expire then
+ 	if t-extra_score[4]<1 then
 		 draw_score(extra_score[1], extra_score[2],extra_score[3], true)
 		else
 		 extra_score=nil
@@ -964,7 +944,7 @@ function draw_player()
 			y,
 			x+min(
 			  		max((age * laser_size) * laser_rate, 
-    	  				laser_min_length
+    	  				1
 				  		  ) 
  		  		, 
 	 			 	laser_max_length 
@@ -983,7 +963,7 @@ function draw_player()
  		reset_enemies()  
 		end
 	elseif pl.birth~=nil then
-		if (t-pl.birth>player_birth_expire) pl.birth=nil	
+		if (t-pl.birth>1) pl.birth=nil	
 	else
 		local x=wxtoc(pl.x)
 		spr(2, x, pl.y, 1,1, pl.facing==-1)
@@ -994,7 +974,7 @@ end
 function draw_enemies()
 	for e in all(actors) do
 		if e.hit~=nil then
-			if (t-e.hit>enemy_die_expire)	e.hit=nil
+			if (t-e.hit>1)	e.hit=nil
 		else
 			local x,y=wxtoc(e.x),e.y
 			local fx=(e.k==human and e.dx>0)
@@ -1098,13 +1078,13 @@ function _draw_title()
 		end
 	end
 	local o=hudy+78
-	print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 	if original_controls then
+		print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
 		--print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
 		--print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
 		print("⬅️ REVERSE ➡️ THRUST", 30, o+6, 15)	
 	else
-		print("⬅️ LEFT  ➡️ RIGHT", 30, o+6, 15)	
+		print("⬆️⬇️ ⬅️➡️", 46, o+10, 1)	
 	end
 	print("❎ FIRE 🅾️ BOMB", 35, o+16, 1)	
 	--print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
@@ -1183,7 +1163,7 @@ function _draw_end_wave()
 		reset_player()
 		iwave=(iwave+1)%256
 		load_wave()
-		wave.t_chunk=t-wave_progression+wave_reset  
+		wave.t_chunk=t-wave_progression+wave_reset
 		_draw=_draw_wave
 	end
 end
@@ -1283,7 +1263,7 @@ function build_world()
 end
 
 function add_stars()
-	for s = 1,max_stars do
+	for s = 1,100 do
 		add(stars, {
 			rnd(ww), rnd(120-hudy)+hudy, 
 			rnd(2)+10 
@@ -1449,7 +1429,7 @@ function kill_actor(e, laser, explode)
 			 if (r==129) make=2
 		 end
 		 if (r==173) make=3
-		 make=min(make, max_swarmers-active_enemies(swarmer))
+		 make=min(make, 20-active_enemies(swarmer))
 		 for sw=1,make do
 			 local x,y=e.x+rnd(3),e.y+rnd(6)
 				l=make_actor(swarmer,x,y)  
@@ -1606,7 +1586,7 @@ function load_wave()
 	wave.swarmers_loosed=0 
 
 	if iwave==0 or (iwave+1)%5==0 then
-		wave.humans_added=max_humans-humans
+		wave.humans_added=10-humans
 		humans+=wave.humans_added
 	end
 	
@@ -1625,7 +1605,7 @@ function add_enemies(ht)
 	 make=min(wave.landers,5)
 		for e=1,make do
 			l=make_actor(lander,rnd(ww),hudy+2,ht)
-			l.dy=lander_speed*lander_speed_y_factor
+			l.dy=lander_speed*2
 			l.lazy=rnd(512)  
 			l.target=nil
 			if true then 
@@ -1691,7 +1671,7 @@ function add_enemies(ht)
 		wave.swarmers_loosed-=make
 	end
 	
- if wave.baiters_generated<max_baiters then
+ if wave.baiters_generated<4 then
 		local very_old=(t-wave.t)>wave_old*2
 		if very_old or (wave.landers==0 and wave.bombers==0 and wave.pods==0) then
 			if very_old or (wave.mutants==0) then
@@ -1699,7 +1679,7 @@ function add_enemies(ht)
 				if ae<5 or very_old then
 					if t-wave.t>wave_old then
 					 make=1
-					 if (ae<4) wave.t_chunk=t-wave_progression+baiter_next*ae
+					 if (ae<4) wave.t_chunk=t-wave_progression+5*ae
 						for e=1,make do
 							l=make_actor(baiter,rnd(ww),hudy+2,ht)
 							l.dy=attrs[baiter][7]/3
