@@ -1503,7 +1503,7 @@ function reset_player(full)
 		pl.score=0
 		pl.score_10k=0
  end
- cdx=0 
+ canim,cdx=0,0
  bombing_e=bombing_expire
 	pl.x,pl.y=cx+20,64
 	pl.facing,pl.dy=1,0
@@ -1565,7 +1565,7 @@ function active_enemies(include_only)
 end
 
 function is_wave_complete()
- if (iwave<7) return true
+ --if (iwave<7) return true
 	local r=0
  r+=active_enemies()
 	r+=wave.landers+wave.bombers+wave.pods+wave.mutants
