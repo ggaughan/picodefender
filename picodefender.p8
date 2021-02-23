@@ -5,9 +5,9 @@ __lua__
 -- ggaughan, 2021
 -- remake of the williams classic
 
-version = 1.00
+version = 1.01
 
-cart0=0  -- 32 bits: 0=epi_friendly
+cart0=0  -- 32 bits: 0=epi_friendly,1=original_controls
 
 t=time()
 
@@ -25,7 +25,7 @@ ocx=cx
 hc=32
 hudy,hudw=12,hc*2
 hwr=ww/hudw
-hhr=(124-hudy)/hudy+1
+hhr=(124-hudy)/13
 lmax=82
 
 human=7
@@ -137,13 +137,20 @@ function toggle_bit1()
 	dset(0, cart0)
 end
 
+function toggle_bit2()
+	original_controls=not original_controls
+	cart0^^=0b0010
+	dset(0, cart0)
+end
+
 function _init()
 	cart_exists=cartdata("ggaughan_picodefender_1")
 	if (cart_exists)	cart0=dget(0)
-	epi_friendly=cart0&0b0001!=0
-	original_controls=false
+	epi_friendly=cart0&0b0001~=0
+	original_controls=cart0&0b0010~=0
 
 	menuitem(1,"toggle flashing",toggle_bit1)
+	menuitem(2,"toggle controls",toggle_bit2)
 
 	poke(0x5f5c,255) 
 
@@ -1059,37 +1066,37 @@ function _draw_game_over()
 	
 	local age=t-pl.hit
  if (age<=player_exp_delay)	spr(2+(age*100)%2, wxtoc(old_p[1]), old_p[2], 1,1, old_p[3]==-1)
-	if (age>1) print("game over", 48, hudy+40, 5)
+	if (age>1) print("game over", 48, 52, 5)
 end
 
 function _draw_title()
  cls()
 	draw_particles(true)
 	if bombing_t==nil or t-bombing_t>bombing_e then
-		map(0,1, 25,hudy+1, 10,4)
-		print("by", 59, hudy+40, 7)
-		print("greg gaughan", 39, hudy+46, 7)
+		map(0,1, 25,13, 10,4)
+		print("by", 59, 52, 7)
+		print("greg gaughan", 39, 58, 7)
 	else
 		for i=1,32 do
 		 if i~=16 then
 				local o=(i-16)*easeinoutquad(1-(t-bombing_t)/bombing_e)*2
-				tline(25,hudy+1+i+o,25+80,hudy+1+i+o, 0,i/8+1, 1/8,0)
+				tline(25,13+i+o,105,13+i+o, 0,i/8+1, 1/8,0)
 			end
 		end
 	end
-	local o=hudy+78
 	if original_controls then
-		print("⬆️ UP  ⬇️ DOWN", 36, o, 15)
-		--print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
-		--print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
-		print("⬅️ REVERSE ➡️ THRUST", 30, o+6, 15)	
+--		print("⬆️ UP  ⬇️ DOWN", 36, 90, 15)
+--		--print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
+--		--print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
+--		print("⬅️ REVERSE ➡️ THRUST", 23, 96, 15)	
+		print("⬆️⬇️ ⬅️ REVERSE ➡️ THRUST", 15, 98, 15)	
 	else
-		print("⬆️⬇️ ⬅️➡️", 46, o+10, 1)	
+		print("⬆️⬇️ ⬅️➡️", 46, 100, 1)	
 	end
-	print("❎ FIRE 🅾️ BOMB", 35, o+16, 1)	
+	print("❎ FIRE 🅾️ BOMB", 35, 106, 1)	
 	--print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
-	print("❎🅾️ HYPERSPACE", 35, o+22, 1)
-	print("press ❎ to start", 30, o+32, 10)
+	print("❎🅾️ HYPERSPACE", 35, 112, 1)
+	print("press ❎ to start", 30, 122, 10)
 end
 
 function _draw_highscores()
@@ -1097,17 +1104,17 @@ function _draw_highscores()
 	if (pl.score>0) draw_score(pl.score)
 	draw_particles()
 	map(0,1, 25,0, 10,4)
-	print("hall of fame", 41, hudy+23, 5)
-	print("todays", 14, hudy+32, 5)
-	print("all time", 86, hudy+32, 5)
-	print("greatest", 10, hudy+38, 5)
-	print("greatest", 86, hudy+38, 5)
- line(10, hudy+44, 40, hudy+44, 5)
- line(86, hudy+44, 116, hudy+44, 5)
+	print("hall of fame", 41, 35, 5)
+	print("todays", 14, 44, 5)
+	print("all time", 86, 44, 5)
+	print("greatest", 10, 50, 5)
+	print("greatest", 86, 50, 5)
+ line(10, 56, 40, 56, 5)
+ line(86, 56, 116, 56, 5)
 	for hst=today,alltime do
 	 local co=(hst-1)*76
 		for i,hs in pairs(highscores[hst]) do
-			local y=hudy+42+i*6
+			local y=54+i*6
  		print(i, 1+co, y, 5)
 		 if hs[1]~=nil then
 				print(hs[1],10+co,y,5)
@@ -1121,11 +1128,11 @@ function _draw_new_highscore()
  cls()
 	draw_score(pl.score)
 	draw_particles()
-	print("player one", 48, hudy+1, 2)
-	print("you have qualified for", 16, hudy+16, 2)
-	print("the defender hall of fame", 16, hudy+24, 2)
-	print("select initials with ⬆️/⬇️", 16, hudy+36, 2)
-	print("press fire to enter initial", 16, hudy+48, 2)
+	print("player one", 48, 13, 2)
+	print("you have qualified for", 16, 28, 2)
+	print("the defender hall of fame", 16, 36, 2)
+	print("select initials with ⬆️/⬇️", 16, 48, 2)
+	print("press fire to enter initial", 16, 60, 2)
 	for ci=1,#hs_name do
  	print(sub(hs_name,ci,ci), 48+ci*10, 80, 2)
  end
@@ -1145,19 +1152,19 @@ function _draw_instructions()
 	draw_enemies()
 	draw_particles()
 	draw_player()  
-	print("scanner", 51, hudy+4, 5)
+	print("scanner", 51, 16, 5)
 end
 
 function _draw_end_wave()
  cls()
 	draw_hud()
 	draw_player() 
-	rectfill(0, hudy+1,127,127, 0)
-	print("attack wave "..(iwave+1), 40, hudy+20, 5)
-	print("completed", 46, hudy+28, 5)
-	print("bonus x "..100*min(iwave+1,5), 43, hudy+48, 5)
+	rectfill(0, 13,127,127, 0)
+	print("attack wave "..(iwave+1), 40, 32, 5)
+	print("completed", 46, 40, 5)
+	print("bonus x "..100*min(iwave+1,5), 43, 60, 5)
 	for h=1,humans do
-		spr(human,33+h*5, hudy+56)
+		spr(human,33+h*5, 68)
 	end
 	if pl.hit==nil then
 		reset_player()
@@ -1604,7 +1611,7 @@ function add_enemies(ht)
 	if wave.landers>0 then
 	 make=min(wave.landers,5)
 		for e=1,make do
-			l=make_actor(lander,rnd(ww),hudy+2,ht)
+			l=make_actor(lander,rnd(ww),14,ht)
 			l.dy=lander_speed*2
 			l.lazy=rnd(512)  
 			l.target=nil
@@ -1625,7 +1632,7 @@ function add_enemies(ht)
 	if wave.mutants>0 then
 	 make=wave.mutants  
 		for e=1,make do
-			l=make_actor(mutant,rnd(ww),hudy+2,ht)
+			l=make_actor(mutant,rnd(ww),14,ht)
 			l.dy=attrs[mutant][7] 
 			l.lazy=rnd(64)
 			add_explosion(l, true)
@@ -1639,7 +1646,7 @@ function add_enemies(ht)
 	 local groupdx=1
 		if (rnd()<0.5) groupdx*=-1
 		for e=1,make do
-			l=make_actor(bomber,groupx+rnd(ww/20),hudy+2+rnd(80),ht)
+			l=make_actor(bomber,groupx+rnd(ww/20),14+rnd(80),ht)
 			l.dy=attrs[bomber][7]
 			l.dx=groupdx*l.dy
  		if (rnd()<0.5) l.dy*=-1
@@ -1651,7 +1658,7 @@ function add_enemies(ht)
  if wave.pods>0 then
 	 make=min(wave.pods,4)
 		for e=1,make do
-			l=make_actor(pod,rnd(ww),hudy+2+rnd(30),ht)
+			l=make_actor(pod,rnd(ww),14+rnd(30),ht)
 			l.dy=attrs[pod][7]
 			l.dx=l.dy/4
 			add_explosion(l,true)
@@ -1663,7 +1670,7 @@ function add_enemies(ht)
 	 make=wave.swarmers_loosed
 	 local groupx=rnd(ww)
 		for e=1,make do
-			l=make_actor(swarmer,groupx+rnd(80),hudy+2+rnd(80),ht)
+			l=make_actor(swarmer,groupx+rnd(80),14+rnd(80),ht)
 			l.dy=attrs[swarmer][7]/2
 			if (rnd()<0.5) l.dy*=-1  
 			l.lazy=0
@@ -1681,7 +1688,7 @@ function add_enemies(ht)
 					 make=1
 					 if (ae<4) wave.t_chunk=t-wave_progression+5*ae
 						for e=1,make do
-							l=make_actor(baiter,rnd(ww),hudy+2,ht)
+							l=make_actor(baiter,rnd(ww),14,ht)
 							l.dy=attrs[baiter][7]/3
 							l.lazy=-256
 							add_explosion(l,true)
@@ -1752,39 +1759,37 @@ function load_highscores()
 end
 
 function add_highscore(score, name, new)
---	new=new~=false
---	local start_board=today
---	if (not new) start_board=alltime
--- for hst=start_board,alltime do
--- 	local hste=highscores[hst]
---	 local pos=8
---	 while pos>0 and score>hste[pos][2] do
---		 pos-=1
---	 end
---	 if pos~=8 then 
---		 if pos>=0 then
---		 	for hs=8,pos+2,-1 do
---			 	hste[hs]=hste[hs-1]
---		 	end
---		 	hste[pos+1]={name, score}
---		 	
---		 	if hst==alltime and (new or not cart_exists) then
---					for hs=1,8 do
---						local hso=0x5e00+(hs*8)
---					 local hs_name=hste[hs][1]
---					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
---						dset(hs*2+1, hste[hs][2])
---					end 			 
---		 	end
---		 end	
---		end
---	end
+	new=new~=false
+	local start_board=today
+	if (not new) start_board=alltime
+ for hst=start_board,alltime do
+ 	local hste=highscores[hst]
+	 local pos=8
+	 while pos>0 and score>hste[pos][2] do
+		 pos-=1
+	 end
+	 if pos~=8 then 
+		 if pos>=0 then
+		 	for hs=8,pos+2,-1 do
+			 	hste[hs]=hste[hs-1]
+		 	end
+		 	hste[pos+1]={name, score}
+		 	
+		 	if hst==alltime and (new or not cart_exists) then
+					for hs=1,8 do
+						local hso=0x5e00+(hs*8)
+					 local hs_name=hste[hs][1]
+					 if (hs_name ~= nil) poke(hso, ord(sub(hs_name,1,1)),ord(sub(hs_name,2,2)),ord(sub(hs_name,3,3)),ord(chr(0)))
+						dset(hs*2+1, hste[hs][2])
+					end 			 
+		 	end
+		 end	
+		end
+	end
 end
 
 function reset_pix()
-	actors={}  
-	particles={}
-	lasers={}
+	actors,particles,lasers={},{},{}
 end
 
 
