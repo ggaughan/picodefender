@@ -7,7 +7,7 @@ __lua__
 
 version = 1.01
 
-cart0=0  -- 32 bits: 0=epi_friendly,1=original_controls
+cart0=0  -- 32 bits: 1=epi_friendly,2=original_controls
 
 t=time()
 
@@ -214,27 +214,19 @@ function _update60_wave()
 		 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
 		else
 		 local plf=pl.facing
-		 --if ((btn(⬅️) or btn(➡️)) and canim<40) cdx=min(cdx+thrust,max_speed)
 		 if (btnp(⬅️)) pl.facing=-1
 		 if (btnp(➡️))	pl.facing=1
 		 if pl.facing~=plf then
-			 --canim=60
-			 --canim_cdx=cdx/1.5
 			 canim=80
 			 canim_cdx=cdx*0.6
 			 canim_dx=pl.facing
 		  cdx*=0.5
 			 if (cdx<0.1) cdx=0
-			 --printh(cdx)
-		  --if (pl.thrusting) canim_cdx*=1.5
 		  if (cdx>0.3) canim_cdx*=1.5
 		 else
 	   if (pl.thrusting) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
-			 --if (canim>40 and cdx<2) cdx=0
-			 if (canim>60 and cdx<2) cdx=0
-			 --printh(cdx..","..canim)
+			 if (canim>60 and cdx<2) cdx*=0.5
 			end
-		 --if (btn(⬅️) or btn(➡️)) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
 		end
 	 if btn(⬆️) then
 	  pl.dy-=vert_accel
@@ -356,9 +348,9 @@ end
 
 function update_enemy(e,target,ymargin)
 	local chasex,dyfactor=true,1
-	local flipx,flipy,closex,closey=0,0.1,0,24
+	local flipx,flipy,closex,closey=0,0.1,rnd(24),24
 	if (e.k==baiter) flipy,closex,closey,dyfactor=0.1,24+rnd(12),24+rnd(16),3
-	if (e.k==swarmer) chasex,flipx,flipy,closey=false,0.05,0.15,80
+	if (e.k==swarmer) chasex,flipx,flipy,closex,closey=false,0.05,0.15,0,80
  local ytb,rand=rnd(ymargin),rnd()
 	local dx=abs(e.x-target.x)
  local s=attrs[e.k][7]
@@ -374,7 +366,7 @@ function update_enemy(e,target,ymargin)
 			end
 		end
 	else
-	 e.dx*=0.96+rnd(0.08)  
+	 e.dx*=0.96+rnd(0.08)
 	 if (rand<0.2) e.dx=sgn(e.x-pl.x)*s
 	 if (rnd()<0.02) e.dx*=-1  
 	end
@@ -486,12 +478,8 @@ function update_enemies()
 							if rnd()<0.15 then
 								e.dx=lander_speed*(0.9+rnd())
 								if (rnd()<0.1) e.dx*=-1
-							--elseif rnd()<0.05 then
-							--	e.dx=0
 							end
 							if (rnd()<0.01 and e.y<100) e.dy=lander_speed
-							--	e.dy=lander_speed*lander_speed_y_factor*(0.5+rnd())
-							--end
 						end									
 						enemy_attack(e)
 					elseif e.k==mutant then
@@ -608,7 +596,7 @@ function _update60_game_over()
 	 	_update60=_update60_highscores
 	 	_draw=_draw_highscores
 	 elseif some_timeout and (btnp(🅾️) or btnp(❎)) then
-	  start_game() --true)
+	  start_game()
 	  
 	  pl.hit=t
 	 	_update60=_update60_wave
@@ -626,14 +614,13 @@ function _update60_title()
  if timeout or btnp(➡️) then
 	 pal(10, 10)  
   bombing_t=t  
-  --particles={}
   reset_pix()
   pl.hit=t  
  	_update60=_update60_highscores
  	_draw=_draw_highscores
 	elseif btnp(🅾️) or btnp(❎) then
 	 pal(10, 10)  
-  start_game() --true)
+  start_game()
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
@@ -665,7 +652,7 @@ function _update60_highscores()
  	_update60=_update60_instructions
  	_draw=_draw_instructions
 	elseif btnp(🅾️) or btnp(❎) then
-  start_game() --true)
+  start_game()
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
@@ -813,28 +800,24 @@ function _update60_instructions()
  	_draw=_draw_title
 	elseif btnp(🅾️) or btnp(❎) then
   demo.t=0 
-  start_game() --true)
+  start_game()
   pl.hit=nil  
  	_update60=_update60_wave
  	_draw=_draw_wave
  end
 end
 
-function start_game() --full)
- --if full then 
+function start_game()
 	music(23,0,15)  
 	reset_pix()
 	reset_player(true)
-	--actors={}  
-	--lasers={}
 	iwave=0  
 	humans=0  
 	add_humans_needed=true
 	load_wave()
-	--end
+
  bombing_t=nil
  bombing_e=bombing_expire
- --particles={}
  add_humans()  
  add_enemies(t+0.5)
 end
@@ -1085,16 +1068,11 @@ function _draw_title()
 		end
 	end
 	if original_controls then
---		print("⬆️ UP  ⬇️ DOWN", 36, 90, 15)
---		--print("❎ FIRE ➡️ THRUST", 30, o+6, 15)	
---		--print("⬅️ REVERSE 🅾️ BOMB", 28, o+16, 1)	
---		print("⬅️ REVERSE ➡️ THRUST", 23, 96, 15)	
 		print("⬆️⬇️ ⬅️ REVERSE ➡️ THRUST", 15, 98, 15)	
 	else
 		print("⬆️⬇️ ⬅️➡️", 46, 100, 1)	
 	end
 	print("❎ FIRE 🅾️ BOMB", 35, 106, 1)	
-	--print("⬆️⬇️🅾️ HYPERSPACE", 30, o+22, 1)
 	print("❎🅾️ HYPERSPACE", 35, 112, 1)
 	print("press ❎ to start", 30, 122, 10)
 end
@@ -1520,7 +1498,7 @@ function kill_player(e)
 	wave.t_chunk-=player_die_expire  
  lasers={}
  for i=1,16 do 
-  add_explosion(pl, false, rnd()*particle_speed/16+i/16) --, player_die_expire, true)
+  add_explosion(pl, false, rnd()*particle_speed/16+i/16)
 	end 
 	pl.lives-=1
 	add_pl_score(25)
@@ -1565,7 +1543,6 @@ function active_enemies(include_only)
 end
 
 function is_wave_complete()
- --if (iwave<7) return true
 	local r=0
  r+=active_enemies()
 	r+=wave.landers+wave.bombers+wave.pods+wave.mutants
