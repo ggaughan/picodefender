@@ -95,7 +95,7 @@ waves={
 
 inertia_cx=0.97
 
-max_speed,thrust=2,0.4
+max_speed,thrust=2,0.3
 vert_accel=0.6
 max_vert_speed=max_speed/2
 max_h_speed_factor=max_speed/48
