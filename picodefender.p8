@@ -225,7 +225,7 @@ function _update60_wave()
 		  if (cdx>0.3) canim_cdx*=1.5
 		 else
 	   if (pl.thrusting) cdx=min(cdx-(canim_cdx/3.5)+thrust,max_speed)
-			 if (canim>60 and cdx<2) cdx*=0.5
+			 if (canim>60 and cdx<2) cdx*=0.6
 			end
 		end
 	 if btn(⬆️) then
@@ -352,6 +352,7 @@ function update_enemy(e,target,ymargin)
 	if (e.k==baiter) flipy,closex,closey,dyfactor=0.1,24+rnd(12),24+rnd(16),3
 	if (e.k==swarmer) chasex,flipx,flipy,closex,closey=false,0.05,0.15,0,80
  local ytb,rand=rnd(ymargin),rnd()
+ -- note: several places ignore wrapping to attempt to replicate original bugs
 	local dx=abs(e.x-target.x)
  local s=attrs[e.k][7]
 	if dx>closex then
@@ -873,6 +874,7 @@ function add_pl_score(v, x, y)
 		pl.bombs=min(pl.bombs+1,255)
 		pl.score_10k-=10000>>16
 	end
+	-- note: original had bug with early extra lives/bombs on each score between 990000 and 1 million (then wrapped)
 end
 
 function draw_hud(force_ground)
@@ -1292,7 +1294,7 @@ function add_bullet(x, y, from, track)
 	else	
 		local bv=attrs[bullet][7]
 		local tx,ty=pl.x,pl.y  
-		-- todo if track...
+		-- todo if track solve the quadratic...
 	 local miss=30-min(iwave,24)
 	 tx+=rnd(miss)*-sgn(pl.dx)
 	 ty+=rnd(miss*0.5)*-sgn(pl.dy)
@@ -1481,7 +1483,7 @@ function reset_player(full)
 		pl.score=0
 		pl.score_10k=0
  end
- canim,cdx=0,0
+ canim,cdx,canim_cdx=0,0,0
  bombing_e=bombing_expire
 	pl.x,pl.y=cx+20,64
 	pl.facing,pl.dy=1,0
