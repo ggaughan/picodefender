@@ -13,10 +13,11 @@ t=time()
 
 today,alltime=1,2
 e_hs={nil,0}
-highscores={
-	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
-	{e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs,e_hs},
-}
+highscores={{},{}}
+for hs=1,8 do
+	add(highscores[today],e_hs)
+	add(highscores[alltime],e_hs)
+end
 init_hs="drj=13293.75,sam=11446.875,led=9950,pgd=8928.125,gjg=8256.25" -- >>12
 
 ww,cx=1152,512  
@@ -70,28 +71,7 @@ attrs={
 }
 
 wave_colours={1,3,8,9,10,4,0}
-waves={
- {
-		landers=15,
-		bombers=0,
-		pods=0,
-	},
- {
-		landers=20,
-		bombers=3,
-		pods=1,
-	},
- {
-		landers=20,
-		bombers=4,
-		pods=3,
-	},
- {
-		landers=20,
-		bombers=5,
-		pods=4,
-	},
-}
+waves={{15,0,0},{20,3,1},{20,4,3},{20,5,4}}
 
 inertia_cx=0.97
 
@@ -214,8 +194,8 @@ function _update60_wave()
 		 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
 		else
 		 local plf=pl.facing
-		 if (btnp(⬅️)) pl.facing=-1
-		 if (btnp(➡️))	pl.facing=1
+		 if (btnp(⬅️) or (btn(⬅️) and not btn(➡️))) pl.facing=-1
+		 if (btnp(➡️) or (btn(➡️) and not btn(⬅️)))	pl.facing=1
 		 if pl.facing~=plf then
 			 canim=80
 			 canim_cdx=cdx*0.6
@@ -1556,9 +1536,9 @@ function load_wave()
 	if (iwave<4) sw=waves[iwave+1]
 	wave={
  	 c=wave_colours[iwave%7+1],
- 		landers=sw.landers,
- 		bombers=sw.bombers,
- 		pods=sw.pods,	
+ 		landers=sw[1],
+ 		bombers=sw[2],
+ 		pods=sw[3],
  		
  		mutants=0,
  		
