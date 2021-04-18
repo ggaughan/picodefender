@@ -1,5 +1,5 @@
 # picodefender
 Pico Defender
 
-[](publicity/picodefender_action.gif)
+![](publicity/picodefender_action.gif)
 
