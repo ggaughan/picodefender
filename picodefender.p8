@@ -1,13 +1,13 @@
 pico-8 cartridge // http://www.pico-8.com
-version 30
+version 31
 __lua__
 -- pico defender
 -- ggaughan, 2021
 -- remake of the williams classic
 
-version = 1.01
+version = 1.02
 
-cart0=0  -- 32 bits: 1=epi_friendly,2=original_controls
+cart0=0  -- 32 bits: 1=epi_friendly  --todo:remove:,2=original_controls
 
 t=time()
 
@@ -58,8 +58,8 @@ ns="lander,mutant,baiter,bomber,pod,swarmer"
 names=split(ns)
 attrs={
 	-- points,colour,w,h,frames,attack-prob,speed,attack sfx
-	[lander]={100,11,5,7,3,0.0025,0.15,7},
-	[mutant]={150,5,5,7,3,0.006,0.5,13},
+	[lander]={100,11,5,7,3,0.003,0.35,7},
+	[mutant]={150,5,5,7,3,0.006,0.8,13},
 	[baiter]={200,11,4,7,3,0.015,2.0,15},
 	[bomber]={250,14,4,4,3,0.005,0.3,nil},
 	[pod]={1000,8,5,7,4,1.00,0.2,nil},
@@ -117,20 +117,22 @@ function toggle_bit1()
 	dset(0, cart0)
 end
 
+--[[
 function toggle_bit2()
 	original_controls=not original_controls
 	cart0^^=0b0010
 	dset(0, cart0)
 end
+--]]
 
 function _init()
 	cart_exists=cartdata("ggaughan_picodefender_1")
 	if (cart_exists)	cart0=dget(0)
 	epi_friendly=cart0&0b0001~=0
-	original_controls=cart0&0b0010~=0
+	--original_controls=cart0&0b0010~=0
 
 	menuitem(1,"toggle flashing",toggle_bit1)
-	menuitem(2,"toggle alt keys",toggle_bit2)
+	--menuitem(2,"toggle alt keys",toggle_bit2)
 
 	poke(0x5f5c,255) 
 
@@ -182,24 +184,22 @@ function _update60_wave()
  t=time()
  update_particles()  
 	if pl.hit==nil and pl.birth==nil then
-		if original_controls then
+		if false then --original_controls then
+		 --[[
 		 if btnp(⬅️) then
 			 pl.facing*=-1
-			 canim=80
-			 canim_cdx=cdx
-			 canim_dx=pl.facing
+			 canim,canim_cdx,canim_dx=80,cdx,pl.facing
 		  cdx*=0.5
 		  if (btn(➡️)) canim_cdx*=1.5
 			end
 		 if (btn(➡️)) cdx=min(cdx+thrust,max_speed)
+		 --]]
 		else
 		 local plf=pl.facing
 		 if (btnp(⬅️) or (btn(⬅️) and not btn(➡️))) pl.facing=-1
 		 if (btnp(➡️) or (btn(➡️) and not btn(⬅️)))	pl.facing=1
 		 if pl.facing~=plf then
-			 canim=80
-			 canim_cdx=cdx*0.6
-			 canim_dx=pl.facing
+			 canim,canim_cdx,canim_dx=80,cdx*0.6,pl.facing
 		  cdx*=0.5
 			 if (cdx<0.1) cdx=0
 		  if (cdx>0.3) canim_cdx*=1.5
@@ -270,8 +270,8 @@ function _update60_wave()
 	 	canim_cdx*=inertia_cx
 	 end
 
-	 if original_controls then
-			pl.thrusting=btn(➡️)
+	 if false then --original_controls then
+			--pl.thrusting=btn(➡️)
 		else
 			pl.thrusting=(btn(➡️) and pl.facing==1) or (btn(⬅️) and pl.facing==-1)	
 		end
@@ -371,6 +371,26 @@ function update_enemy(e,target,ymargin)
 	enemy_attack(e)
 end
 
+function lander_trace(e)
+	local closing = e.target~=nil and abs(e.x-e.target.x)<60 
+	local h = w[ceil(e.x)]
+ if h > e.y+32 then
+		e.dy = lander_speed
+ elseif h < e.y+16 then
+ 	if (not closing) then
+ 		if rnd() < 0.1 then
+ 			e.dy = -lander_speed/2
+ 		else
+ 			if h < e.y+12 then
+ 			 e.dy = -lander_speed
+ 			else
+ 			 e.dy = -lander_speed/8
+			 end
+ 		end
+ 	end
+	end
+end
+
 function update_enemies()
 	for e in all(actors) do
 	 local laserable=e.k~=mine
@@ -450,17 +470,18 @@ function update_enemies()
 								sfx(10)
 						 elseif e.x<e.target.x then
 							 e.dx=lander_speed
-			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+							 lander_trace(e)
 							else
 							 e.dx=-lander_speed
-			 				if (e.y<hudy+90 and e.dy<0) e.dy*=-1
+			 				if (e.x > e.target.x+target_x_epsilon)	lander_trace(e)
 						 end			
 	 				else
-							if rnd()<0.15 then
+							if rnd()<0.10 then
 								e.dx=lander_speed*(0.9+rnd())
-								if (rnd()<0.1) e.dx*=-1
+								if (rnd()<0.05) e.dx*=-1
 							end
 							if (rnd()<0.01 and e.y<100) e.dy=lander_speed
+							lander_trace(e)
 						end									
 						enemy_attack(e)
 					elseif e.k==mutant then
@@ -565,6 +586,7 @@ function _update60_game_over()
   if timeout then
   	reset_pix()
 	 	hs_name,hs_chr="","a"
+	 	-- todo play bach, toccata and fugue in d minor, organ
 	  pl.hit=t
 	 	_update60=_update60_new_highscore
 	 	_draw=_draw_new_highscore
@@ -1049,8 +1071,8 @@ function _draw_title()
 			end
 		end
 	end
-	if original_controls then
-		print("⬆️⬇️ ⬅️ REVERSE ➡️ THRUST", 15, 98, 15)	
+	if false then --original_controls then
+		--print("⬆️⬇️ ⬅️ REVERSE ➡️ THRUST", 15, 98, 15)	
 	else
 		print("⬆️⬇️ ⬅️➡️", 46, 100, 1)	
 	end
